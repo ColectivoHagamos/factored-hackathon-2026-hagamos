@@ -30,6 +30,7 @@ from vera.contracts.api import (
 from vera.contracts.cases import Case
 from vera.contracts.handoff import Handoff
 from vera.contracts.tools import ReadCaseInput
+from vera.gateway.injection import signals as injection_signals
 from vera.gateway.masking import mask
 from vera.ports.tools import Session
 
@@ -150,8 +151,10 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     ) -> MessageResponse:
         _own(container, conversation_id, session)
         limiter.check(session.subject)
+        # Injection signals are read on the original text; only the masked text goes further.
+        signals = injection_signals(body.text) if body.text else ()
         masked = body.model_copy(update={"text": mask(body.text)}) if body.text else body
-        return container.conversation.reply(Session(session.subject, conversation_id), masked)
+        return container.conversation.reply(Session(session.subject, conversation_id), masked, signals)
 
     @app.get(f"{PREFIX}/cases/{{case_id}}", response_model=CaseView, tags=["cases"])
     def case(case_id: str, session: SessionToken = Depends(customer_session)) -> CaseView:

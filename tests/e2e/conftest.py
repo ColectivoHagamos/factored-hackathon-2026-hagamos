@@ -38,6 +38,7 @@ class Customer:
         chosen = next(c for c in demo.json() if any(tag.split("_")[0] == scenario for tag in c["scenarios"]))
         token = client.post("/v1/demo-session", json={"demo_customer": chosen["customer_ref"]}).json()["token"]
         self.client = client
+        self.ref = chosen["customer_ref"]
         self.country = chosen["country"]
         self.headers = {"Authorization": f"Bearer {token}"}
         started = client.post("/v1/conversations", json={}, headers=self.headers).json()
@@ -52,6 +53,25 @@ class Customer:
     @staticmethod
     def approved_option(reply: dict) -> int:
         return next(o["n"] for o in reply["options"] if "aprobado" in o["label"] or "aprovada" in o["label"])
+
+    def pick_approved(self, reply: dict) -> dict:
+        """With several candidates, chooses an approved one; a single candidate is already shown."""
+        if reply["options"] and not any(o.get("answer") for o in reply["options"]):
+            return self.say(selected_option=self.approved_option(reply))
+        return reply
+
+    def deny_until_registration(self, reply: dict) -> dict:
+        """From «¿Reconoce el cargo?»: not recognized, bought online, card at hand, every swept charge, no block."""
+        reply = self.say(selected_option="no")
+        if "internet" in reply["reply"]:
+            reply = self.say(selected_option="yes")
+        if "tarjeta con usted" in reply["reply"]:
+            reply = self.say(selected_option="yes")
+        if reply.get("multiple_choice"):
+            reply = self.say(text="todos")
+        if (reply.get("pending_confirmation") or {}).get("action") == "block_card":
+            reply = self.say(selected_option="no")
+        return reply
 
 
 def now() -> datetime:
