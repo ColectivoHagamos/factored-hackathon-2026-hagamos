@@ -36,10 +36,12 @@ The team wrote 329 phrases for this purpose: five classes, in Spanish and Portug
 
 | | Accuracy | Macro F1 | ECE | Acts (confidence ≥ 0.6) | Accuracy when it acts | Acts on a wrong reading |
 |---|---:|---:|---:|---:|---:|---:|
-| Keyword baseline | 0.330 | 0.275 | 0.174 | 21.6 % | 78.9 % | 4.5 % |
+| Keyword baseline | 0.432 | 0.378 | 0.128 | 31.8 % | 85.7 % | 4.5 % |
 | **Learned classifier** | **0.875** | **0.881** | **0.062** | **87.5 %** | **96.1 %** | **3.4 %** |
 
 "Acts" is the share of messages the conversation follows without asking again, which is what the threshold of POL-14 decides. The baseline acts rarely because a keyword pattern either matches exactly or the rules return a low confidence, so VERA asks.
+
+**The baseline numbers are optimistic.** On 4 October, after the held-out evaluation, the keyword patterns for a request for a person were extended ("hablar con alguien", "supervisor", "atención al cliente", "carne y hueso"). Some of those expressions also appear in this test family, which the baseline had never been tuned on before; its accuracy rose from 0.330 to 0.432. The learned classifier did not change.
 
 **By class (learned classifier, F1):**
 
