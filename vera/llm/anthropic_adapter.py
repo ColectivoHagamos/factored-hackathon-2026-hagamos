@@ -14,11 +14,11 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from vera.contracts.common import Currency, Language
-from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel, Interpretation
+from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, DeclaredChannel, Interpretation
 from vera.llm.rules_adapter import RulesInterpreter
 from vera.ports.interpreter import InterpreterPort
 
-PROMPT_VERSION = "interpreter-v1"
+PROMPT_VERSION = "interpreter-v2"
 PROMPT = (Path(__file__).parent / "prompts" / f"{PROMPT_VERSION}.md").read_text(encoding="utf-8")
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 TOOL = "record_interpretation"
@@ -33,6 +33,7 @@ EXPECTING = {
     "claim": "the reason of the contact (the first message of the case)",
     "choice": "a choice among numbered options",
     "yes_no": "an answer to a yes-or-no question",
+    "details": "when the transfer was made and how a third party contacted the customer (a scam, POL-10)",
 }
 
 logger = logging.getLogger("vera.llm")
@@ -58,6 +59,7 @@ TOOL_DEFINITION = {
             "declared_channel": _enum(DeclaredChannel, nullable=True),
             "has_card": _enum(Answer),
             "authorized_payment": _enum(Answer),
+            "contact_channel": _enum(ContactChannel, nullable=True),
             "coercion": {"type": "boolean"},
             "regulator_mentioned": {"type": "boolean"},
             "pix_mentioned": {"type": "boolean"},

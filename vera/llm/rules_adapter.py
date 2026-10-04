@@ -9,7 +9,7 @@ import unicodedata
 from decimal import Decimal
 
 from vera.contracts.common import Currency, Language
-from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel, Interpretation
+from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, DeclaredChannel, Interpretation
 
 
 def _fold(text: str) -> str:
@@ -114,6 +114,16 @@ DATE_PATTERN = (
     r"\b(ayer|anteayer|antier|hoy|esta semana|la semana pasada|el (lunes|martes|miercoles|jueves|viernes|"
     r"sabado|domingo)|hace \d+ dias|ontem|hoje|anteontem|\d{1,2} de [a-z]+|\d{1,2}/\d{1,2}(/\d{2,4})?)\b"
 )
+# POL-10: how a third party reached the customer, checked in this order: a call over WhatsApp is still a call.
+# "Me llamó" is left out: without accents it is "me llamo", which introduces a name.
+CONTACT = (
+    (ContactChannel.PHONE_CALL, r"\b(me llamaron|llamada|llamaron|telefono|celular|ligaram|ligacao|ligou)\b"),
+    (ContactChannel.MESSAGE, r"\b(whatsapp|wsp|wpp|zap|telegram|sms|mensaje de texto|mensajito|mensagem|mensajes?)\b"),
+    (ContactChannel.EMAIL, r"\b(correo|e-?mail|mail)\b"),
+    (ContactChannel.SOCIAL_MEDIA, r"\b(facebook|instagram|tiktok|redes sociales|marketplace|twitter|redes)\b"),
+    (ContactChannel.WEBSITE, r"\b(pagina|sitio web|enlace|link|site)\b"),
+    (ContactChannel.IN_PERSON, r"\b(en persona|presencial|en la calle|pessoalmente)\b"),
+)
 NUMBER_WORDS = {
     "primero": 1,
     "primer": 1,
@@ -149,6 +159,7 @@ class RulesInterpreter:
             declared_channel=_channel(text),
             has_card=Answer.NO if _any(NO_CARD, text) else Answer.YES if _any(HAS_CARD, text) else Answer.NOT_SAID,
             authorized_payment=Answer.YES if _any(SCAM, text) else Answer.NOT_SAID,
+            contact_channel=next((channel for channel, pattern in CONTACT if re.search(pattern, text)), None),
             coercion=_any(COERCION, text),
             regulator_mentioned=_any(REGULATOR, text),
             pix_mentioned=_any(PIX, text),

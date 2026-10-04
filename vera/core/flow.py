@@ -174,6 +174,8 @@ class Conversation:
             expecting = "claim"
         elif turn.state.step in (Step.CHOOSE_CHARGE, Step.SWEEP):
             expecting = "choice"
+        elif turn.state.step is Step.SCAM_DETAILS:
+            expecting = "details"
         else:
             expecting = "yes_no"
         if message.text:
@@ -201,7 +203,8 @@ class Conversation:
     def _safety_first(self, turn: Turn, reading: Interpretation) -> bool:
         """POL-01, POL-02 and POL-09 win over every other step."""
         customer = self._tools.customer(turn.session)
-        person = reading.claim_type is ClaimType.HUMAN_REQUEST
+        # During the key questions of a scam a person is already on the way (POL-10): the request needs no offer.
+        person = reading.claim_type is ClaimType.HUMAN_REQUEST and turn.state.step is not Step.SCAM_DETAILS
         sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
         if person and not sure and turn.state.step not in (Step.HANDED_OFF, Step.PERSON_OFFERED):
             # POL-14 before POL-01: when the reading is unsure, VERA asks before treating it as a request.
@@ -259,8 +262,8 @@ class Conversation:
     # State machine
 
     def _advance(self, turn: Turn, reading: Interpretation) -> None:
-        # At the POL-01 offer, a message on the side does not take it, so it leads to the person.
-        if turn.state.step not in (Step.ASK_CLAIM, Step.PERSON_OFFERED) and _aside(reading):
+        # At the POL-01 offer or the key questions of a scam, a message on the side still leads to the person.
+        if turn.state.step not in (Step.ASK_CLAIM, Step.PERSON_OFFERED, Step.SCAM_DETAILS) and _aside(reading):
             self._answer_aside(turn, reading)
             return
         handlers = {
@@ -274,6 +277,7 @@ class Conversation:
             Step.CONFIRM_REGISTER: self._on_register,
             Step.CONFIRM_PERSON: self._on_person,
             Step.PERSON_OFFERED: self._on_person_offer,
+            Step.SCAM_DETAILS: self._on_scam_details,
         }
         handler = handlers.get(turn.state.step)
         if handler is None:
@@ -320,6 +324,15 @@ class Conversation:
         else:
             # The customer insists, or does not take the offer.
             self._person_requested(turn)
+
+    def _on_scam_details(self, turn: Turn, reading: Interpretation) -> None:
+        """POL-10: whatever the answer, Fraud gets it with the case, and a transfer has no chargeback to promise."""
+        turn.state = turn.state.advance(
+            date_text=reading.date_text or turn.state.date_text,
+            contacted_by=reading.contact_channel or turn.state.contacted_by,
+        )
+        turn.lines.append(self._text(turn, "scam_handoff"))
+        self._hand_off(turn, Queue.FRAUD, TransferReason.SCAM_TRANSFER)
 
     def _on_person(self, turn: Turn, reading: Interpretation) -> None:
         """POL-14: the customer says whether the unsure reading was a request for a person."""
@@ -372,11 +385,17 @@ class Conversation:
             self._ask_again(turn, "low_confidence")
             return
         if reading.claim_type is ClaimType.SCAM_TRANSFER:
-            turn.lines.append(self._text(turn, "scam"))
             turn.state = turn.state.advance(
                 claim_type=reading.claim_type, authorized_payment=reading.authorized_payment
             )
-            self._hand_off(turn, Queue.FRAUD, TransferReason.SCAM_TRANSFER)
+            if reading.date_text and reading.contact_channel:
+                # The customer already said when and how: nothing to ask again.
+                self._on_scam_details(turn, reading)
+                return
+            turn.lines.append(self._text(turn, "scam"))
+            turn.state = turn.state.advance(
+                step=Step.SCAM_DETAILS, date_text=reading.date_text, contacted_by=reading.contact_channel
+            )
             return
         kind = ChargeKind.BANK_ADJUSTMENT if reading.claim_type is ClaimType.IMPROPER_CHARGE else ChargeKind.PURCHASE
         turn.state = turn.state.advance(claim_type=reading.claim_type, declared_channel=reading.declared_channel)
@@ -836,6 +855,8 @@ class Conversation:
         """The open question is asked again with its options, so a message on the side does not cut the flow."""
         if turn.state.step is Step.ASK_CLAIM:
             turn.lines.append(self._text(turn, "ask_claim_again"))
+        elif turn.state.step is Step.SCAM_DETAILS:
+            turn.lines.append(self._text(turn, "scam_again"))
         elif turn.asked and turn.asked.data.get("options"):
             turn.lines.append(self._text(turn, "back_to_question"))
             self._show_again(turn)
@@ -908,7 +929,11 @@ class Conversation:
             claim_type=state.claim_type,
             charges=tuple(d for d in (self._detail(turn, n) for n in known) if d is not None),
             declared=DeclaredFacts(
-                channel=state.declared_channel, has_card=state.has_card, authorized_payment=state.authorized_payment
+                channel=state.declared_channel,
+                has_card=state.has_card,
+                authorized_payment=state.authorized_payment,
+                date_text=state.date_text,
+                contacted_by=state.contacted_by,
             ),
             actions=self._actions(turn),
             pending_action=state.pending_tool,

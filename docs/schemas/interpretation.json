@@ -21,6 +21,19 @@
       "title": "ClaimType",
       "type": "string"
     },
+    "ContactChannel": {
+      "description": "How a third party reached the customer before a payment made under deception, as the customer says (POL-10).",
+      "enum": [
+        "phone_call",
+        "message",
+        "email",
+        "social_media",
+        "website",
+        "in_person"
+      ],
+      "title": "ContactChannel",
+      "type": "string"
+    },
     "Currency": {
       "description": "Currencies present in the dataset; Mexico operates in USD only.",
       "enum": [
@@ -130,6 +143,17 @@
     "authorized_payment": {
       "$ref": "#/$defs/Answer",
       "default": "not_said"
+    },
+    "contact_channel": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ContactChannel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "coercion": {
       "default": false,

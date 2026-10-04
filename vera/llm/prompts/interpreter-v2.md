@@ -17,10 +17,11 @@ Fields:
 - selected_numbers: the option numbers the customer chose, when the expected answer is a choice ("el segundo" is 2). Empty otherwise.
 - merchant_text: the merchant or store name as the customer wrote it, without changing it. Null when there is none.
 - amount and currency: only when the customer states an amount; currency only when stated (COP, ARS or USD).
-- date_text: the words the customer used for the date ("ayer", "el 15 de junio"), never a computed date.
+- date_text: the words the customer used for the date ("ayer", "el 15 de junio"), never a computed date. When VERA asked when a transfer was made, this is the answer.
 - declared_channel: online or in_person only when the customer says how the purchase was made.
 - has_card: yes or no only when the customer says whether they have the card.
 - authorized_payment: yes when the customer says they made the payment or transfer themselves.
+- contact_channel: how a third party reached the customer before a payment made under deception: phone_call, message (SMS, WhatsApp, Telegram), email, social_media, website (a page or a link) or in_person. Null when the message does not say.
 - coercion: true when someone is forcing or threatening the customer, or the customer is at risk.
 - regulator_mentioned: true when the customer mentions the regulator or a complaint before it (CONDUSEF, Superintendencia Financiera, BCRA, Procon).
 - pix_mentioned: true when the message mentions Pix.

@@ -38,10 +38,7 @@ OPEN_QUESTIONS: dict[TransferReason, tuple[str, ...]] = {
     TransferReason.COERCION: ("Is the customer safe to talk now, and through which channel?",),
     TransferReason.NOT_UNDERSTOOD: ("What happened, and which charge or account does the customer mean?",),
     TransferReason.REGULATOR: ("What has the customer filed, or wants to file, with the regulator?",),
-    TransferReason.SCAM_TRANSFER: (
-        "When was the transfer made, for how much and to which account?",
-        "How did the third party contact the customer?",
-    ),
+    TransferReason.SCAM_TRANSFER: ("How much was transferred, and to which account or person?",),
     TransferReason.TOOL_FAILURE: ("The bank records could not be read: which charge does the customer mean?",),
     TransferReason.TURN_LIMIT: ("What does the customer still need? The conversation did not converge.",),
 }
@@ -136,6 +133,11 @@ def build_transfer(
     if pending_action:
         summary += f", {pending_action.replace('_', ' ')} pending and not run"
     open_questions = OPEN_QUESTIONS[reason]
+    if reason is TransferReason.SCAM_TRANSFER:
+        # POL-10: the key questions the customer did not answer stay open for the analyst.
+        open_questions += (("When was the transfer made?",) if not declared.date_text else ()) + (
+            ("How did the third party contact the customer?",) if not declared.contacted_by else ()
+        )
     if "card_not_in_possession" in risk_signals:
         open_questions += (CARD_LAST_SEEN,)
     return Transfer(

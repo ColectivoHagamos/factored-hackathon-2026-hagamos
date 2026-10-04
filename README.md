@@ -16,6 +16,7 @@
 | A charge the customer does not recognize | Finds it, shows the receipt and asks whether that clarifies it. If not, it asks how the purchase was made and whether the customer has the card, sweeps the other charges of that card, and registers one case with the total. It gives the legal deadline with its date and source, and reads the case back |
 | A pending, declined or reversed charge | Explains the status without judging, and disputes nothing. If the customer still does not recognize it, it counts as a fraud signal |
 | Signs of fraud (no card, several charges) | Offers to block the card, which needs the customer's confirmation. Registers one case, hands off to the Fraud team with the network reason code, and sends a fraud alert. In Argentina the block is offered only at the customer's request |
+| A transfer made under deception | Asks when it was made and how the customer was contacted, says that a transfer has no chargeback, and passes the case to Fraud with the answers (POL-10). What the customer already said is not asked again |
 | An improper bank charge | Identifies the adjustment from the records, registers the customer's reason, and hands off to Complaints, which decides |
 | Two charges at the same merchant | Lists both and lets the customer choose; VERA never chooses |
 | "I want a person" | No action runs. VERA offers once to review the case first; if the customer insists or does not take the offer, a person takes over with what is known (POL-01) |

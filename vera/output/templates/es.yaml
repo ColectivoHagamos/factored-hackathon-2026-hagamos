@@ -47,6 +47,8 @@ templates:
   out_of_scope: "Por aquí ayudo con cargos que no {reconoces} y con cobros indebidos. Para consultar el saldo u otros productos, {usa} la app o la banca en línea."
   pix: "LATAM Bank no opera Pix. Para reclamar un Pix, {puedes} usar el Mecanismo Especial de Devolución (MED) de {tu} banco en Brasil, hasta 80 días después de la transacción."
   scam: "Lamento lo que pasó. Para pasar el caso a nuestro equipo de fraudes necesito dos datos: ¿cuándo fue la transferencia y por qué medio {te} contactaron?"
+  scam_handoff: "Gracias. Paso el caso a nuestro equipo de fraudes ahora mismo y un analista {te} contactará; no {tienes} que repetir lo que ya me {dijiste}. Una transferencia no tiene contracargo como una compra con tarjeta: el equipo revisará qué se puede hacer."
+  scam_again: "¿Me {dices} cuándo fue la transferencia y por qué medio {te} contactaron?"
   improper: "Voy a identificar el cobro para que el equipo de reclamos lo revise. Ellos deciden si procede."
   not_found: "No encontré ese movimiento entre los {tuyos}."
   ask_claim_again: "¿Me {cuentas} qué pasó con {tu} tarjeta o {tu} cuenta?"
