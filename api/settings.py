@@ -19,7 +19,8 @@ class Settings:
     state_db: str = ":memory:"
     # Without a configured secret every start gets a random one: sessions simply do not survive a restart.
     session_secret: str = field(default_factory=lambda: secrets.token_hex(32))
-    analyst_key: str = field(default_factory=lambda: secrets.token_urlsafe(24))
+    # Empty: the demo analyst view is open, on purpose, for reviewers. Set: the analyst session requires it.
+    analyst_key: str = ""
     messages_per_minute: int = 30
 
     def __post_init__(self) -> None:

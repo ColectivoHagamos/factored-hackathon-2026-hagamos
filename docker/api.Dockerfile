@@ -15,6 +15,8 @@ ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     VERA_VERSION=${VERA_VERSION}
 RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin vera
+# Writable state lives in a volume mounted here; the rest of the file system is read-only.
+RUN mkdir -p /state && chown vera /state
 WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
 COPY vera ./vera

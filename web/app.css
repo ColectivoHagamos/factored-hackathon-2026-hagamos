@@ -65,3 +65,6 @@ th, td { text-align: left; padding: 6px; border-bottom: 1px solid var(--line); v
 .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.8rem; margin: 2px; }
 .tag.warn { background: #fbefe7; color: var(--warn); }
 .error { color: var(--warn); }
+
+.spaced { margin-top: 16px; }
+main.single { grid-template-columns: 1fr; }

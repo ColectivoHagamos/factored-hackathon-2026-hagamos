@@ -1,0 +1,42 @@
+# Production on the demo server: the API image from GHCR behind Caddy, which obtains and renews the certificate.
+# Run by deploy/deploy.sh from /opt/vera, where .env (secrets) and data/demo.duckdb (read-only) live.
+services:
+  api:
+    image: ghcr.io/hagamoses/vera-api:${VERA_IMAGE_TAG:?set VERA_IMAGE_TAG}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      VERA_ADAPTER: dataset
+      VERA_DEMO_DB: /data/demo.duckdb
+      VERA_STATE_DB: /state/state.sqlite
+      VERA_VERSION: ${VERA_IMAGE_TAG}
+    volumes:
+      - ./data/demo.duckdb:/data/demo.duckdb:ro
+      - vera_state:/state
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    mem_limit: 128m
+
+volumes:
+  vera_state:
+  caddy_data:
+  caddy_config:

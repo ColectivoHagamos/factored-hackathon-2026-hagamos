@@ -161,3 +161,10 @@ def test_the_sweep_reply_allows_several_options(api):
         say(client, headers, conversation, text=text)
     sweep = say(client, headers, conversation, text="sí, la tengo")
     assert sweep.multiple_choice and sweep.options
+
+
+def test_a_configured_analyst_key_closes_the_demo_analyst_session():
+    settings = Settings(session_secret="test-secret", analyst_key="k3y")
+    client = TestClient(create_app(settings, build(settings, now=Clock())))
+    assert client.post("/v1/demo-analyst-session").status_code == 401
+    assert client.post("/v1/demo-analyst-session", headers={"X-Analyst-Key": "k3y"}).status_code == 200

@@ -1,0 +1,73 @@
+name: CD
+
+# Only a push to production deploys. The image is built here, never on the server.
+on:
+  push:
+    branches: [production]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, deploy and check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      IMAGE: ghcr.io/hagamoses/vera-api:${{ github.sha }}
+      DOMAIN: vera.colectivohagamos.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the API image
+        run: |
+          docker build -f docker/api.Dockerfile --build-arg VERA_VERSION=${{ github.sha }} -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Copy deployment files and secrets
+        env:
+          TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          VERA_ANALYST_KEY: ${{ secrets.VERA_ANALYST_KEY }}
+        run: |
+          scp -i ~/.ssh/deploy_key deploy/docker-compose.prod.yml deploy/Caddyfile deploy/deploy.sh "$TARGET:/opt/vera/"
+          # Secrets travel on standard input, never on a command line.
+          printf 'SESSION_SECRET=%s\nVERA_ANALYST_KEY=%s\n' "$SESSION_SECRET" "$VERA_ANALYST_KEY" \
+            | ssh -i ~/.ssh/deploy_key "$TARGET" 'umask 077 && cat > /opt/vera/.env'
+
+      - name: Deploy with rollback
+        env:
+          TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+        run: ssh -i ~/.ssh/deploy_key "$TARGET" "cd /opt/vera && chmod +x deploy.sh && DOMAIN=$DOMAIN ./deploy.sh ${{ github.sha }}"
+
+      - name: Public health check
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS "https://$DOMAIN/v1/health"; then exit 0; fi
+            sleep 4
+          done
+          exit 1
