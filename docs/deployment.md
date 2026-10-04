@@ -13,6 +13,8 @@ The public demo runs at **https://vera.colectivohagamos.com** on one small serve
    - checks `https://vera.colectivohagamos.com/v1/health` from the outside.
 3. Images are built only in GitHub Actions, never on the server.
 
+The CD rewrites `/opt/vera/.env` on every deployment, so a value added by hand on the server does not survive the next one: every setting lives in the repository secrets. Without the three language model secrets, VERA reads with the classifier; with them, Claude reads over the classifier ([ADR 0004](adr/0004-a-language-model-reads-and-the-classifier-stands-underneath.md)). The spending cap of the process is US$ 15, and the same cap is set in the provider's console.
+
 Manual rollback, on the server: `cd /opt/vera && DOMAIN=vera.colectivohagamos.com ./deploy.sh "$(cat .previous_tag)"`.
 
 ## What lives where
@@ -23,6 +25,7 @@ Manual rollback, on the server: `cd /opt/vera && DOMAIN=vera.colectivohagamos.co
 | `demo.duckdb` (pseudonymized subset) | No | No | | `/opt/vera/data`, read-only |
 | Cases and events (SQLite) | No | No | | Docker volume `vera_state` |
 | Session secret, optional analyst key | No | No | Yes | `/opt/vera/.env` |
+| Language model: `VERA_LLM=anthropic`, `LLM_API_KEY` and `LLM_WORKSPACE_ID` (optional) | No | No | Yes | `/opt/vera/.env` |
 | Deployment SSH key | No | No | Yes | Public part in `authorized_keys` |
 | HMAC key of the pseudonymization | No | No | No | No (only on the machine that builds the subset) |
 | Dataset and cloud credentials of the organizers | No | No | No | No |
