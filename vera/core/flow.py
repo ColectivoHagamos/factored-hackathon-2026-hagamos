@@ -142,7 +142,7 @@ class Conversation:
         return self._log.read(conversation_id)
 
     def _take_turn(self, turn: Turn, message: MessageRequest, security_signals: tuple[str, ...]) -> None:
-        reading = self._interpret(turn, message)
+        reading = self._interpret(turn, message, flagged=bool(security_signals))
         if security_signals:
             self._security_event(turn, security_signals)
         if self._safety_first(turn, reading):
@@ -156,7 +156,7 @@ class Conversation:
 
     # Interpretation and safety
 
-    def _interpret(self, turn: Turn, message: MessageRequest) -> Interpretation:
+    def _interpret(self, turn: Turn, message: MessageRequest, flagged: bool = False) -> Interpretation:
         language = language_of(turn.state.variant)
         if turn.state.step is Step.ASK_CLAIM and turn.state.claim_type is None:
             expecting = "claim"
@@ -165,7 +165,11 @@ class Conversation:
         else:
             expecting = "yes_no"
         if message.text:
-            reading = self._interpreter.interpret(message.text, {"language": language.value, "expecting": expecting})
+            context = {"language": language.value, "expecting": expecting}
+            if flagged:
+                # The gateway flagged the text: only deterministic rules read it, never a model it could steer.
+                context["flagged"] = "yes"
+            reading = self._interpreter.interpret(message.text, context)
             provider = self._interpreter.name
         else:
             option = message.selected_option
