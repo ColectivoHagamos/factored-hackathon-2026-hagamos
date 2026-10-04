@@ -39,6 +39,10 @@ extend-exclude = ["SKILLS"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI declares dependencies as default arguments.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header"]
+
 [tool.ruff.lint.per-file-ignores]
 # Generated CSV rows read better on one line each.
 "tests/pipeline/conftest.py" = ["E501"]
