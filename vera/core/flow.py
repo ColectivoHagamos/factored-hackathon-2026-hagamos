@@ -381,10 +381,11 @@ class Conversation:
         turn.lines.append(self._text(turn, "sweep"))
         turn.options.extend(Option(n=c.n, label=self._receipt(turn, c)) for c in others)
         turn.multiple_choice = True
-        turn.state = turn.state.advance(step=Step.SWEEP)
+        turn.state = turn.state.advance(step=Step.SWEEP, swept=[c.n for c in others])
 
     def _on_sweep(self, turn: Turn, reading: Interpretation) -> None:
-        offered = set(turn.state.charges_offered) - {turn.state.chosen}
+        # Only the charges shown in the sweep can be disowned here, never others listed earlier (AC-2).
+        offered = set(turn.state.swept)
         if reading.selected_numbers:
             unrecognized = [n for n in reading.selected_numbers if n in offered]
         elif reading.answer is Answer.NO:

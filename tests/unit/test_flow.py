@@ -247,3 +247,14 @@ def test_a_charge_already_in_a_case_gets_that_case_and_its_original_deadline(wor
     assert "ya está en el reclamo DSP-000001" in again.reply and "3 de julio de 2026" in again.reply
     assert any(entry.rule_id == "CO-R15" and entry.deadline.isoformat() == "2026-07-03" for entry in again.glass_box)
     assert len(world.state.cases_of(CO_01)) == 1 and world.state_of("conv-2").step is Step.DONE
+
+
+def test_the_sweep_disowns_only_the_charges_it_showed(world: World):
+    # The first list has both Uber charges; the sweep from the later one shows only the pharmacy.
+    *_, listed, _, _, _, sweep, offer = world.chat(
+        CO_02, "No reconozco un cargo de mi tarjeta", 2, "no", "sí", "no tengo la tarjeta", "no reconozco ninguno"
+    )[-7:]
+    assert len(listed.options) == 3 and [o.label.split(",")[2].strip() for o in sweep.options] == ["Medellin"]
+    *_, register = world.send(CO_02, "no")
+    assert register.pending_confirmation.action == "register_dispute"
+    assert "2 cargos por COP 65.000" in register.reply
