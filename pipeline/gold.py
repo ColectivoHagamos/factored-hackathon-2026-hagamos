@@ -91,7 +91,14 @@ def _build(con: duckdb.DuckDBPyConnection, lake: Path, manifest_id: str, now: da
         # Lineage: every row keeps its source file and the bronze manifest it was built from.
         con.execute(f"CREATE TABLE {name} AS SELECT *, '{manifest_id}' AS manifest_id FROM ({query.format(**sources)})")
         counts[name] = con.execute(f"SELECT count(*) FROM {name}").fetchone()[0]
-    manifest = {"bronze_manifest": manifest_id, "built_at": now.isoformat(), "rows": counts}
+    # Freshness: the cut is the latest event in the data; the simulated clock of the policy must not precede it.
+    cut = con.execute("SELECT max(occurred_at) FROM charges").fetchone()[0]
+    manifest = {
+        "bronze_manifest": manifest_id,
+        "built_at": now.isoformat(),
+        "data_cut": cut.isoformat() if cut else None,
+        "rows": counts,
+    }
     con.execute("CREATE TABLE gold_manifest AS SELECT $manifest AS manifest", {"manifest": json.dumps(manifest)})
     return manifest
 
