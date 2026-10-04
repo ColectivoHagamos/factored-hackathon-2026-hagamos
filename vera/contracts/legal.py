@@ -1,4 +1,4 @@
-"""Legal rules as loaded from the policy YAML: only executable N1 law rules may yield a date."""
+"""Legal rules as loaded from YAML: only an N1 rule of the law layer, with its verified literal text, yields a date."""
 
 import hashlib
 from datetime import date
@@ -38,6 +38,8 @@ class Layer(StrEnum):
 
 class TermUnit(StrEnum):
     HOURS = "hours"
+    # "Days" without qualification; the master policy reads them as business days for the customer and
+    # calendar days for the bank, the reading that favors the customer in both cases.
     DAYS = "days"
     CALENDAR_DAYS = "calendar_days"
     BUSINESS_DAYS = "business_days"
@@ -58,39 +60,75 @@ class RuleStatus(StrEnum):
 
 class Source(Contract):
     title: ShortText
+    provision: ShortText
     url: HttpUrl
+
+
+class CountsFrom(StrEnum):
+    """When a term starts: the fact (customer windows), the filing of the claim, or a later event."""
+
+    EVENT = "event"
+    FILING = "filing"
+    LATER = "later"
+
+
+class Term(Contract):
+    party: Party
+    what: ShortText
+    value: int | None = Field(default=None, ge=0)
+    unit: TermUnit
+    # Event that starts the count, as the text states it, and how the clock reads it.
+    starts_at: ShortText
+    counts_from: CountsFrom
+    # Short name of the term, so that a later term can follow it ("within the 15 days following").
+    key: ShortText | None = None
+    follows: ShortText | None = None
+    # Condition under which this term replaces the general one, for example "charge_abroad".
+    applies_when: ShortText | None = None
+
+    @model_validator(mode="after")
+    def _value_matches_unit(self) -> Self:
+        if (self.unit is TermUnit.IMMEDIATE) != (self.value is None):
+            raise ValueError("only an immediate term has no value")
+        return self
 
 
 class LegalRule(Contract):
     id: RuleId
     country: Jurisdiction
     route: RouteId
-    literal_text: str = Field(min_length=1)
-    text_sha256: Sha256Hex
+    summary: ShortText
     source: Source
-    effective_from: date
+    # Exact official text and its SHA-256; empty while the text has not been loaded from the official source.
+    literal_text: str | None = Field(default=None, min_length=1)
+    text_sha256: Sha256Hex | None = None
+    # Left empty when the date has not been checked: the repository never infers dates.
+    effective_from: date | None = None
     effective_to: date | None = None
     # Policy v1.4 section 5.1: published rules that favor the customer, applied before they are mandatory.
     early_adoption: bool = False
     level: Level
     executable: bool
     layer: Layer
-    party: Party | None = None
-    term_value: int | None = Field(default=None, ge=0)
-    term_unit: TermUnit | None = None
+    terms: tuple[Term, ...] = ()
     response_languages: tuple[Language, ...] = (Language.ES, Language.PT)
+    checked_on: date | None = None
+    legal_review: bool = False
 
     @model_validator(mode="after")
     def _only_verified_law_is_executable(self) -> Self:
+        if (self.literal_text is None) != (self.text_sha256 is None):
+            raise ValueError("literal_text and text_sha256 go together")
         # Policy section 16: a changed official text no longer matches its fingerprint and must be reviewed.
-        if hashlib.sha256(self.literal_text.encode("utf-8")).hexdigest() != self.text_sha256:
+        if self.literal_text and hashlib.sha256(self.literal_text.encode("utf-8")).hexdigest() != self.text_sha256:
             raise ValueError("text_sha256 does not match literal_text")
-        if self.executable and (self.level is not Level.N1 or self.layer is not Layer.LAW):
-            raise ValueError("only N1 rules of the law layer can be executable")
-        if (self.term_value is None) != (self.term_unit is None) and self.term_unit is not TermUnit.IMMEDIATE:
-            raise ValueError("term_value and term_unit go together")
-        if self.term_unit is not None and self.party is None:
-            raise ValueError("a term needs the party that must act")
-        if self.effective_to is not None and self.effective_to < self.effective_from:
+        if self.executable and (self.level is not Level.N1 or self.layer is not Layer.LAW or not self.literal_text):
+            raise ValueError("only N1 rules of the law layer with their literal text can be executable")
+        keys = [term.key for term in self.terms if term.key]
+        if any(term.follows and term.follows not in keys for term in self.terms):
+            raise ValueError("a term can only follow another term of the same rule")
+        if self.early_adoption and self.effective_from is None:
+            raise ValueError("an early adopted rule needs the date it becomes mandatory")
+        if self.effective_from and self.effective_to and self.effective_to < self.effective_from:
             raise ValueError("effective_to cannot precede effective_from")
         return self
