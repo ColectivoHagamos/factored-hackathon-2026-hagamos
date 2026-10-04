@@ -1,4 +1,8 @@
-"""Writable state of the demo in SQLite: cases, card blocks and handoffs, each idempotent by key."""
+"""Writable state of the demo in SQLite: cases, card blocks and handoffs, each idempotent by key.
+
+The API serves requests from several threads and a SQLite connection cannot be used by two at once, so every
+statement, read or write, runs under one reentrant lock and fetches its rows before releasing it.
+"""
 
 import sqlite3
 import threading
@@ -47,17 +51,27 @@ CREATE TABLE IF NOT EXISTS fraud_alerts (
 class SqliteState:
     def __init__(self, path: str | Path = ":memory:") -> None:
         self._connection = sqlite3.connect(str(path), isolation_level=None, check_same_thread=False)
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._connection.executescript(SCHEMA)
 
-    def register(self, case: Case, customer_ref: str, charge_refs: tuple[str, ...], idempotency_key: str) -> Case:
-        """Store the case once per key; a repeated key returns the case stored the first time."""
+    def _one(self, sql: str, parameters: tuple = ()) -> tuple | None:
         with self._lock:
-            found = self._connection.execute(
-                "SELECT body FROM cases WHERE idempotency_key = ?", (idempotency_key,)
-            ).fetchone()
+            return self._connection.execute(sql, parameters).fetchone()
+
+    def _all(self, sql: str, parameters: tuple = ()) -> list[tuple]:
+        with self._lock:
+            return self._connection.execute(sql, parameters).fetchall()
+
+    def register(self, case: Case, customer_ref: str, charge_refs: tuple[str, ...], idempotency_key: str) -> Case:
+        """Store the case once per key; a repeated key returns the case stored the first time.
+
+        The case id is assigned here, under the lock, so two registrations at the same time never share one.
+        """
+        with self._lock:
+            found = self._one("SELECT body FROM cases WHERE idempotency_key = ?", (idempotency_key,))
             if found:
                 return Case.model_validate_json(found[0])
+            case = case.model_copy(update={"case_id": self.next_case_id()})
             self._connection.execute("BEGIN")
             try:
                 self._connection.execute(
@@ -76,30 +90,23 @@ class SqliteState:
 
     def read(self, case_id: str, customer_ref: str) -> Case | None:
         """The case, only for its own customer: another customer's case reads as not found."""
-        row = self._connection.execute(
-            "SELECT body FROM cases WHERE case_id = ? AND customer_ref = ?", (case_id, customer_ref)
-        ).fetchone()
+        row = self._one("SELECT body FROM cases WHERE case_id = ? AND customer_ref = ?", (case_id, customer_ref))
         return Case.model_validate_json(row[0]) if row else None
 
     def case_with_charge(self, charge_ref: str) -> str | None:
-        row = self._connection.execute(
-            "SELECT case_id FROM case_charges WHERE charge_ref = ?", (charge_ref,)
-        ).fetchone()
+        row = self._one("SELECT case_id FROM case_charges WHERE charge_ref = ?", (charge_ref,))
         return row[0] if row else None
 
     def charges_of_case(self, case_id: str) -> tuple[str, ...]:
-        rows = self._connection.execute("SELECT charge_ref FROM case_charges WHERE case_id = ?", (case_id,))
+        rows = self._all("SELECT charge_ref FROM case_charges WHERE case_id = ?", (case_id,))
         return tuple(sorted(row[0] for row in rows))
 
     def cases_of(self, customer_ref: str) -> tuple[str, ...]:
-        rows = self._connection.execute(
-            "SELECT case_id FROM cases WHERE customer_ref = ? ORDER BY case_id", (customer_ref,)
-        )
+        rows = self._all("SELECT case_id FROM cases WHERE customer_ref = ? ORDER BY case_id", (customer_ref,))
         return tuple(row[0] for row in rows)
 
     def next_case_id(self) -> str:
-        count = self._connection.execute("SELECT count(*) FROM cases").fetchone()[0]
-        return f"DSP-{count + 1:06d}"
+        return f"DSP-{self._one('SELECT count(*) FROM cases')[0] + 1:06d}"
 
     def record_block(self, card_ref: str, idempotency_key: str) -> None:
         with self._lock:
@@ -109,7 +116,7 @@ class SqliteState:
             )
 
     def blocked_cards(self) -> frozenset[str]:
-        return frozenset(row[0] for row in self._connection.execute("SELECT card_ref FROM card_blocks"))
+        return frozenset(row[0] for row in self._all("SELECT card_ref FROM card_blocks"))
 
     def hand_off(self, handoff: Handoff, queue: Queue) -> str:
         with self._lock:
@@ -120,9 +127,7 @@ class SqliteState:
             return f"HND-{cursor.lastrowid:06d}"
 
     def handoff_of(self, case_id: str) -> Handoff | None:
-        row = self._connection.execute(
-            "SELECT body FROM handoffs WHERE case_id = ? ORDER BY handoff_id DESC LIMIT 1", (case_id,)
-        ).fetchone()
+        row = self._one("SELECT body FROM handoffs WHERE case_id = ? ORDER BY handoff_id DESC LIMIT 1", (case_id,))
         return Handoff.model_validate_json(row[0]) if row else None
 
     def fraud_alert(self, alert: FraudAlertRecord) -> str:
@@ -141,7 +146,7 @@ class SqliteState:
             return f"ALR-{cursor.lastrowid:06d}"
 
     def fraud_alerts_of(self, customer_ref: str) -> tuple[FraudAlertRecord, ...]:
-        rows = self._connection.execute(
+        rows = self._all(
             "SELECT case_id, signals, charge_refs, card_blocked FROM fraud_alerts WHERE customer_ref = ? "
             "ORDER BY alert_id",
             (customer_ref,),
@@ -159,9 +164,7 @@ class SqliteState:
             )
 
     def conversation_owner(self, conversation_id: str) -> str | None:
-        row = self._connection.execute(
-            "SELECT customer_ref FROM conversations WHERE conversation_id = ?", (conversation_id,)
-        ).fetchone()
+        row = self._one("SELECT customer_ref FROM conversations WHERE conversation_id = ?", (conversation_id,))
         return row[0] if row else None
 
     def close(self) -> None:
