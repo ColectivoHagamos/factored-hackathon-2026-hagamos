@@ -1,1 +1,1 @@
-"""Preparación de datos bronze → silver → gold con contratos, cuarentena y linaje. Los datos viven fuera del repo."""
+"""Data preparation bronze -> silver -> gold with contracts, quarantine and lineage. Data lives outside the repo."""

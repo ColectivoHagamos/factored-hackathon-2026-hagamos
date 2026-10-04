@@ -1,1 +1,1 @@
-"""Componente aprendido: clasificador del tipo de reclamo frente a un baseline de palabras clave."""
+"""Learned component: claim-type classifier compared against a keyword baseline."""
