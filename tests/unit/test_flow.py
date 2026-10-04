@@ -10,11 +10,13 @@ from vera.adapters.mock_bank import CLOCK, MockBank
 from vera.adapters.sqlite_state import SqliteState
 from vera.contracts.api import MessageRequest
 from vera.contracts.events import EventType
+from vera.contracts.interpretation import ClaimType
 from vera.core import flow
 from vera.core.events import reduce, verify_chain
 from vera.core.flow import Conversation
 from vera.core.state import FlowState, Step
 from vera.gateway.injection import signals
+from vera.llm.classifier_adapter import ClassifierInterpreter
 from vera.llm.rules_adapter import RulesInterpreter
 from vera.output.render import Renderer
 from vera.policy.engine import PolicyEngine
@@ -31,7 +33,7 @@ MX_01, MX_02 = "CUS-MOCK00000000003", "CUS-MOCK00000000005"
 
 
 class World:
-    def __init__(self, bank_type: type[MockBank] = MockBank) -> None:
+    def __init__(self, bank_type: type[MockBank] = MockBank, interpreter=None) -> None:
         self.state = SqliteState()
         bank = bank_type(self.state)
         self.clock = CLOCK
@@ -41,7 +43,7 @@ class World:
         ids = count(1)
         self.log = MemoryEventLog()
         self.conversation = Conversation(
-            interpreter=RulesInterpreter(),
+            interpreter=interpreter or RulesInterpreter(),
             tools=tools,
             log=self.log,
             engine=PolicyEngine(POLICY),
@@ -315,3 +317,32 @@ def test_pol13_a_tool_that_fails_hands_off_without_inventing_anything():
     assert world.state_of().step is Step.HANDED_OFF and "POL-13" in {e.rule_id for e in reply.glass_box}
     results = [e.data for e in world.log.read("conv-1") if e.type is EventType.TOOL_RESULT]
     assert results == [{"tool": "search_charges", "result": "failure"}]
+
+
+def test_ac2_a_charge_other_than_the_one_named_is_listed_never_presented_as_it(world: World):
+    # Only one charge is left in the recent window, and it is not the merchant the customer named.
+    world.clock = CLOCK + timedelta(days=28)
+    _, listed = world.chat(CO_01, "No reconozco un cargo de Netflix")
+    assert "No encontré un cargo con ese nombre" in listed.reply and "¿Reconoce" not in listed.reply
+    assert [o.answer for o in listed.options] == [None] and "Cafe del Parque" in listed.options[0].label
+
+
+def test_a_detail_narrows_the_search_once_the_claim_is_known(world: World):
+    *_, again = world.chat(MX_02, "Me cobraron un ajuste que no corresponde", "no", "fueron 18 dólares")
+    assert "Ajuste del banco, Puebla, USD 18" in again.reply and "asegurarme" not in again.reply
+
+
+class UnsurePerson:
+    def predict(self, text: str) -> tuple[ClaimType, float]:
+        return ClaimType.HUMAN_REQUEST, 0.51
+
+
+def test_pol14_an_unsure_reading_of_a_person_request_asks_before_transferring():
+    world = World(interpreter=ClassifierInterpreter(UnsurePerson()))
+    _, offer, declined = world.chat(CO_01, "Quiero cambiar la dirección de los extractos", "no")
+    assert "pase con una persona" in offer.reply and [o.answer for o in offer.options] == ["yes", "no"]
+    assert world.state_of().step is Step.ASK_CLAIM and "¿Me cuenta qué pasó" in declined.reply
+    world = World(interpreter=ClassifierInterpreter(UnsurePerson()))
+    *_, accepted = world.chat(CO_01, "Quiero cambiar la dirección de los extractos", "sí")
+    assert "una persona" in accepted.reply and world.state_of().step is Step.HANDED_OFF
+    assert "POL-01" in {entry.rule_id for entry in accepted.glass_box}

@@ -28,6 +28,7 @@ def read(text: str, **context: str):
         ("¿Y cuánto debo de la tarjeta?", "out_of_scope", "es"),
         ("Quanto devo no cartão?", "out_of_scope", "pt"),
         ("Fiz um Pix errado", "out_of_scope", "pt"),
+        ("Quero o meu saldo e as minhas faturas", "out_of_scope", "pt"),
         ("Me cobraron algo raro", "unrecognized_charge", "es"),
         ("Hay un movimiento sospechoso, yo no autoricé esa compra", "unrecognized_charge", "es"),
         ("Apareceu uma cobrança estranha no meu cartão", "unrecognized_charge", "pt"),

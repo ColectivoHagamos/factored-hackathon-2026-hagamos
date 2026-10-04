@@ -38,6 +38,7 @@ PORTUGUESE = (
     r"\bum\b",
     r"\buma\b",
     r"\bnunca fiz\b",
+    r"\b(quero|minhas|meus|voces|faturas?|endereco|tambem|ajuda|pode|posso|poupanca|emprestimo|gostaria|aplicativo)\b",
 )
 HUMAN = (
     r"\b(una persona|un humano|humano|un asesor|asesor|agente humano|alguien real|operador|una persona real)\b",

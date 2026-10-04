@@ -18,6 +18,8 @@ class Step(StrEnum):
     SWEEP = "sweep"
     CONFIRM_BLOCK = "confirm_block"
     CONFIRM_REGISTER = "confirm_register"
+    # The reading of a request for a person was unsure, so VERA asked before transferring.
+    CONFIRM_PERSON = "confirm_person"
     DONE = "done"
     HANDED_OFF = "handed_off"
 
