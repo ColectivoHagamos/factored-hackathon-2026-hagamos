@@ -37,6 +37,7 @@ MODELS: dict[str, type[BaseModel]] = {
     "api_message_response": api.MessageResponse,
     "api_case_view": api.CaseView,
     "api_health_response": api.HealthResponse,
+    "api_metrics_response": api.MetricsResponse,
     "api_error": api.ApiError,
 }
 

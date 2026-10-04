@@ -44,4 +44,6 @@ class Settings:
             "session_secret": env.get("SESSION_SECRET"),
             "analyst_key": env.get("VERA_ANALYST_KEY"),
         }
-        return cls(**{name: value for name, value in values.items() if value})
+        limit = env.get("VERA_MESSAGES_PER_MINUTE")
+        settings = {name: value for name, value in values.items() if value}
+        return cls(**settings, **({"messages_per_minute": int(limit)} if limit else {}))
