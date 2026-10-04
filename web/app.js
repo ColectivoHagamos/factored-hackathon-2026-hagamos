@@ -79,8 +79,12 @@ async function sendMessage(body, shown) {
   if (state.busy) return;
   bubble(shown, "customer");
   setBusy(true);
+  // A language model takes a second or two to read a message: the customer sees that VERA is on it.
+  const typing = bubble("VERA está escribiendo…", "vera");
+  typing.classList.add("typing");
   try {
     const reply = await api(`/conversations/${state.conversation}/messages`, { method: "POST", body: JSON.stringify(body) });
+    typing.remove();
     // Only the latest question can be answered; older buttons would answer a step that already passed.
     document.querySelectorAll("#chat .options").forEach((box) => box.remove());
     const div = bubble(reply.reply, "vera");
@@ -97,6 +101,7 @@ async function sendMessage(body, shown) {
       $("case").innerHTML = `<p class="note">Caso <strong>${caseId}</strong> registrado. Si pasa a un analista, el detalle queda en la <a href="console.html?case=${caseId}">consola del analista</a>.</p>`;
     }
   } catch (error) {
+    typing.remove();
     bubble(`No se pudo enviar: ${error.message}`, "vera").classList.add("error");
   } finally {
     setBusy(false);
