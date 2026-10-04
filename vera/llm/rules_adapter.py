@@ -62,11 +62,14 @@ IMPROPER = (
 )
 UNRECOGNIZED = (
     r"\b(no reconozco|desconozco|no la hice|no hice (esa|esta|ese|este)|no fui yo|cargo que no|compra que no)",
-    r"\b(nao reconheco|nao fiz|nao fui eu|nao reconheco essa|desconheco)",
+    r"\b(no autorice|(cargo|cobro|movimiento|compra|algo) (raro|rara|extrano|extrana|sospechoso|sospechosa))",
+    r"\b(nao reconheco|nao fiz|nao fui eu|nao reconheco essa|desconheco|nao autorizei)",
+    r"\b(cobranca|compra|movimento|algo) (estranh|suspeit)",
 )
 OUT_OF_SCOPE = (
     r"\b(saldo|balance|extracto|prestamo|abrir una cuenta|credito hipotecario|tasa de interes)\b",
-    r"\b(meu saldo|extrato|emprestimo)\b",
+    r"\b(cuanto debo|pago minimo|fecha de corte|fecha de pago|limite de credito|cupo disponible)\b",
+    r"\b(meu saldo|extrato|emprestimo|quanto devo|pagamento minimo|limite do cartao)\b",
 )
 ONLINE = (r"\b(internet|en linea|online|por la app|en la app|pagina web|sitio web|pela internet|on line)\b",)
 IN_PERSON = (r"\b(presencial|en la tienda|en el local|en persona|datafono|na loja|pessoalmente)\b",)
