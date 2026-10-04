@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [development, qa, production]
+  push:
+    branches: [development, qa, production]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad:
+    name: Calidad y cumplimiento
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Código con historial completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Python 3.12 y uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Dependencias desde el lockfile
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Formato
+        run: uv run ruff format --check .
+
+      - name: Pruebas
+        run: uv run pytest
+
+      - name: Verificación de publicación
+        run: uv run python scripts/verificar_publicacion.py

@@ -32,6 +32,8 @@ uv run pytest
 uv run ruff check .
 ```
 
+La CI (GitHub Actions) ejecuta en cada PR y en cada push a `development`, `qa` y `production` el lint, el formato, las pruebas y `scripts/verificar_publicacion.py`, que impide publicar datos, secretos, archivos prohibidos o archivos de más de 10 MB.
+
 ## Datos
 
 Los datos de LATAM Bank son sintéticos y pertenecen a Factored. **Ningún registro del dataset se versiona en este repositorio**: la preparación corre fuera del repo, la demo usa un subconjunto seudonimizado que vive solo en el servidor y las pruebas usan datos generados por el equipo.
