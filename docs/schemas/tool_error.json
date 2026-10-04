@@ -1,0 +1,41 @@
+{
+  "$defs": {
+    "ToolErrorCode": {
+      "enum": [
+        "no_results",
+        "timeout",
+        "not_found",
+        "invalid_token",
+        "duplicate",
+        "invalid_schema",
+        "failure"
+      ],
+      "title": "ToolErrorCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "$ref": "#/$defs/ToolErrorCode"
+    },
+    "case_id": {
+      "anyOf": [
+        {
+          "pattern": "^DSP-\\d{6}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Case Id"
+    }
+  },
+  "required": [
+    "code"
+  ],
+  "title": "ToolError",
+  "type": "object"
+}

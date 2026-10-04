@@ -1,0 +1,13 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "const": "blocked",
+      "default": "blocked",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "title": "BlockCardOutput",
+  "type": "object"
+}

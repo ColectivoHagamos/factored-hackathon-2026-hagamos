@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "card_n": {
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Card N",
+      "type": "integer"
+    },
+    "confirmation_token": {
+      "pattern": "^[A-Za-z0-9_-]{16,128}$",
+      "title": "Confirmation Token",
+      "type": "string"
+    }
+  },
+  "required": [
+    "card_n",
+    "confirmation_token"
+  ],
+  "title": "BlockCardInput",
+  "type": "object"
+}

@@ -44,3 +44,32 @@ jobs:
 
       - name: Publication check
         run: uv run python scripts/check_publication.py
+
+  images:
+    name: Image build and container health
+    # Full CI: promotions to qa and production, and pushes to those branches.
+    if: contains(fromJSON('["qa", "production"]'), github.base_ref) || contains(fromJSON('["qa", "production"]'), github.ref_name)
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build the API image
+        run: docker build -f docker/api.Dockerfile --build-arg VERA_VERSION=${{ github.sha }} -t vera-api:ci .
+
+      - name: Image runs as a non-root user
+        run: test "$(docker image inspect -f '{{.Config.User}}' vera-api:ci)" = "vera"
+
+      - name: Start a read-only container
+        run: docker run -d --name vera-api --read-only --tmpfs /tmp -p 127.0.0.1:8000:8000 vera-api:ci
+
+      - name: Health check
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/v1/health; then exit 0; fi
+            sleep 1
+          done
+          docker logs vera-api
+          exit 1

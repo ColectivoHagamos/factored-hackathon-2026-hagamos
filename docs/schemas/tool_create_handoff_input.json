@@ -1,0 +1,29 @@
+{
+  "$defs": {
+    "Queue": {
+      "enum": [
+        "fraud",
+        "complaints"
+      ],
+      "title": "Queue",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^DSP-\\d{6}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "queue": {
+      "$ref": "#/$defs/Queue"
+    }
+  },
+  "required": [
+    "case_id",
+    "queue"
+  ],
+  "title": "CreateHandoffInput",
+  "type": "object"
+}

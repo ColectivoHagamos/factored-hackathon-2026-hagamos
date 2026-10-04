@@ -1,0 +1,63 @@
+{
+  "bronze_manifest": "7fd86728264bb58f3f08e57035da18f4fcb12d1e85ad5808bc76e3276a6e037a",
+  "tables": {
+    "customers": {
+      "rows_in": 150000,
+      "rows_valid": 150000,
+      "rows_quarantined": 0,
+      "quarantine_reasons": {},
+      "warnings": {},
+      "metrics": {}
+    },
+    "products": {
+      "rows_in": 400000,
+      "rows_valid": 400000,
+      "rows_quarantined": 0,
+      "quarantine_reasons": {},
+      "warnings": {},
+      "metrics": {}
+    },
+    "transactions": {
+      "rows_in": 4425008,
+      "rows_valid": 4425008,
+      "rows_quarantined": 0,
+      "quarantine_reasons": {},
+      "warnings": {
+        "purchase_has_merchant": 54172
+      },
+      "metrics": {
+        "amount_usd_copied_from_usd_amount": 2437979,
+        "amount_usd_imputed_with_fixed_rate": 99477,
+        "event_on_day_after_process_date": 1106307
+      }
+    },
+    "complaints": {
+      "rows_in": 67095,
+      "rows_valid": 67095,
+      "rows_quarantined": 0,
+      "quarantine_reasons": {},
+      "warnings": {
+        "currency_used_by_transactions": 5487
+      },
+      "metrics": {}
+    },
+    "daily_exchange_rates": {
+      "rows_in": 13164,
+      "rows_valid": 13164,
+      "rows_quarantined": 0,
+      "quarantine_reasons": {},
+      "warnings": {},
+      "metrics": {}
+    }
+  },
+  "bronze_only": [
+    "branches",
+    "call_center_interactions",
+    "call_transcripts",
+    "campaign_sends",
+    "digital_events",
+    "marketing_campaigns",
+    "satisfaction_surveys",
+    "service_agents"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "conversation_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Conversation Id",
+      "type": "string"
+    },
+    "greeting": {
+      "title": "Greeting",
+      "type": "string"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "greeting"
+  ],
+  "title": "StartConversationResponse",
+  "type": "object"
+}

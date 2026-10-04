@@ -1,0 +1,58 @@
+# Legal rules of Mexico. Generated from the official sources listed in each rule; only rules with their
+# literal text loaded are executable. Fictitious bank policy aside, these texts are real law: research
+# guidance for the challenge, not legal advice. Pending legal review by the team.
+rules:
+- id: MX-R01
+  country: MX
+  route: MX-clarification
+  summary: Clarification request within 90 calendar days of the statement cut or the operation
+  source:
+    title: Ley para la Transparencia y Ordenamiento de los Servicios Financieros
+    provision: art. 23, fr. I
+    url: https://www.diputados.gob.mx/LeyesBiblio/pdf/LTOSF.pdf
+  level: N1
+  executable: false
+  layer: law
+  terms:
+  - party: customer
+    what: file the clarification request
+    value: 90
+    unit: calendar_days
+    starts_at: statement cut or operation
+    counts_from: event
+- id: MX-R03
+  country: MX
+  route: MX-clarification
+  summary: Opinion within 45 days, or 180 for operations abroad
+  source:
+    title: Ley para la Transparencia y Ordenamiento de los Servicios Financieros
+    provision: art. 23, fr. II
+    url: https://www.diputados.gob.mx/LeyesBiblio/pdf/LTOSF.pdf
+  level: N1
+  executable: false
+  layer: law
+  terms:
+  - party: bank
+    what: deliver the opinion
+    value: 45
+    unit: days
+    starts_at: receipt of the request
+    counts_from: filing
+  - party: bank
+    what: deliver the opinion
+    value: 180
+    unit: days
+    starts_at: receipt of the request
+    counts_from: filing
+    applies_when: charge_abroad
+- id: MX-R11
+  country: MX
+  route: MX-une
+  summary: 'Specialized unit of the bank or CONDUSEF: informed as a venue, without a date'
+  source:
+    title: Ley de Protección y Defensa al Usuario de Servicios Financieros
+    provision: LPDUSF
+    url: https://www.diputados.gob.mx/LeyesBiblio/ref/lpdusf.htm
+  level: N2
+  executable: false
+  layer: law

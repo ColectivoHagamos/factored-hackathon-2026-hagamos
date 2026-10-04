@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "ChargeKind": {
+      "enum": [
+        "purchase",
+        "bank_adjustment"
+      ],
+      "title": "ChargeKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "date_from": {
+      "format": "date",
+      "title": "Date From",
+      "type": "string"
+    },
+    "date_to": {
+      "format": "date",
+      "title": "Date To",
+      "type": "string"
+    },
+    "amount": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Amount"
+    },
+    "merchant": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Merchant"
+    },
+    "card_n": {
+      "anyOf": [
+        {
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Card N"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChargeKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "date_from",
+    "date_to"
+  ],
+  "title": "SearchChargesInput",
+  "type": "object"
+}

@@ -1,0 +1,39 @@
+{
+  "clock": "2026-06-18",
+  "charge_window_days": 180,
+  "dispute_window_days": 365,
+  "customers": 47,
+  "cards": 88,
+  "charges": 189,
+  "disputes": 8,
+  "customers_per_scenario": {
+    "A1_co_recent_domestic_purchase": 3,
+    "A2_pending_purchase": 3,
+    "A3_card_with_two_recent_purchases": 3,
+    "A4_mx_charge_in_madrid": 3,
+    "A5_ar_credit_card_purchase": 3,
+    "A6_co_charge_in_sao_paulo": 3,
+    "A9_two_purchases_same_merchant": 3,
+    "A10_bank_adjustment": 3,
+    "recent_high_fraud_score": 3,
+    "repeat_disputes_90_days": 3,
+    "declined_purchase": 3,
+    "reversed_purchase": 3,
+    "known_merchant_purchase": 3,
+    "segment_basic": 2,
+    "segment_plus": 2,
+    "segment_premium": 2,
+    "segment_student": 2
+  },
+  "customers_per_country": {
+    "AR": 14,
+    "CO": 15,
+    "MX": 18
+  },
+  "customers_per_segment": {
+    "basic": 29,
+    "plus": 11,
+    "premium": 4,
+    "student": 3
+  }
+}

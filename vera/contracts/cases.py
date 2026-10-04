@@ -1,14 +1,12 @@
 """Dispute case as registered and read back."""
 
-from collections import defaultdict
-from decimal import Decimal
 from enum import StrEnum
 from typing import Self
 
 from pydantic import AwareDatetime, Field, model_validator
 
-from vera.contracts.charges import Candidate, ChargeStatus
-from vera.contracts.common import Amount, CaseId, Contract, Currency, Identifier, Money
+from vera.contracts.charges import Candidate, check_exposure
+from vera.contracts.common import Amount, CaseId, Contract, Identifier, Money
 from vera.contracts.interpretation import ClaimType, DeclaredChannel
 
 
@@ -43,18 +41,5 @@ class Case(Contract):
 
     @model_validator(mode="after")
     def _exposure_counts_only_approved_charges(self) -> Self:
-        # One case with the total amount of approved charges, per currency; pending ones stay for follow-up.
-        numbers = [charge.n for charge in self.charges]
-        if len(numbers) != len(set(numbers)):
-            raise ValueError("each charge must appear once in a case")
-        currencies = [money.currency for money in self.total_exposure]
-        if len(currencies) != len(set(currencies)):
-            raise ValueError("total_exposure must have one entry per currency")
-        expected: defaultdict[Currency, Decimal] = defaultdict(Decimal)
-        for charge in self.charges:
-            if charge.status is ChargeStatus.APPROVED:
-                expected[charge.currency] += charge.amount
-        declared = {money.currency: money.amount for money in self.total_exposure}
-        if declared != dict(expected):
-            raise ValueError("total_exposure must equal the sum of approved charges per currency")
+        check_exposure(self.charges, self.total_exposure)
         return self

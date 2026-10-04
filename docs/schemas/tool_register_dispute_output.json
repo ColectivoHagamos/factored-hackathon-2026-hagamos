@@ -1,0 +1,62 @@
+{
+  "$defs": {
+    "Currency": {
+      "description": "Currencies present in the dataset; Mexico operates in USD only.",
+      "enum": [
+        "USD",
+        "COP",
+        "ARS"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        }
+      },
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^DSP-\\d{6}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "total_exposure": {
+      "items": {
+        "$ref": "#/$defs/Money"
+      },
+      "title": "Total Exposure",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "total_exposure"
+  ],
+  "title": "RegisterDisputeOutput",
+  "type": "object"
+}
