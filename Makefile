@@ -41,3 +41,4 @@ data: ## Build the data lake outside the repository from ../data (or VERA_DATA);
 	$(UV) run python -m pipeline.bronze
 	$(UV) run python -m pipeline.silver
 	$(UV) run python -m pipeline.gold
+	$(UV) run python -m pipeline.demo
