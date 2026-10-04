@@ -90,6 +90,16 @@ class HealthResponse(Contract):
     version: ShortText
 
 
+class MetricsResponse(Contract):
+    """Counters since the process started and recent latencies, for the analyst role (P54)."""
+
+    interpreter: Identifier
+    degraded: bool
+    counts: dict[str, int]
+    request_ms: dict[str, float | int | None]
+    turn_ms: dict[str, float | int | None]
+
+
 class ApiErrorCode(StrEnum):
     UNAUTHORIZED = "unauthorized"
     # Same answer for a case of another customer and for a case that does not exist.

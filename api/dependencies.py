@@ -5,6 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
+from api.observability import log_event
 from api.security import SessionSigner
 from api.settings import Settings
 from vera.adapters.demo_bank import DemoBank
@@ -35,6 +36,9 @@ class Container:
     conversation: Conversation
     signer: SessionSigner
     now: Callable[[], datetime]
+    # The interpreter actually in use; degraded when the configured one could not start.
+    interpreter: str = "rules"
+    degraded: bool = False
 
 
 def simulated_clock() -> Callable[[], datetime]:
@@ -48,13 +52,18 @@ def simulated_clock() -> Callable[[], datetime]:
     return now
 
 
-def interpreter_for(settings: Settings) -> InterpreterPort:
+def interpreter_for(settings: Settings) -> tuple[InterpreterPort, bool]:
+    """The configured interpreter, or the rules when it cannot start: the service answers either way (P54)."""
     if settings.llm == "classifier":
-        # Imported here so the rules interpreter never loads scikit-learn; trained once per process, no model file.
-        from ml.claims import default_classifier
+        try:
+            # Imported here so the rules interpreter never loads scikit-learn; trained once per process, no model file.
+            from ml.claims import default_classifier
 
-        return ClassifierInterpreter(default_classifier())
-    return RulesInterpreter()
+            return ClassifierInterpreter(default_classifier()), False
+        except Exception as error:  # any failure to start the model leaves the rules in charge
+            log_event("interpreter_fallback", configured="classifier", using="rules", error=type(error).__name__)
+            return RulesInterpreter(), True
+    return RulesInterpreter(), False
 
 
 def build(
@@ -76,8 +85,9 @@ def build(
     gate = ActionGate(toolbox, secret=settings.session_secret.encode(), now=now)
     tools = ToolService(toolbox, gate, bank, bank, now=now)
     log = SqliteEventLog(settings.state_db) if settings.state_db != ":memory:" else MemoryEventLog()
+    interpreter, degraded = interpreter_for(settings)
     conversation = Conversation(
-        interpreter=interpreter_for(settings),
+        interpreter=interpreter,
         tools=tools,
         log=log,
         engine=PolicyEngine(policy),
@@ -86,4 +96,5 @@ def build(
         now=now,
         new_id=lambda: secrets.token_hex(8),
     )
-    return Container(settings, state, bank, tools, conversation, SessionSigner(settings.session_secret, now), now)
+    signer = SessionSigner(settings.session_secret, now)
+    return Container(settings, state, bank, tools, conversation, signer, now, interpreter.name, degraded)

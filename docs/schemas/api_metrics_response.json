@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "description": "Counters since the process started and recent latencies, for the analyst role (P54).",
+  "properties": {
+    "interpreter": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Interpreter",
+      "type": "string"
+    },
+    "degraded": {
+      "title": "Degraded",
+      "type": "boolean"
+    },
+    "counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Counts",
+      "type": "object"
+    },
+    "request_ms": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Request Ms",
+      "type": "object"
+    },
+    "turn_ms": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Turn Ms",
+      "type": "object"
+    }
+  },
+  "required": [
+    "interpreter",
+    "degraded",
+    "counts",
+    "request_ms",
+    "turn_ms"
+  ],
+  "title": "MetricsResponse",
+  "type": "object"
+}
