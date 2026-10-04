@@ -1,5 +1,6 @@
 """HTTP entry point. Routes only authenticate, validate and delegate; business rules live in the domain."""
 
+import hmac
 import secrets
 from collections import defaultdict, deque
 from collections.abc import Callable
@@ -119,7 +120,9 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         return DemoSessionResponse(token=token, expires_at=(container.now() + SESSION_TTL).astimezone())
 
     @app.post(f"{PREFIX}/demo-analyst-session", response_model=DemoSessionResponse, tags=["demo"])
-    def demo_analyst_session() -> DemoSessionResponse:
+    def demo_analyst_session(x_analyst_key: str = Header(default="")) -> DemoSessionResponse:
+        if settings.analyst_key and not hmac.compare_digest(x_analyst_key, settings.analyst_key):
+            raise ApiFailure(ApiErrorCode.UNAUTHORIZED)
         token = container.signer.issue("demo-analyst", role="analyst")
         return DemoSessionResponse(token=token, expires_at=(container.now() + SESSION_TTL).astimezone())
 

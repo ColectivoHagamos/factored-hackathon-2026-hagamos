@@ -19,8 +19,7 @@ function el(tag, text, className) {
 }
 
 function section(title, ...children) {
-  const card = el("section", null, "card");
-  card.style.marginTop = "16px";
+  const card = el("section", null, "card spaced");
   card.appendChild(el("h2", title));
   children.forEach((child) => card.appendChild(child));
   return card;
