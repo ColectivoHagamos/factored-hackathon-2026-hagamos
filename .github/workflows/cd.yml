@@ -53,16 +53,28 @@ jobs:
           TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           VERA_ANALYST_KEY: ${{ secrets.VERA_ANALYST_KEY }}
+          # Claude reads the messages only when these secrets exist (P41); without them the classifier does.
+          VERA_LLM: ${{ secrets.VERA_LLM }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_WORKSPACE_ID: ${{ secrets.LLM_WORKSPACE_ID }}
         run: |
           scp -i ~/.ssh/deploy_key deploy/docker-compose.prod.yml deploy/Caddyfile deploy/deploy.sh "$TARGET:/opt/vera/"
           # Secrets travel on standard input, never on a command line.
-          printf 'SESSION_SECRET=%s\nVERA_ANALYST_KEY=%s\n' "$SESSION_SECRET" "$VERA_ANALYST_KEY" \
+          printf 'SESSION_SECRET=%s\nVERA_ANALYST_KEY=%s\nVERA_LLM=%s\nLLM_API_KEY=%s\nLLM_WORKSPACE_ID=%s\n' \
+            "$SESSION_SECRET" "$VERA_ANALYST_KEY" "$VERA_LLM" "$LLM_API_KEY" "$LLM_WORKSPACE_ID" \
             | ssh -i ~/.ssh/deploy_key "$TARGET" 'umask 077 && cat > /opt/vera/.env'
 
       - name: Deploy with rollback
         env:
           TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
-        run: ssh -i ~/.ssh/deploy_key "$TARGET" "cd /opt/vera && chmod +x deploy.sh && DOMAIN=$DOMAIN ./deploy.sh ${{ github.sha }}"
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The image is private: the job's short-lived token pulls it, from a Docker config apart from the other
+          # stacks on the host, whose own registry login stays untouched.
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/deploy_key "$TARGET" \
+            "mkdir -p /opt/vera/.docker && DOCKER_CONFIG=/opt/vera/.docker docker login ghcr.io -u ${{ github.actor }} --password-stdin"
+          ssh -i ~/.ssh/deploy_key "$TARGET" \
+            "cd /opt/vera && chmod +x deploy.sh && DOCKER_CONFIG=/opt/vera/.docker DOMAIN=$DOMAIN ./deploy.sh ${{ github.sha }}"
 
       - name: Public health check
         run: |

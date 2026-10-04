@@ -74,6 +74,49 @@ def test_merchant_date_channel_and_card():
     assert result.has_card == "no"
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "me están obligando a hacer esto",
+        "Me están amenazando para que haga esto",
+        "Me forzaron a dar la clave",
+        "Me obrigaram a fazer a transferência",
+        "Estou sendo ameaçado, me ajude",
+    ],
+)
+def test_coercion_in_any_tense_is_a_threat(text: str):
+    assert read(text).coercion
+
+
+@pytest.mark.parametrize(
+    ("text", "claim"),
+    [
+        ("Le transferí a un supuesto ejecutivo del banco, era una estafa", "scam_transfer"),
+        ("Una persona me llamó diciendo que era del banco y le transferí mis ahorros", "scam_transfer"),
+        ("Um falso gerente me ligou e eu transferi o dinheiro", "scam_transfer"),
+        ("Me estafaron con una transferencia y quiero hablar con un asesor", "human_request"),
+        ("Caí num golpe, quero falar com uma pessoa", "human_request"),
+    ],
+)
+def test_a_role_in_a_scam_story_is_not_a_request_unless_the_customer_asks(text: str, claim: str):
+    assert read(text).claim_type == claim
+
+
+@pytest.mark.parametrize(
+    ("text", "channel"),
+    [
+        ("Ayer me llamaron del banco", "phone_call"),
+        ("me escribieron por WhatsApp", "message"),
+        ("Ontem me ligaram", "phone_call"),
+        ("por un link que me mandaron al correo", "email"),
+        ("lo vi en Facebook", "social_media"),
+        ("me llamo [name] y no reconozco un cargo", None),
+    ],
+)
+def test_how_a_third_party_reached_the_customer(text: str, channel: str | None):
+    assert read(text).contact_channel == channel
+
+
 def test_coercion_regulator_and_pix_flags():
     assert read("me están obligando a hacer esto").coercion
     assert read("voy a ir a la CONDUSEF").regulator_mentioned
@@ -93,3 +136,51 @@ def test_option_numbers_only_when_a_choice_was_asked():
 
 def test_language_of_the_conversation_is_kept_for_neutral_messages():
     assert read("ok", language="pt").language == "pt"
+
+
+@pytest.mark.parametrize(
+    ("text", "merchant"),
+    [
+        ("Revisando la app vi Libreria Andina en mis compras y no fui yo", "Libreria Andina"),
+        ("Hola, Farmacia Uno me cobró de más", "Farmacia Uno"),
+        ("Necesito ayuda. Mercado Libre me cobró dos veces", "Mercado Libre"),
+        ("Me cobraron algo en Cine Estrella, no fui yo", "Cine Estrella"),
+        ("No reconozco un cargo de mi tarjeta", None),
+        ("Fue el 5 de Junio por la tarde", None),
+        ("Buenas tardes, quiero reclamar", None),
+    ],
+)
+def test_the_merchant_is_found_wherever_the_customer_names_it(text: str, merchant: str | None):
+    assert read(text).merchant_text == merchant
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "¿Me pasas con alguien del banco?",
+        "Necesito hablar con alguien ya",
+        "Comuníqueme con servicio al cliente",
+        "Quero falar com alguém da central",
+        "Me passa pra alguém, por favor",
+    ],
+)
+def test_more_ways_to_ask_for_a_person(text: str):
+    assert read(text).claim_type == "human_request"
+
+
+def test_a_scam_story_about_someone_from_the_bank_is_not_a_request_for_a_person():
+    assert read("Hablé con alguien del banco por teléfono y me engañaron").claim_type == "scam_transfer"
+
+
+@pytest.mark.parametrize(
+    ("text", "claim"),
+    [
+        ("¿Eres una persona?", "unrecognized_charge"),
+        ("¿Es usted un robot?", "unrecognized_charge"),
+        ("Você é uma pessoa?", "unrecognized_charge"),
+        ("¿Eres una persona? Quiero hablar con una persona", "human_request"),
+    ],
+)
+def test_asking_whether_vera_is_a_person_is_not_asking_for_one(text: str, claim: str):
+    reading = read(text)
+    assert reading.asks_if_human and reading.claim_type == claim

@@ -3,12 +3,13 @@
 from decimal import Decimal
 
 import pytest
+from pydantic import ValidationError
 
 from vera.contracts.charges import FraudScoreBand
 from vera.contracts.common import Money
 from vera.contracts.handoff import Queue
 from vera.policy.engine import PREDICATES, Facts, Outcome, PolicyEngine, Signal, exposure_usd
-from vera.policy.model import load_policy
+from vera.policy.model import Parameters, load_policy
 
 POLICY = load_policy()
 ENGINE = PolicyEngine(POLICY)
@@ -22,7 +23,7 @@ def replace(facts: Facts, **updates) -> Facts:
 
 # rule: (facts that trigger it, facts that are almost the same and do not, expected outcome)
 CASES = {
-    "POL-01": ({"human_requested": True}, {"human_requested": False}, Outcome.HANDOFF),
+    "POL-01": ({"human_requested": True}, {"human_requested": False}, Outcome.OFFER_BEFORE_TRANSFER),
     "POL-02": ({"coercion": True}, {"coercion": False}, Outcome.HANDOFF),
     "POL-03": ({"instruction_in_message": True}, {"instruction_in_message": False}, Outcome.SECURITY_EVENT),
     "POL-04": ({"charge_status": "pending"}, {"charge_status": "approved"}, Outcome.EXPLAIN_STATUS),
@@ -67,7 +68,7 @@ def test_rule_applies_when_its_condition_holds(rule_id: str):
     positive, _, outcome = CASES[rule_id]
     found = decision(ENGINE.evaluate(replace(BASE, **positive)), rule_id)
     assert found is not None and found.outcome is outcome
-    assert found.version == POLICY.version == "1.4"
+    assert found.version == POLICY.version == "1.5"
     assert found.as_event_data()["rule"] == rule_id
 
 
@@ -80,6 +81,30 @@ def test_rule_does_not_apply_when_its_condition_fails(rule_id: str):
 def test_nothing_applies_to_a_plain_turn():
     evaluation = ENGINE.evaluate(BASE)
     assert evaluation.decisions == () and not evaluation.escalate and evaluation.queue is None
+
+
+def test_pol01_offers_once_and_then_transfers():
+    asked = ENGINE.evaluate(replace(BASE, human_requested=True))
+    assert asked.outcomes == {Outcome.OFFER_BEFORE_TRANSFER} and not asked.escalate
+    offers = POLICY.parameters.offers_before_transfer
+    insisted = ENGINE.evaluate(replace(BASE, human_requested=True, person_offers_made=offers))
+    assert offers == 1 and insisted.outcomes == {Outcome.HANDOFF} and insisted.escalate
+
+
+def test_pol01_without_offers_transfers_at_once():
+    parameters = POLICY.parameters.model_copy(update={"offers_before_transfer": 0})
+    engine = PolicyEngine(POLICY.model_copy(update={"parameters": parameters}))
+    assert engine.evaluate(replace(BASE, human_requested=True)).outcomes == {Outcome.HANDOFF}
+
+
+def test_the_prototype_never_makes_more_than_one_offer():
+    with pytest.raises(ValidationError):
+        Parameters.model_validate(POLICY.parameters.model_dump() | {"offers_before_transfer": 2})
+
+
+def test_coercion_never_waits_for_an_offer():
+    evaluation = ENGINE.evaluate(replace(BASE, human_requested=True, coercion=True))
+    assert Outcome.HANDOFF in evaluation.outcomes and evaluation.escalate and evaluation.queue is Queue.FRAUD
 
 
 def test_escalation_floor_is_never_lowered():

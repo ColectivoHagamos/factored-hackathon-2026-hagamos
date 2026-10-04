@@ -45,6 +45,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 .bubble { max-width: 85%; padding: 10px 12px; border-radius: 12px; white-space: pre-wrap; line-height: 1.4; }
 .bubble.vera { background: var(--panel); border: 1px solid var(--line); align-self: flex-start; }
 .bubble.customer { background: var(--accent); color: #fff; align-self: flex-end; }
+.bubble.typing { color: var(--muted); font-style: italic; }
 .options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .options button { background: #fff; color: var(--accent); }
 .options label { display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: 0.9rem; }

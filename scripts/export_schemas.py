@@ -25,6 +25,7 @@ MODELS: dict[str, type[BaseModel]] = {
     "case": cases.Case,
     "event": events.Event,
     "handoff": handoff.Handoff,
+    "transfer": handoff.Transfer,
     "legal_rule": legal.LegalRule,
     "tool_error": ToolError,
     **{f"tool_{name}_input": model for name, model in TOOL_INPUTS.items()},
@@ -37,6 +38,8 @@ MODELS: dict[str, type[BaseModel]] = {
     "api_message_response": api.MessageResponse,
     "api_case_view": api.CaseView,
     "api_health_response": api.HealthResponse,
+    "api_metrics_response": api.MetricsResponse,
+    "api_queue_item": api.QueueItem,
     "api_error": api.ApiError,
 }
 

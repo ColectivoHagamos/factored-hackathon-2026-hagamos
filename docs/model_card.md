@@ -36,10 +36,14 @@ The team wrote 329 phrases for this purpose: five classes, in Spanish and Portug
 
 | | Accuracy | Macro F1 | ECE | Acts (confidence ≥ 0.6) | Accuracy when it acts | Acts on a wrong reading |
 |---|---:|---:|---:|---:|---:|---:|
-| Keyword baseline | 0.330 | 0.275 | 0.174 | 21.6 % | 78.9 % | 4.5 % |
-| **Learned classifier** | **0.875** | **0.881** | **0.062** | **87.5 %** | **96.1 %** | **3.4 %** |
+| Keyword baseline | 0.455 | 0.425 | 0.124 | 31.8 % | 92.9 % | 2.3 % |
+| **Learned classifier** | **0.875** | **0.880** | **0.062** | **87.5 %** | **96.1 %** | **3.4 %** |
 
 "Acts" is the share of messages the conversation follows without asking again, which is what the threshold of POL-14 decides. The baseline acts rarely because a keyword pattern either matches exactly or the rules return a low confidence, so VERA asks.
+
+**The baseline numbers are optimistic.** On 4 October, after the held-out evaluation, the keyword patterns for a request for a person were extended ("hablar con alguien", "supervisor", "atención al cliente", "carne y hueso"). Some of those expressions also appear in this test family, which the baseline had never been tuned on before; its accuracy rose from 0.330 to 0.432. Later that day, the rules stopped reading a role inside a scam story ("un supuesto asesor del banco") as a request for a person, and it rose to 0.455. The learned classifier did not change.
+
+**Acting less is not acting better.** The baseline now acts on a wrong reading in 2 of 88 messages and the classifier in 3, but the baseline acts on a third of the messages and the classifier on seven in eight. When it acts, the classifier is right more often (96.1 % against 92.9 %): it asks less and errs less per decision. The share of wrong actions is kept under 5 % by a test.
 
 **By class (learned classifier, F1):**
 

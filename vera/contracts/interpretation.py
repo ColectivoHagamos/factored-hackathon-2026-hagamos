@@ -24,6 +24,17 @@ class DeclaredChannel(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ContactChannel(StrEnum):
+    """How a third party reached the customer before a payment made under deception, as the customer says (POL-10)."""
+
+    PHONE_CALL = "phone_call"
+    MESSAGE = "message"
+    EMAIL = "email"
+    SOCIAL_MEDIA = "social_media"
+    WEBSITE = "website"
+    IN_PERSON = "in_person"
+
+
 class Answer(StrEnum):
     """Answer to a yes-or-no question that keeps the case in which the customer did not say."""
 
@@ -44,9 +55,12 @@ class Interpretation(Contract):
     declared_channel: DeclaredChannel | None = None
     has_card: Answer = Answer.NOT_SAID
     authorized_payment: Answer = Answer.NOT_SAID
+    contact_channel: ContactChannel | None = None
     coercion: bool = False
     regulator_mentioned: bool = False
     pix_mentioned: bool = False
+    # "¿Eres una persona?": a question about VERA, not a request for a person.
+    asks_if_human: bool = False
     # Answer to the yes-or-no question asked in the previous turn, and option numbers the customer referred to.
     answer: Answer = Answer.NOT_SAID
     selected_numbers: tuple[Annotated[int, Field(ge=1, le=50)], ...] = ()

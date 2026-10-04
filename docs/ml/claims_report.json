@@ -63,13 +63,13 @@
   "test": {
     "baseline_keywords": {
       "n": 88,
-      "accuracy": 0.3295,
-      "macro_f1": 0.2746,
+      "accuracy": 0.4545,
+      "macro_f1": 0.425,
       "per_class": {
         "unrecognized_charge": {
-          "precision": 0.2466,
+          "precision": 0.2812,
           "recall": 0.9,
-          "f1": 0.3871,
+          "f1": 0.4286,
           "support": 20
         },
         "improper_charge": {
@@ -80,14 +80,14 @@
         },
         "scam_transfer": {
           "precision": 1.0,
-          "recall": 0.125,
-          "f1": 0.2222,
+          "recall": 0.25,
+          "f1": 0.4,
           "support": 16
         },
         "human_request": {
-          "precision": 0.6667,
-          "recall": 0.25,
-          "f1": 0.3636,
+          "precision": 1.0,
+          "recall": 0.8125,
+          "f1": 0.8966,
           "support": 16
         },
         "out_of_scope": {
@@ -100,13 +100,13 @@
       "per_language": {
         "es": {
           "n": 44,
-          "accuracy": 0.3182,
-          "macro_f1": 0.2604
+          "accuracy": 0.4545,
+          "macro_f1": 0.419
         },
         "pt": {
           "n": 44,
-          "accuracy": 0.3409,
-          "macro_f1": 0.2877
+          "accuracy": 0.4545,
+          "macro_f1": 0.4295
         }
       },
       "confusion_matrix": {
@@ -135,15 +135,15 @@
           [
             12,
             0,
-            2,
-            2,
+            4,
+            0,
             0
           ],
           [
-            12,
+            3,
             0,
             0,
-            4,
+            13,
             0
           ],
           [
@@ -155,12 +155,12 @@
           ]
         ]
       },
-      "ece": 0.1744,
+      "ece": 0.1239,
       "at_policy_threshold": {
         "threshold": 0.6,
-        "acts": 0.2159,
-        "accuracy_when_acting": 0.7895,
-        "acts_on_a_wrong_reading": 0.0455
+        "acts": 0.3182,
+        "accuracy_when_acting": 0.9286,
+        "acts_on_a_wrong_reading": 0.0227
       },
       "errors": [
         {
@@ -227,13 +227,6 @@
           "confidence": 0.4
         },
         {
-          "text": "Una persona me escribió diciendo que era de soporte del banco y me hizo transferir mis ahorros",
-          "language": "es",
-          "truth": "scam_transfer",
-          "predicted": "human_request",
-          "confidence": 0.95
-        },
-        {
           "text": "Respondí un correo falso y luego hice el pago que me pidieron",
           "language": "es",
           "truth": "scam_transfer",
@@ -276,42 +269,7 @@
           "confidence": 0.4
         },
         {
-          "text": "Esto no me sirve, quiero un agente de servicio al cliente",
-          "language": "es",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
           "text": "Prefiero que me llame alguien del banco",
-          "language": "es",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
-          "text": "¿Puedo hablar con un funcionario?",
-          "language": "es",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
-          "text": "Comuníqueme con atención al cliente",
-          "language": "es",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
-          "text": "Transfiérame con su supervisor",
-          "language": "es",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
-          "text": "¿Me atiende alguien de carne y hueso?",
           "language": "es",
           "truth": "human_request",
           "predicted": "unrecognized_charge",
@@ -430,13 +388,6 @@
           "confidence": 0.4
         },
         {
-          "text": "Uma pessoa me escreveu dizendo que era do suporte do banco e me fez transferir minhas economias",
-          "language": "pt",
-          "truth": "scam_transfer",
-          "predicted": "human_request",
-          "confidence": 0.95
-        },
-        {
           "text": "Respondi um e-mail falso e depois fiz o pagamento que pediram",
           "language": "pt",
           "truth": "scam_transfer",
@@ -479,13 +430,6 @@
           "confidence": 0.4
         },
         {
-          "text": "Isso não está ajudando, quero um agente do atendimento ao cliente",
-          "language": "pt",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
           "text": "Prefiro que alguém do banco me ligue",
           "language": "pt",
           "truth": "human_request",
@@ -493,28 +437,7 @@
           "confidence": 0.4
         },
         {
-          "text": "Posso falar com um funcionário?",
-          "language": "pt",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
           "text": "Me encaminhe para o atendimento ao cliente",
-          "language": "pt",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
-          "text": "Me transfira para o seu supervisor",
-          "language": "pt",
-          "truth": "human_request",
-          "predicted": "unrecognized_charge",
-          "confidence": 0.4
-        },
-        {
-          "text": "Alguém de carne e osso pode me atender?",
           "language": "pt",
           "truth": "human_request",
           "predicted": "unrecognized_charge",

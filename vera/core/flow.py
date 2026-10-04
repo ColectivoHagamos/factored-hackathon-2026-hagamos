@@ -24,11 +24,14 @@ from vera.contracts.handoff import (
     LanguageVariant,
     Queue,
     Sweep,
+    Transfer,
+    TransferReason,
 )
 from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel, Interpretation
 from vera.contracts.tools import (
     BlockCardInput,
     CreateHandoffInput,
+    CreateTransferInput,
     ReadCaseInput,
     RegisterDisputeInput,
     RegisterDisputeOutput,
@@ -42,7 +45,7 @@ from vera.contracts.tools import (
 from vera.core.events import new_event
 from vera.core.legal_route import LegalAssessment, assess
 from vera.core.state import FlowState, Step
-from vera.output.handoff import build_handoff
+from vera.output.handoff import CARD_LAST_SEEN, build_handoff, build_transfer
 from vera.output.render import Renderer, day, language_of, money, status_word
 from vera.output.validator import UnsafeReplyError, check
 from vera.policy.engine import Evaluation, Facts, Outcome, PolicyEngine, Signal, exposure_usd
@@ -52,6 +55,7 @@ from vera.ports.interpreter import InterpreterPort
 from vera.ports.tools import Offers, Session, ToolsPort
 
 PENDING_TOKEN = "tok_pending_confirmation"
+INVALID_NOTE = ToolError(code=ToolErrorCode.INVALID_SCHEMA)
 MAX_TURNS = 40
 SEARCH_DAYS = {ChargeKind.PURCHASE: 30, ChargeKind.BANK_ADJUSTMENT: 90}
 # With a merchant, a place or an amount to match, older charges are searched too, up to the longest legal window
@@ -82,6 +86,8 @@ class Turn:
     multiple_choice: bool = False
     # The previous reply: what the customer was asked and with which options.
     asked: Event | None = None
+    # Rule decisions already recorded in the conversation, as (rule, outcome): each one is recorded once.
+    decided: set[tuple[str, str | None]] = field(default_factory=set)
 
 
 class Conversation:
@@ -128,6 +134,7 @@ class Conversation:
             raise LookupError("unknown conversation")
         asked = next(e for e in reversed(events) if e.type is EventType.REPLY)
         turn = Turn(session, FlowState.model_validate(asked.data["state"]), events[-1], asked=asked)
+        turn.decided = {(e.data["rule"], e.data.get("outcome")) for e in events if e.type is EventType.RULE_DECISION}
         turns = 1 + sum(1 for event in events if event.type is EventType.CUSTOMER_MESSAGE)
         self._record(turn, EventType.CUSTOMER_MESSAGE, {"text": message.text, "option": message.selected_option})
         if turns > MAX_TURNS:
@@ -145,6 +152,11 @@ class Conversation:
         reading = self._interpret(turn, message, flagged=bool(security_signals))
         if security_signals:
             self._security_event(turn, security_signals)
+        if reading.asks_if_human and reading.claim_type is not ClaimType.HUMAN_REQUEST:
+            # VERA never passes for a person: it says what it is, offers one, and keeps the open question.
+            turn.lines.append(self._text(turn, "not_a_person"))
+            self._repeat_question(turn)
+            return
         if self._safety_first(turn, reading):
             return
         if security_signals:
@@ -162,10 +174,12 @@ class Conversation:
             expecting = "claim"
         elif turn.state.step in (Step.CHOOSE_CHARGE, Step.SWEEP):
             expecting = "choice"
+        elif turn.state.step is Step.SCAM_DETAILS:
+            expecting = "details"
         else:
             expecting = "yes_no"
         if message.text:
-            context = {"language": language.value, "expecting": expecting}
+            context = {"language": language.value, "expecting": expecting, "question": turn.state.step.value}
             if flagged:
                 # The gateway flagged the text: only deterministic rules read it, never a model it could steer.
                 context["flagged"] = "yes"
@@ -189,31 +203,42 @@ class Conversation:
     def _safety_first(self, turn: Turn, reading: Interpretation) -> bool:
         """POL-01, POL-02 and POL-09 win over every other step."""
         customer = self._tools.customer(turn.session)
-        person = reading.claim_type is ClaimType.HUMAN_REQUEST
+        # During the key questions of a scam a person is already on the way (POL-10): the request needs no offer.
+        person = reading.claim_type is ClaimType.HUMAN_REQUEST and turn.state.step is not Step.SCAM_DETAILS
         sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
-        if person and not sure and turn.state.step is not Step.HANDED_OFF:
-            # POL-14 before POL-01: when the reading is unsure, a person is offered, not imposed.
+        if person and not sure and turn.state.step not in (Step.HANDED_OFF, Step.PERSON_OFFERED):
+            # POL-14 before POL-01: when the reading is unsure, VERA asks before treating it as a request.
             turn.lines.append(self._text(turn, "offer_person"))
             self._yes_no(turn)
-            turn.state = turn.state.advance(step=Step.CONFIRM_PERSON)
+            turn.state = turn.state.advance(step=Step.CONFIRM_PERSON, resume_step=self._open_question(turn))
             return True
         facts = Facts(
             account_country=customer.country,
             human_requested=person,
+            person_offers_made=turn.state.person_offers,
             coercion=reading.coercion,
             regulator_mentioned=reading.regulator_mentioned,
             already_escalated=turn.state.escalated,
         )
         evaluation = self._evaluate(turn, facts)
-        if not ({Outcome.HANDOFF, Outcome.INFORM_VENUE} & evaluation.outcomes) or turn.state.step is Step.HANDED_OFF:
+        if turn.state.step is Step.HANDED_OFF:
+            return False
+        if not ({Outcome.HANDOFF, Outcome.INFORM_VENUE} & evaluation.outcomes):
+            # POL-01 alone: one offer to go on first. Coercion and the regulator never wait for an offer.
+            if Outcome.OFFER_BEFORE_TRANSFER in evaluation.outcomes:
+                self._offer_before_transfer(turn)
+                return True
             return False
         if reading.coercion:
             turn.lines.append(self._text(turn, "safety"))
+            reason = TransferReason.COERCION
         elif Outcome.INFORM_VENUE in evaluation.outcomes:
             turn.lines.append(self._text(turn, "regulator", venue=_venue(customer.country)))
+            reason = TransferReason.REGULATOR
         else:
             turn.lines.append(self._text(turn, "handoff_now"))
-        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
+            reason = TransferReason.PERSON_REQUESTED
+        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, reason)
         return True
 
     def _security_event(self, turn: Turn, signals: tuple[str, ...]) -> None:
@@ -231,13 +256,14 @@ class Conversation:
         """LLM10: past the limit nothing more is interpreted and the conversation goes to a person once."""
         if turn.state.step is not Step.HANDED_OFF:
             self._record(turn, EventType.RULE_DECISION, {"rule": "turn_limit", "turns": MAX_TURNS})
-            self._hand_off(turn, turn.state.queue or Queue.COMPLAINTS)
+            self._hand_off(turn, turn.state.queue or Queue.COMPLAINTS, TransferReason.TURN_LIMIT)
         turn.lines.append(self._text(turn, "turn_limit"))
 
     # State machine
 
     def _advance(self, turn: Turn, reading: Interpretation) -> None:
-        if turn.state.step is not Step.ASK_CLAIM and _aside(reading):
+        # At the POL-01 offer or the key questions of a scam, a message on the side still leads to the person.
+        if turn.state.step not in (Step.ASK_CLAIM, Step.PERSON_OFFERED, Step.SCAM_DETAILS) and _aside(reading):
             self._answer_aside(turn, reading)
             return
         handlers = {
@@ -250,6 +276,8 @@ class Conversation:
             Step.CONFIRM_BLOCK: self._on_block,
             Step.CONFIRM_REGISTER: self._on_register,
             Step.CONFIRM_PERSON: self._on_person,
+            Step.PERSON_OFFERED: self._on_person_offer,
+            Step.SCAM_DETAILS: self._on_scam_details,
         }
         handler = handlers.get(turn.state.step)
         if handler is None:
@@ -265,17 +293,70 @@ class Conversation:
         turn.lines.append(self._text(turn, "pix" if Outcome.OUT_OF_SCOPE in evaluation.outcomes else "out_of_scope"))
         self._repeat_question(turn)
 
-    def _on_person(self, turn: Turn, reading: Interpretation) -> None:
-        if reading.answer is Answer.YES:
-            self._evaluate(turn, Facts(account_country=self._country(turn), human_requested=True))
-            turn.lines.append(self._text(turn, "handoff_now"))
-            self._hand_off(turn, Queue.COMPLAINTS)
+    def _person_requested(self, turn: Turn) -> None:
+        """POL-01 once the request is clear: an offer while one is due, then a person with what is already known."""
+        facts = Facts(
+            account_country=self._country(turn),
+            human_requested=True,
+            person_offers_made=turn.state.person_offers,
+            already_escalated=turn.state.escalated,
+        )
+        evaluation = self._evaluate(turn, facts)
+        if Outcome.OFFER_BEFORE_TRANSFER in evaluation.outcomes:
+            self._offer_before_transfer(turn)
             return
-        turn.state = turn.state.advance(step=Step.ASK_CLAIM)
-        if reading.answer is Answer.NO:
-            turn.lines.append(self._text(turn, "ask_claim_again"))
+        turn.lines.append(self._text(turn, "handoff_now"))
+        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, TransferReason.PERSON_REQUESTED)
+
+    def _offer_before_transfer(self, turn: Turn) -> None:
+        """POL-01 (v1.5): VERA offers to review the case first; nothing runs while the offer is open."""
+        turn.lines.append(self._text(turn, "offer_before_transfer"))
+        self._yes_no(turn)
+        turn.state = turn.state.advance(
+            step=Step.PERSON_OFFERED,
+            resume_step=self._open_question(turn),
+            person_offers=turn.state.person_offers + 1,
+        )
+
+    def _on_person_offer(self, turn: Turn, reading: Interpretation) -> None:
+        if reading.answer is Answer.YES:
+            self._resume(turn)
         else:
-            self._on_claim(turn, reading)
+            # The customer insists, or does not take the offer.
+            self._person_requested(turn)
+
+    def _on_scam_details(self, turn: Turn, reading: Interpretation) -> None:
+        """POL-10: whatever the answer, Fraud gets it with the case, and a transfer has no chargeback to promise."""
+        turn.state = turn.state.advance(
+            date_text=reading.date_text or turn.state.date_text,
+            contacted_by=reading.contact_channel or turn.state.contacted_by,
+        )
+        turn.lines.append(self._text(turn, "scam_handoff"))
+        self._hand_off(turn, Queue.FRAUD, TransferReason.SCAM_TRANSFER)
+
+    def _on_person(self, turn: Turn, reading: Interpretation) -> None:
+        """POL-14: the customer says whether the unsure reading was a request for a person."""
+        if reading.answer is Answer.YES:
+            self._person_requested(turn)
+        elif reading.answer is Answer.NO:
+            self._resume(turn)
+        else:
+            # Neither yes nor no: the message answers the question that was open before.
+            turn.state = turn.state.advance(step=self._open_question(turn), resume_step=None)
+            self._advance(turn, reading)
+
+    def _open_question(self, turn: Turn) -> Step:
+        """The step of the question the customer was answering before a detour about a person."""
+        return turn.state.resume_step or turn.state.step
+
+    def _resume(self, turn: Turn) -> None:
+        """Back to the open question with its options and attempts; a pending action needs a new yes."""
+        step = self._open_question(turn)
+        replies = [e for e in self._log.read(turn.session.conversation_id) if e.type is EventType.REPLY]
+        turn.asked = next((e for e in reversed(replies) if e.data["state"]["step"] == step.value), None)
+        attempts = turn.asked.data["state"]["attempts"] if turn.asked else 0
+        turn.state = turn.state.advance(step=step, resume_step=None, attempts=attempts)
+        self._repeat_question(turn)
 
     def _on_claim(self, turn: Turn, reading: Interpretation) -> None:
         if turn.state.claim_type is not None:
@@ -304,8 +385,17 @@ class Conversation:
             self._ask_again(turn, "low_confidence")
             return
         if reading.claim_type is ClaimType.SCAM_TRANSFER:
+            turn.state = turn.state.advance(
+                claim_type=reading.claim_type, authorized_payment=reading.authorized_payment
+            )
+            if reading.date_text and reading.contact_channel:
+                # The customer already said when and how: nothing to ask again.
+                self._on_scam_details(turn, reading)
+                return
             turn.lines.append(self._text(turn, "scam"))
-            self._hand_off(turn, Queue.FRAUD)
+            turn.state = turn.state.advance(
+                step=Step.SCAM_DETAILS, date_text=reading.date_text, contacted_by=reading.contact_channel
+            )
             return
         kind = ChargeKind.BANK_ADJUSTMENT if reading.claim_type is ClaimType.IMPROPER_CHARGE else ChargeKind.PURCHASE
         turn.state = turn.state.advance(claim_type=reading.claim_type, declared_channel=reading.declared_channel)
@@ -635,9 +725,7 @@ class Conversation:
                     reason="policy section 11.1 criteria met" if goodwill else None,
                 ),
                 queue=queue,
-                open_questions=("When did the customer last see the card?",)
-                if Signal.CARD_NOT_IN_POSSESSION in signals
-                else (),
+                open_questions=(CARD_LAST_SEEN,) if Signal.CARD_NOT_IN_POSSESSION in signals else (),
                 policy_version=self._engine.version,
                 created_at=_aware(self._now()),
             )
@@ -678,8 +766,10 @@ class Conversation:
     def _evaluate(self, turn: Turn, facts: Facts) -> Evaluation:
         evaluation = self._engine.evaluate(facts)
         for decision in evaluation.decisions:
-            if decision.rule in turn.state.rules_applied and decision.outcome is not Outcome.FRAUD_ALERT:
+            key = (decision.rule, decision.outcome.value)
+            if key in turn.decided and decision.outcome is not Outcome.FRAUD_ALERT:
                 continue
+            turn.decided.add(key)
             self._record(turn, EventType.RULE_DECISION, decision.as_event_data())
             source = POLICY_SOURCE[language_of(turn.state.variant)].format(version=decision.version)
             entry = GlassBoxEntry(rule_id=decision.rule, source=source)
@@ -754,7 +844,7 @@ class Conversation:
         )
         if evaluation.escalate:
             turn.lines.append(self._text(turn, "handoff_unclear"))
-            self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
+            self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, TransferReason.NOT_UNDERSTOOD)
             return
         turn.lines.append(self._text(turn, template))
         if step in (None, turn.state.step):
@@ -765,6 +855,8 @@ class Conversation:
         """The open question is asked again with its options, so a message on the side does not cut the flow."""
         if turn.state.step is Step.ASK_CLAIM:
             turn.lines.append(self._text(turn, "ask_claim_again"))
+        elif turn.state.step is Step.SCAM_DETAILS:
+            turn.lines.append(self._text(turn, "scam_again"))
         elif turn.asked and turn.asked.data.get("options"):
             turn.lines.append(self._text(turn, "back_to_question"))
             self._show_again(turn)
@@ -805,11 +897,55 @@ class Conversation:
             turn, Facts(account_country=self._country(turn), tool_failed=True, already_escalated=turn.state.escalated)
         )
         turn.lines.append(self._text(turn, "tool_failure"))
-        self._hand_off(turn, Queue.COMPLAINTS)
+        self._hand_off(turn, Queue.COMPLAINTS, TransferReason.TOOL_FAILURE)
 
-    def _hand_off(self, turn: Turn, queue: Queue) -> None:
-        self._record(turn, EventType.HANDOFF, {"case_id": turn.state.case_id, "queue": queue.value})
+    def _hand_off(self, turn: Turn, queue: Queue, reason: TransferReason) -> None:
+        """A person takes over, and the analyst gets a note with what is already known (POL-01)."""
+        transfer_id = self._leave_note(turn, queue, reason)
+        data = {"case_id": turn.state.case_id, "queue": queue.value, "transfer_id": transfer_id}
+        self._record(turn, EventType.HANDOFF, data)
         turn.state = turn.state.advance(step=Step.HANDED_OFF, escalated=True, queue=queue)
+
+    def _leave_note(self, turn: Turn, queue: Queue, reason: TransferReason) -> str | None:
+        """The transfer note; when it cannot be built or kept, the conversation still goes to the person."""
+        args = CreateTransferInput(queue=queue, reason=reason)
+        try:
+            note = self._transfer_note(turn, queue, reason)
+        except ValueError:
+            self._record_tool(turn, "create_transfer", args.model_dump(mode="json"), INVALID_NOTE)
+            return None
+        result = self._tools.create_transfer(turn.session, args, note)
+        self._record_tool(turn, "create_transfer", args.model_dump(mode="json"), result.output)
+        return None if isinstance(result.output, ToolError) else result.output.transfer_id
+
+    def _transfer_note(self, turn: Turn, queue: Queue, reason: TransferReason) -> Transfer:
+        state = turn.state
+        known = state.disputed or ([state.chosen] if state.chosen is not None else sorted(state.charges_offered))
+        signals = tuple(sorted(s.value for s in state.signals if s is not Signal.NEW_MERCHANT))
+        return build_transfer(
+            reason=reason,
+            customer=self._tools.customer(turn.session),
+            variant=state.variant,
+            claim_type=state.claim_type,
+            charges=tuple(d for d in (self._detail(turn, n) for n in known) if d is not None),
+            declared=DeclaredFacts(
+                channel=state.declared_channel,
+                has_card=state.has_card,
+                authorized_payment=state.authorized_payment,
+                date_text=state.date_text,
+                contacted_by=state.contacted_by,
+            ),
+            actions=self._actions(turn),
+            pending_action=state.pending_tool,
+            case_id=state.case_id,
+            risk_signals=signals,
+            fraud_alert=bool(state.fraud_alert_charges),
+            rules_applied=tuple(dict.fromkeys(state.rules_applied)),
+            queue=queue,
+            policy_version=self._engine.version,
+            conversation_id=turn.session.conversation_id,
+            created_at=_aware(self._now()),
+        )
 
     def _record(
         self, turn: Turn, event_type: EventType, data: dict[str, JsonValue], provider: str | None = None

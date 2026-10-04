@@ -4,7 +4,9 @@ import secrets
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 
+from api.observability import log_event
 from api.security import SessionSigner
 from api.settings import Settings
 from vera.adapters.demo_bank import DemoBank
@@ -13,6 +15,7 @@ from vera.adapters.mock_bank import MockBank
 from vera.adapters.sqlite_event_log import SqliteEventLog
 from vera.adapters.sqlite_state import SqliteState
 from vera.core.flow import Conversation
+from vera.llm.anthropic_adapter import AnthropicInterpreter
 from vera.llm.classifier_adapter import ClassifierInterpreter
 from vera.llm.rules_adapter import RulesInterpreter
 from vera.output.render import Renderer
@@ -35,6 +38,11 @@ class Container:
     conversation: Conversation
     signer: SessionSigner
     now: Callable[[], datetime]
+    # The interpreter actually in use; degraded when the configured one could not start.
+    interpreter: str = "rules"
+    degraded: bool = False
+    # Calls, tokens and spending of the language model, when one is in use (P41).
+    llm_usage: Callable[[], dict] | None = None
 
 
 def simulated_clock() -> Callable[[], datetime]:
@@ -48,13 +56,46 @@ def simulated_clock() -> Callable[[], datetime]:
     return now
 
 
-def interpreter_for(settings: Settings) -> InterpreterPort:
-    if settings.llm == "classifier":
-        # Imported here so the rules interpreter never loads scikit-learn; trained once per process, no model file.
-        from ml.claims import default_classifier
+def interpreter_for(settings: Settings) -> tuple[InterpreterPort, bool]:
+    """The configured interpreter, or the rules when it cannot start: the service answers either way (P54)."""
+    builders = {"classifier": _classifier, "anthropic": lambda: _anthropic(settings)}
+    if settings.llm not in builders:
+        return RulesInterpreter(), False
+    try:
+        return builders[settings.llm](), False
+    except Exception as error:  # any failure to start leaves the rules in charge, and health says degraded
+        log_event("interpreter_fallback", configured=settings.llm, using="rules", error=type(error).__name__)
+        return RulesInterpreter(), True
 
-        return ClassifierInterpreter(default_classifier())
-    return RulesInterpreter()
+
+def _classifier() -> InterpreterPort:
+    # Imported here so the rules interpreter never loads scikit-learn; trained once per process, no model file.
+    from ml.claims import default_classifier
+
+    return ClassifierInterpreter(default_classifier())
+
+
+def _anthropic(settings: Settings) -> AnthropicInterpreter:
+    """Claude reads the messages; the classifier, or the rules, answers when it cannot and stays as the floor."""
+    if not settings.llm_api_key:
+        raise ValueError("LLM_API_KEY is empty")
+    import anthropic
+
+    try:
+        fallback = _classifier()
+    except Exception:  # without the classifier the floor is the rules; the start-up goes on
+        fallback = RulesInterpreter()
+    workspace = {"anthropic-workspace-id": settings.llm_workspace_id} if settings.llm_workspace_id else None
+    client = anthropic.Anthropic(
+        api_key=settings.llm_api_key,
+        timeout=settings.llm_timeout_seconds,
+        max_retries=2,
+        default_headers=workspace,
+    )
+    cap = Decimal(str(settings.llm_max_spend_usd))
+    interpreter = AnthropicInterpreter(client.messages, settings.llm_model, cap, fallback)
+    log_event("interpreter", using="anthropic", model=interpreter.model, prompt=interpreter.prompt_version)
+    return interpreter
 
 
 def build(
@@ -76,8 +117,9 @@ def build(
     gate = ActionGate(toolbox, secret=settings.session_secret.encode(), now=now)
     tools = ToolService(toolbox, gate, bank, bank, now=now)
     log = SqliteEventLog(settings.state_db) if settings.state_db != ":memory:" else MemoryEventLog()
+    interpreter, degraded = interpreter_for(settings)
     conversation = Conversation(
-        interpreter=interpreter_for(settings),
+        interpreter=interpreter,
         tools=tools,
         log=log,
         engine=PolicyEngine(policy),
@@ -86,4 +128,6 @@ def build(
         now=now,
         new_id=lambda: secrets.token_hex(8),
     )
-    return Container(settings, state, bank, tools, conversation, SessionSigner(settings.session_secret, now), now)
+    signer = SessionSigner(settings.session_secret, now)
+    usage = interpreter.spending.snapshot if isinstance(interpreter, AnthropicInterpreter) else None
+    return Container(settings, state, bank, tools, conversation, signer, now, interpreter.name, degraded, usage)

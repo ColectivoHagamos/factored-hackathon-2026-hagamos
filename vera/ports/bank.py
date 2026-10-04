@@ -12,7 +12,7 @@ from typing import Protocol
 from vera.contracts.cases import Case
 from vera.contracts.charges import ChargeKind, ChargeStatus, FraudScoreBand
 from vera.contracts.common import Country, Currency
-from vera.contracts.handoff import Handoff, Queue
+from vera.contracts.handoff import Handoff, Queue, Transfer
 
 
 @dataclass(frozen=True)
@@ -78,7 +78,11 @@ class CardsPort(Protocol):
 
 class CasesPort(Protocol):
     def register(self, case: Case, customer_ref: str, charge_refs: tuple[str, ...], idempotency_key: str) -> Case:
-        """Store the case once per key; a repeated key returns the case stored the first time."""
+        """Store the case once per key; a repeated key returns the case stored the first time.
+
+        The stored case may carry another case id than the one given: the store assigns it, so that two
+        registrations at the same time never share one. Callers use the case returned.
+        """
         ...
 
     def read(self, case_id: str, customer_ref: str) -> Case | None:
@@ -109,3 +113,7 @@ class RoutingPort(Protocol):
         ...
 
     def fraud_alerts_of(self, customer_ref: str) -> tuple[FraudAlertRecord, ...]: ...
+
+    def transfer(self, note: Transfer, conversation_id: str) -> Transfer:
+        """Deliver the note to an analyst queue once per conversation; the store assigns the transfer id."""
+        ...

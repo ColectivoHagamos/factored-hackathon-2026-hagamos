@@ -9,7 +9,7 @@ import unicodedata
 from decimal import Decimal
 
 from vera.contracts.common import Currency, Language
-from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel, Interpretation
+from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, DeclaredChannel, Interpretation
 
 
 def _fold(text: str) -> str:
@@ -42,11 +42,28 @@ PORTUGUESE = (
 )
 HUMAN = (
     r"\b(una persona|un humano|humano|un asesor|asesor|agente humano|alguien real|operador|una persona real)\b",
-    r"\b(uma pessoa|atendente|falar com alguem|pessoa de verdade)\b",
+    r"\b(hablar con alguien|(pase|pasa|pasas|comunique|comunica|comunicas)(me|nos)? con alguien|un agente|"
+    r"supervisor|ejecutivo|funcionario|representante|atencion al cliente|servicio al cliente|carne y hueso)\b",
+    r"\b(uma pessoa|atendente|falar com alguem|pessoa de verdade|um agente|gerente|supervisor|"
+    r"atendimento humano|carne e osso|(passe|passa) (para|pra) alguem)\b",
+)
+# In a scam story a role is part of the story ("un supuesto asesor del banco me llamó"); it is a request only when
+# the customer asks for one in so many words. Reading a request as a story costs nothing: a scam goes to a person.
+REQUEST_WORDS = (
+    r"\b(quiero|quisiera|necesito|prefiero|hablar con|pase(me|nos)?|pasa(me|nos)?|comunique(me|nos)?|comunica(me|nos)?|"
+    r"me atienda|quero|preciso|prefiro|falar com|me passe|me passa|me transfira)\b",
+)
+# "¿Eres una persona?", "¿es usted un robot?", "você é uma pessoa?": whether VERA is human, asked, not requested.
+ASKS_IF_HUMAN = (
+    r"\b(eres|es usted|sos|estoy hablando con|hablo con) "
+    r"(una persona|un humano|humano|humana|real|un robot|una maquina|un bot|una ia|una inteligencia artificial)\b",
+    r"\b(voce e|e voce|estou falando com|falo com) (uma pessoa|um humano|humano|humana|real|um robo|uma maquina|um bot|"
+    r"uma ia)\b",
 )
 COERCION = (
-    r"\b(me amenaz|amenazad|me obligan|me estan obligando|secuestr|extorsi|me tienen retenid|me apuntan)",
-    r"\b(ameaca|me obrigam|me obrigando|sequestr|extorsao)",
+    r"\b(me (estan )?amenaz|amenazad|me obligan|me obligaron|me estan obligando|me (estan )?forz|me forzaron)",
+    r"\b(secuestr|extorsi|me tienen retenid|me apuntan)",
+    r"\b(ameaca|me obrigam|me obrigaram|me obrigando|me forcaram|sequestr|extorsao)",
 )
 REGULATOR = (
     r"\b(condusef|superintendencia|superfinanciera|sfc|bcra|defensor del consumidor|defensoria|procon)\b",
@@ -82,6 +99,15 @@ HAS_CARD = (r"\b(tengo la tarjeta|la tengo conmigo|esta conmigo|la tengo aqui|te
 YES = (r"^\s*(si|sim|claro|correcto|ok|dale|de acuerdo|confirmo|exacto|afirmativo|isso)\b",)
 NO = (r"^\s*(no|nao|nunca|negativo|para nada)\b",)
 EMPTY_NOUNS = {"El", "La", "Los", "Las", "Un", "Una", "Mi", "Me", "Que", "Hola", "Buenas", "Ayer", "Hoy", "O", "A"}
+# Capitalized words that never name a merchant: months, days and the words a sentence often starts with.
+NOT_MERCHANTS = EMPTY_NOUNS | {
+    *("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre"),
+    *("Noviembre", "Diciembre", "Janeiro", "Fevereiro", "Março", "Maio", "Junho", "Julho", "Setembro", "Outubro"),
+    *("Novembro", "Dezembro", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"),
+    *("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sí", "Sim", "No", "Não", "Gracias", "Obrigado"),
+    *("Obrigada", "Oi", "Olá", "Por", "Para", "Pero", "Mas"),
+}
+CAPITALIZED = re.compile(r"[A-ZÁÉÍÓÚÑ][\w&'-]*")
 CURRENCY_WORDS = {
     "usd": Currency.USD,
     "dolares": Currency.USD,
@@ -93,6 +119,16 @@ CURRENCY_WORDS = {
 DATE_PATTERN = (
     r"\b(ayer|anteayer|antier|hoy|esta semana|la semana pasada|el (lunes|martes|miercoles|jueves|viernes|"
     r"sabado|domingo)|hace \d+ dias|ontem|hoje|anteontem|\d{1,2} de [a-z]+|\d{1,2}/\d{1,2}(/\d{2,4})?)\b"
+)
+# POL-10: how a third party reached the customer, checked in this order: a call over WhatsApp is still a call.
+# "Me llamó" is left out: without accents it is "me llamo", which introduces a name.
+CONTACT = (
+    (ContactChannel.PHONE_CALL, r"\b(me llamaron|llamada|llamaron|telefono|telefone|celular|ligaram|ligacao|ligou)\b"),
+    (ContactChannel.MESSAGE, r"\b(whatsapp|wsp|wpp|zap|telegram|sms|mensaje de texto|mensajito|mensagem|mensajes?)\b"),
+    (ContactChannel.EMAIL, r"\b(correo|e-?mail|mail)\b"),
+    (ContactChannel.SOCIAL_MEDIA, r"\b(facebook|instagram|tiktok|redes sociales|marketplace|twitter|redes)\b"),
+    (ContactChannel.WEBSITE, r"\b(pagina|sitio web|enlace|link|site)\b"),
+    (ContactChannel.IN_PERSON, r"\b(en persona|presencial|en la calle|pessoalmente)\b"),
 )
 NUMBER_WORDS = {
     "primero": 1,
@@ -114,8 +150,11 @@ class RulesInterpreter:
     def interpret(self, masked_text: str, context: dict[str, str]) -> Interpretation:
         text = _fold(masked_text)
         language = Language.PT if _any(PORTUGUESE, text) else Language(context.get("language", "es"))
-        human = _any(HUMAN, text)
-        claim, confident = self._claim(text, human)
+        asks_if_human = _any(ASKS_IF_HUMAN, text)
+        # The question names a person without asking for one; a request in the same message still counts.
+        rest = re.sub("|".join(ASKS_IF_HUMAN), " ", text)
+        human = _any(HUMAN, rest) and not (_any(SCAM, rest) and not _any(REQUEST_WORDS, rest))
+        claim, confident = self._claim(rest, human)
         amount, currency = _amount(text)
         return Interpretation(
             claim_type=claim,
@@ -126,9 +165,11 @@ class RulesInterpreter:
             declared_channel=_channel(text),
             has_card=Answer.NO if _any(NO_CARD, text) else Answer.YES if _any(HAS_CARD, text) else Answer.NOT_SAID,
             authorized_payment=Answer.YES if _any(SCAM, text) else Answer.NOT_SAID,
+            contact_channel=next((channel for channel, pattern in CONTACT if re.search(pattern, text)), None),
             coercion=_any(COERCION, text),
             regulator_mentioned=_any(REGULATOR, text),
             pix_mentioned=_any(PIX, text),
+            asks_if_human=asks_if_human,
             answer=Answer.YES if _any(YES, text) else Answer.NO if _any(NO, text) else Answer.NOT_SAID,
             selected_numbers=_numbers(text, context),
             language=language,
@@ -182,12 +223,38 @@ def _amount(text: str) -> tuple[Decimal | None, Currency | None]:
 
 
 def _merchant(original: str) -> str | None:
-    """Capitalized name after 'de', 'en' or 'em', as in 'un cargo de Uber' or 'compra em Mercado Livre'."""
-    match = re.search(r"\b(?:de|en|em|da|do|na|no)\s+((?:[A-ZÁÉÍÓÚÑ][\w&'-]*\s?){1,3})", original)
-    if not match:
-        return None
-    name = match.group(1).strip()
-    return None if name.split()[0] in EMPTY_NOUNS else name
+    """The merchant or place the customer named.
+
+    First a capitalized name after a preposition ("un cargo de Uber", "compra em Mercado Livre"); else one anywhere
+    else ("aparece Hotel Prado en mis movimientos"), so a name is not lost because of how the sentence was built.
+    """
+    for match in re.finditer(r"\b(?:de|en|em|da|do|na|no)\s+((?:[A-ZÁÉÍÓÚÑ][\w&'-]*\s?){1,3})", original):
+        name = match.group(1).strip()
+        if name.split()[0] not in NOT_MERCHANTS:
+            return name
+    words = [word.group() for word in re.finditer(r"\S+", original)]
+    index = 0
+    while index < len(words):
+        name = _capitalized_run(words, index)
+        starts_sentence = index == 0 or words[index - 1][-1] in ".!?:¿¡"
+        # A capital at the start of a sentence is grammar, unless two or more names follow each other.
+        if name and (not starts_sentence or len(name) > 1):
+            return " ".join(name)
+        index += max(1, len(name))
+    return None
+
+
+def _capitalized_run(words: list[str], start: int) -> list[str]:
+    """Up to three capitalized words from start that are not common words, as in "Hotel Prado"."""
+    run = []
+    for word in words[start : start + 3]:
+        text = word.strip(',;:()¿?¡!"')
+        if not CAPITALIZED.fullmatch(text) or text in NOT_MERCHANTS:
+            break
+        run.append(text)
+        if word[-1] in ",;:.!?":
+            break
+    return run
 
 
 def _numbers(text: str, context: dict[str, str]) -> tuple[int, ...]:

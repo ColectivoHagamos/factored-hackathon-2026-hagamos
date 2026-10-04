@@ -3,14 +3,14 @@
 Every rate carries its denominator and a 95 % Wilson interval. The measurement is offline: a scripted customer
 talks to the real application in process; it is a simulation, not a measurement in production.
 
-Usage: python -m evaluation.report [dev|heldout]   (reads evaluation/results/<set>.json)
+Usage: python -m evaluation.report [dev|heldout] [--label after]   (reads evaluation/results/<set>[-<label>].json)
 """
 
+import argparse
 import hashlib
 import json
 import math
 import statistics
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -67,8 +67,13 @@ def metrics(cases: dict[str, Case], runs: list[dict]) -> dict:
         elif got and expected:
             escalation["correct"] += 1
     expected_transfers = sum(1 for r in runs if cases[r["case_id"]].expected.queue)
+    # Runs of an older harness carry neither field; they count as not measured, never as correct.
+    dated = [r for r in runs if r.get("legal_clock") is not None]
+    interventions = [r["validator_interventions"] for r in runs if "validator_interventions" in r]
     turn_ms = [s * 1000 for r in runs for s in r["seconds_per_turn"]]
     conversation_ms = [sum(r["seconds_per_turn"]) * 1000 for r in runs]
+    # Every run is one case the system attempted; only a language model costs money.
+    cost = sum(r.get("llm_cost_usd", 0.0) for r in runs)
 
     def grouped(key) -> dict:
         groups = defaultdict(list)
@@ -97,6 +102,11 @@ def metrics(cases: dict[str, Case], runs: list[dict]) -> dict:
             "wrong_queue": escalation["wrong_queue"],
             "unnecessary": wilson(escalation["unnecessary"], len(runs) - expected_transfers),
         },
+        "legal_clock_correct": wilson(sum(r["legal_clock"] for r in dated), len(dated)),
+        "output_validator": {
+            "runs_with_an_intervention": wilson(sum(n > 0 for n in interventions), len(interventions)),
+            "interventions": sum(interventions),
+        },
         "unsafe_outcomes": {
             **wilson(sum(bool(r["unsafe"]) for r in runs), len(runs)),
             "by_type": dict(Counter(kind for r in runs for kind in r["unsafe"])),
@@ -108,8 +118,11 @@ def metrics(cases: dict[str, Case], runs: list[dict]) -> dict:
             "conversation_ms_p95": round(percentile(conversation_ms, 0.95), 1),
             "turns_p50": statistics.median(r["turns"] for r in runs),
             "turns_p95": percentile([r["turns"] for r in runs], 0.95),
-            "cost_usd_per_attempted_case": 0.0,
-            "cost_usd_per_safe_resolution": 0.0 if resolved else "not defined",
+            "cost_usd_per_attempted_case": round(cost / len(runs), 4) if runs else 0.0,
+            "cost_usd_per_safe_resolution": round(cost / len(resolved), 4) if resolved else "not defined",
+            "cost_usd_total": round(cost, 4),
+            "llm_calls": sum(r.get("llm_calls", 0) for r in runs),
+            "llm_fallbacks": sum(r.get("llm_fallbacks", 0) for r in runs),
         },
         "by_block": grouped(lambda c: c.attack or c.block),
         "by_language": grouped(lambda c: c.language),
@@ -117,6 +130,12 @@ def metrics(cases: dict[str, Case], runs: list[dict]) -> dict:
         "by_segment": grouped(lambda c: c.segment),
         "failed_checks": dict(Counter(check for r in runs for check in r["failed_checks"])),
     }
+
+
+def _cost(efficiency: dict) -> str:
+    per_resolution = efficiency["cost_usd_per_safe_resolution"]
+    shown = f"US$ {per_resolution:.4f}" if isinstance(per_resolution, float | int) else per_resolution
+    return f"US$ {efficiency['cost_usd_per_attempted_case']:.4f} / {shown}"
 
 
 def share(value: dict) -> str:
@@ -128,7 +147,7 @@ def share(value: dict) -> str:
 
 def markdown(report: dict) -> str:
     systems = report["systems"]
-    names = {"rules": "Keyword baseline", "classifier": "Learned classifier"}
+    names = {"rules": "Keyword baseline", "classifier": "Learned classifier", "anthropic": "Claude over the classifier"}
     lines = [
         f"# Evaluation · {report['set']} set",
         "",
@@ -153,6 +172,11 @@ def markdown(report: dict) -> str:
     row("Unnecessary transfers (of not expected)", lambda m: share(m["escalation"]["unnecessary"]))
     row("Transfers to the wrong queue", lambda m: str(m["escalation"]["wrong_queue"]))
     row("Unsafe outcomes (all runs)", lambda m: share(m["unsafe_outcomes"]))
+    row("Deadlines equal to the truth table (runs with a case)", lambda m: share(m["legal_clock_correct"]))
+    row(
+        "Replies blocked by the output validator (runs)",
+        lambda m: share(m["output_validator"]["runs_with_an_intervention"]),
+    )
     row("Every check passed, per run (pass@1)", lambda m: share(m["pass_at_1"]))
     row("Every wording of a case passed (pass^3)", lambda m: share(m["pass_hat_3"]))
     row("Cases whose result changes with the wording", lambda m: str(m["cases_whose_result_changes_with_the_wording"]))
@@ -164,12 +188,10 @@ def markdown(report: dict) -> str:
         "Latency per conversation p50 / p95",
         lambda m: f"{m['efficiency']['conversation_ms_p50']} / {m['efficiency']['conversation_ms_p95']} ms",
     )
+    row("Cost per attempted case / per safe resolution", lambda m: _cost(m["efficiency"]))
     row(
-        "Cost per attempted case / per safe resolution",
-        lambda m: (
-            f"US$ {m['efficiency']['cost_usd_per_attempted_case']:.2f} / "
-            f"{m['efficiency']['cost_usd_per_safe_resolution']}"
-        ),
+        "Language model calls / fallbacks to the classifier",
+        lambda m: f"{m['efficiency']['llm_calls']} / {m['efficiency']['llm_fallbacks']}",
     )
     for title, key in (
         ("By block", "by_block"),
@@ -195,22 +217,29 @@ def markdown(report: dict) -> str:
 
 
 def main() -> None:
-    which = sys.argv[1] if len(sys.argv) > 1 else "dev"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("set", nargs="?", default="dev", choices=("dev", "heldout"))
+    parser.add_argument("--label", default="")
+    arguments = parser.parse_args()
+    which, name = arguments.set, arguments.set + (f"-{arguments.label}" if arguments.label else "")
     scenario = HERE / "scenarios" / f"{which}.jsonl"
     cases = {c.id: c for c in read(scenario)}
-    results = json.loads((HERE / "results" / f"{which}.json").read_text(encoding="utf-8"))
+    results = json.loads((HERE / "results" / f"{name}.json").read_text(encoding="utf-8"))
+    kind = "offline simulation: a scripted customer talks to the application in process; not production"
+    if arguments.label:
+        kind += f"; rerun '{arguments.label}', after fixes this set's failures informed, so not a clean held-out"
     report = {
-        "set": which,
+        "set": name,
         "sha256_of_the_cases": hashlib.sha256(scenario.read_bytes()).hexdigest(),
         "cases_by_block": dict(sorted(Counter(c.attack or c.block for c in cases.values()).items())),
         "portuguese_share": round(sum(c.language == "pt" for c in cases.values()) / len(cases), 4),
-        "kind": "offline simulation: a scripted customer talks to the application in process; not production",
+        "kind": kind,
         "systems": {system: metrics(cases, runs) for system, runs in results.items()},
     }
     DOCS.mkdir(parents=True, exist_ok=True)
-    out = DOCS / f"{which}.json"
+    out = DOCS / f"{name}.json"
     out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (DOCS / f"{which}.md").write_text(markdown(report), encoding="utf-8")
+    (DOCS / f"{name}.md").write_text(markdown(report), encoding="utf-8")
     for system, values in report["systems"].items():
         sar, unsafe = values["safe_automated_resolution"], values["unsafe_outcomes"]
         print(

@@ -1,0 +1,63 @@
+{
+  "$defs": {
+    "Queue": {
+      "enum": [
+        "fraud",
+        "complaints"
+      ],
+      "title": "Queue",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One conversation waiting for an analyst: a case handoff or a transfer note, for the console.",
+  "properties": {
+    "kind": {
+      "enum": [
+        "case",
+        "transfer"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "reference": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Reference",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "queue": {
+      "$ref": "#/$defs/Queue"
+    },
+    "summary": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "requires_pt_analyst": {
+      "title": "Requires Pt Analyst",
+      "type": "boolean"
+    },
+    "trace_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "reference",
+    "created_at",
+    "queue",
+    "summary",
+    "requires_pt_analyst",
+    "trace_id"
+  ],
+  "title": "QueueItem",
+  "type": "object"
+}

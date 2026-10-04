@@ -7,9 +7,20 @@ from typing import Annotated, Literal, Self
 from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
 from vera.contracts.cases import DisputeReason
-from vera.contracts.charges import Candidate, FraudScoreBand, check_exposure
-from vera.contracts.common import Amount, CaseId, Contract, Country, Identifier, Language, Money, ShortText
-from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel
+from vera.contracts.charges import Candidate, ChargeDetail, FraudScoreBand, check_exposure
+from vera.contracts.common import (
+    Amount,
+    CaseId,
+    Contract,
+    Country,
+    Identifier,
+    Language,
+    Money,
+    PolicyRuleId,
+    ShortText,
+    TransferId,
+)
+from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, DeclaredChannel
 from vera.contracts.legal import Layer, Level, Party, RouteId, RuleId, RuleStatus, TermUnit
 
 NetworkCode = Annotated[str, StringConstraints(pattern=r"^\d{2}\.\d{1,2}(\.\d)?$")]
@@ -72,6 +83,9 @@ class DeclaredFacts(Contract):
     has_card: Answer = Answer.NOT_SAID
     was_in_country: Answer = Answer.NOT_SAID
     authorized_payment: Answer = Answer.NOT_SAID
+    # The date in the customer's own words ("ayer"), and how a third party reached them in a scam (POL-10).
+    date_text: ShortText | None = None
+    contacted_by: ContactChannel | None = None
 
 
 class Sweep(Contract):
@@ -151,6 +165,25 @@ class GoodwillCandidate(Contract):
         return self
 
 
+class TransferReason(StrEnum):
+    """Why a conversation went to a person without a case handoff; each reason is a rule."""
+
+    PERSON_REQUESTED = "person_requested"  # POL-01
+    COERCION = "coercion"  # POL-02
+    NOT_UNDERSTOOD = "not_understood"  # POL-05
+    REGULATOR = "regulator"  # POL-09
+    SCAM_TRANSFER = "scam_transfer"  # POL-10
+    TOOL_FAILURE = "tool_failure"  # POL-13
+    TURN_LIMIT = "turn_limit"  # the cap of turns per conversation
+
+
+def _check_language(language: Language, variant: LanguageVariant, requires_pt_analyst: bool) -> None:
+    if requires_pt_analyst != (language is Language.PT):
+        raise ValueError("requires_pt_analyst must match a Portuguese conversation")
+    if (variant is LanguageVariant.PT) != (language is Language.PT):
+        raise ValueError("variant must match the language")
+
+
 class Handoff(Contract):
     schema_version: Literal["handoff/2.0"] = "handoff/2.0"
     case_id: CaseId
@@ -180,8 +213,44 @@ class Handoff(Contract):
 
     @model_validator(mode="after")
     def _portuguese_goes_to_a_portuguese_speaking_analyst(self) -> Self:
-        if self.requires_pt_analyst != (self.language is Language.PT):
-            raise ValueError("requires_pt_analyst must match a Portuguese conversation")
-        if (self.variant is LanguageVariant.PT) != (self.language is Language.PT):
-            raise ValueError("variant must match the language")
+        _check_language(self.language, self.variant, self.requires_pt_analyst)
+        return self
+
+
+class Transfer(Contract):
+    """A conversation that went to a person without a case handoff, with what is already known (POL-01).
+
+    Like the handoff, it never carries the transcript: the charges come from tools, and the rest is what the
+    customer declared, the actions read back and what the analyst still has to ask.
+    """
+
+    schema_version: Literal["transfer/1.0"] = "transfer/1.0"
+    transfer_id: TransferId
+    created_at: AwareDatetime
+    reason: TransferReason
+    summary: ShortText
+    language: Language
+    variant: LanguageVariant
+    requires_pt_analyst: bool
+    account_country: Country
+    segment: Segment
+    claim_type: ClaimType | None = None
+    charges: tuple[ChargeDetail, ...] = ()
+    declared_by_customer: DeclaredFacts = DeclaredFacts()
+    actions: tuple[Action, ...] = ()
+    # The action the customer had in front of it when the conversation was transferred; it was never run.
+    pending_action_not_run: Literal["block_card", "register_dispute"] | None = None
+    # A case registered earlier in the same conversation.
+    case_id: CaseId | None = None
+    risk_signals: tuple[ShortText, ...] = ()
+    fraud_alert: bool = False
+    rules_applied: tuple[PolicyRuleId, ...] = ()
+    suggested_queue: Queue
+    open_questions: tuple[ShortText, ...] = ()
+    policy_version: PolicyVersion
+    trace_id: Identifier
+
+    @model_validator(mode="after")
+    def _portuguese_goes_to_a_portuguese_speaking_analyst(self) -> Self:
+        _check_language(self.language, self.variant, self.requires_pt_analyst)
         return self

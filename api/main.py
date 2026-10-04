@@ -2,7 +2,10 @@
 
 import hmac
 import logging
+import re
 import secrets
+import time
+import uuid
 from collections import defaultdict, deque
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -14,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 from api.dependencies import Container, build
+from api.observability import Metrics, configure_logging, log_event, turn_summary
 from api.security import SESSION_TTL, InvalidSessionError, SessionToken
 from api.settings import Settings
 from vera.contracts.api import (
@@ -25,11 +29,13 @@ from vera.contracts.api import (
     HealthResponse,
     MessageRequest,
     MessageResponse,
+    MetricsResponse,
+    QueueItem,
     StartConversationRequest,
     StartConversationResponse,
 )
 from vera.contracts.cases import Case
-from vera.contracts.handoff import Handoff
+from vera.contracts.handoff import Handoff, Transfer
 from vera.contracts.tools import ReadCaseInput
 from vera.gateway.injection import signals as injection_signals
 from vera.gateway.masking import mask
@@ -87,6 +93,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     settings = settings or Settings.from_env()
     container = container or build(settings)
     limiter = RateLimiter(settings.messages_per_minute, container.now)
+    metrics = Metrics()
     app = FastAPI(
         title="VERA API",
         version=settings.version,
@@ -94,6 +101,24 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         openapi_url=f"{PREFIX}/openapi.json",
         redoc_url=None,
     )
+
+    @app.middleware("http")
+    async def operations(request: Request, call_next):
+        """One JSON line per request, with its id echoed back; the route template, never the ids in the path."""
+        request_id = _request_id(request.headers.get("x-request-id"))
+        request.state.request_id = request_id
+        started = time.perf_counter()
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            response.headers["X-Request-ID"] = request_id
+            return response
+        finally:
+            ms = round((time.perf_counter() - started) * 1000, 1)
+            route = getattr(request.scope.get("route"), "path", None) or "static"
+            metrics.request(status, ms)
+            log_event("request", request_id=request_id, method=request.method, route=route, status=status, ms=ms)
 
     @app.exception_handler(ApiFailure)
     def failure(_: Request, error: ApiFailure) -> JSONResponse:
@@ -114,7 +139,15 @@ def create_app(settings: Settings | None = None, container: Container | None = N
 
     @app.get(f"{PREFIX}/health", response_model=HealthResponse, tags=["operations"])
     def health() -> HealthResponse:
-        return HealthResponse(status="ok", llm_provider=settings.llm, version=settings.version)
+        status = "degraded" if container.degraded else "ok"
+        return HealthResponse(status=status, llm_provider=container.interpreter, version=settings.version)
+
+    @app.get(f"{PREFIX}/metrics", response_model=MetricsResponse, tags=["operations"])
+    def operations_metrics(session: SessionToken = Depends(analyst_session)) -> MetricsResponse:
+        llm = container.llm_usage() if container.llm_usage else None
+        return MetricsResponse(
+            interpreter=container.interpreter, degraded=container.degraded, llm=llm, **metrics.snapshot()
+        )
 
     @app.get(f"{PREFIX}/demo-customers", response_model=list[DemoCustomer], tags=["demo"])
     def demo_customers() -> list[DemoCustomer]:
@@ -150,20 +183,28 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         conversation_id = secrets.token_hex(8)
         container.state.open_conversation(conversation_id, session.subject)
         greeting = container.conversation.start(Session(session.subject, conversation_id), body.preferred_language)
+        metrics.conversation()
         return StartConversationResponse(conversation_id=conversation_id, greeting=greeting)
 
     @app.post(
         f"{PREFIX}/conversations/{{conversation_id}}/messages", response_model=MessageResponse, tags=["conversation"]
     )
     def message(
-        conversation_id: str, body: MessageRequest, session: SessionToken = Depends(customer_session)
+        conversation_id: str, body: MessageRequest, request: Request, session: SessionToken = Depends(customer_session)
     ) -> MessageResponse:
         _own(container, conversation_id, session)
         limiter.check(session.subject)
         # Injection signals are read on the original text; only the masked text goes further.
         signals = injection_signals(body.text) if body.text else ()
         masked = body.model_copy(update={"text": mask(body.text)}) if body.text else body
-        return container.conversation.reply(Session(session.subject, conversation_id), masked, signals)
+        started = time.perf_counter()
+        reply = container.conversation.reply(Session(session.subject, conversation_id), masked, signals)
+        ms = round((time.perf_counter() - started) * 1000, 1)
+        # The conversation id is the trace id: these lines and the hash-chained event log tell the same turn.
+        summary = turn_summary(container.conversation.history(conversation_id))
+        metrics.turn(summary, ms)
+        log_event("turn", trace_id=f"trace-{conversation_id}", request_id=request.state.request_id, ms=ms, **summary)
+        return reply
 
     @app.get(f"{PREFIX}/cases/{{case_id}}", response_model=CaseView, tags=["cases"])
     def case(case_id: str, session: SessionToken = Depends(customer_session)) -> CaseView:
@@ -185,10 +226,27 @@ def create_app(settings: Settings | None = None, container: Container | None = N
             raise ApiFailure(ApiErrorCode.NOT_FOUND)
         return found
 
+    @app.get(f"{PREFIX}/transfers/{{transfer_id}}", response_model=Transfer, tags=["cases"])
+    def transfer(transfer_id: str, _: SessionToken = Depends(analyst_session)) -> Transfer:
+        found = container.state.transfer_of(transfer_id)
+        if found is None:
+            raise ApiFailure(ApiErrorCode.NOT_FOUND)
+        return found
+
+    @app.get(f"{PREFIX}/queue", response_model=list[QueueItem], tags=["cases"])
+    def queue(_: SessionToken = Depends(analyst_session)) -> list[QueueItem]:
+        """What waits for an analyst, newest first: case handoffs and transfer notes."""
+        return [QueueItem.of(item) for item in container.state.queue()]
+
     # ADR 0002: the API also serves the web, so the demo is one URL and one deployment.
     if WEB.is_dir():
         app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
     return app
+
+
+def _request_id(header: str | None) -> str:
+    """The caller's request id when it is a plain token, so a trace can cross services; otherwise a new one."""
+    return header if header and re.fullmatch(r"[A-Za-z0-9-]{8,64}", header) else uuid.uuid4().hex
 
 
 def _verify(container: Container, authorization: str, role: str) -> SessionToken:
@@ -205,4 +263,5 @@ def _own(container: Container, conversation_id: str, session: SessionToken) -> N
         raise ApiFailure(ApiErrorCode.NOT_FOUND)
 
 
+configure_logging()
 app = create_app()

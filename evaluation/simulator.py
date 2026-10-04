@@ -5,6 +5,7 @@ the card, accepts or declines the block, and confirms. Run k of a case uses word
 It never volunteers anything and never sees the policy; whether the outcome is right is up to the graders.
 """
 
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -28,7 +29,12 @@ from vera.policy.model import load_policy
 CARD_QUESTION = re.compile(r"tarjeta con|cartão está com")
 RECOGNIZE_QUESTION = re.compile(r"[Rr]econoc|reconhece")
 IS_THIS_THE_CHARGE = re.compile(r"Es este el cobro|É esta a cobrança")
+# POL-10: the key questions of a scam, asked in free text.
+SCAM_QUESTION = re.compile(r"cuándo fue la transferencia|quando foi a transferência")
 PERSON_OFFER = re.compile(r"pase con una persona|passe a conversa para uma pessoa")
+# POL-01 (v1.5): before the transfer a customer asked for, VERA offers once to review the case first.
+REVIEW_FIRST = re.compile(r"conectar con un analista|conectar você com um analista")
+BACK_TO_QUESTION = re.compile(r"pregunta anterior|pergunta anterior")
 MAX_TURNS = 14
 START = datetime.combine(load_policy().parameters.system_clock, datetime.min.time()).replace(hour=10)
 
@@ -106,13 +112,19 @@ class Customer:
             llm=interpreter,
             session_secret="evaluation",
             messages_per_minute=10_000,
+            # Only Claude uses them; the key never leaves the environment.
+            llm_api_key=os.environ.get("LLM_API_KEY", ""),
+            llm_workspace_id=os.environ.get("LLM_WORKSPACE_ID", ""),
         )
         factory = (lambda state: UnavailableTransactions(demo_db, state)) if case.script.tools_fail else None
         self.container: Container = build(settings, now=self.clock, bank_factory=factory)
         self.client = TestClient(create_app(settings, self.container), raise_server_exceptions=False)
         self.transcript = Transcript(case.id, variant)
         self.asked_for_a_person = False
+        self.answered_the_scam_questions = False
         self.free_text_questions = 0
+        # The last question VERA asked, to answer it again when VERA comes back to it after a detour.
+        self.open_question = ""
 
     def talk(self) -> Transcript:
         token = self.client.post("/v1/demo-session", json={"demo_customer": self.case.customer}).json()["token"]
@@ -188,6 +200,10 @@ class Customer:
                 return {"selected_option": mine["n"]}
             return {"text": phrase(self.phrases, "none_of_these", language, variant)}
         text = reply["reply"]
+        if BACK_TO_QUESTION.search(text):
+            text = self.open_question
+        elif not (REVIEW_FIRST.search(text) or PERSON_OFFER.search(text)):
+            self.open_question = text
         if options and CARD_QUESTION.search(text):
             return {"selected_option": "yes" if script.has_card else "no"}
         if options and "internet" in text:
@@ -199,11 +215,18 @@ class Customer:
             return {"selected_option": "yes" if script.recognizes_after_receipt else "no"}
         if options and PERSON_OFFER.search(text):
             return {"selected_option": "yes" if self.case.block == "human" else "no"}
+        if options and REVIEW_FIRST.search(text):
+            # A customer who asked for a person insists; anyone else lets VERA review the case first.
+            return {"selected_option": "no" if self.case.block == "human" else "yes"}
         if options and IS_THIS_THE_CHARGE.search(text):
             mine = self.case.target and self.charges.shown_in(self.case.target[0], text)
             return {"selected_option": "yes" if mine else "no"}
         if options:
             return {"selected_option": "yes"}
+        if SCAM_QUESTION.search(text) and "scam_answer" in self.phrases and not self.answered_the_scam_questions:
+            # The development set has the answer; a held-out run, sealed before scams, goes on as below.
+            self.answered_the_scam_questions = True
+            return {"text": phrase(self.phrases, "scam_answer", language, variant)}
         # A question in free text: the customer gives the merchant once, then tells its claim in other words twice,
         # and then leaves, as a customer who is not understood would.
         self.free_text_questions += 1

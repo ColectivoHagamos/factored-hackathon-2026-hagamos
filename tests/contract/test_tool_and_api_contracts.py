@@ -28,6 +28,7 @@ class TestTools:
             "read_case",
             "create_handoff",
             "send_fraud_alert",
+            "create_transfer",
         }
         assert set(TOOL_INPUTS) == set(TOOL_OUTPUTS) == expected
 

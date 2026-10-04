@@ -1,5 +1,11 @@
 # TLS for the public domain and a strict set of headers; every request goes to the API, which also serves the web.
+# Port 80 of the host belongs to another stack, so the certificate is obtained on 443 alone (TLS-ALPN-01).
 {$DOMAIN} {
+	tls {
+		issuer acme {
+			disable_http_challenge
+		}
+	}
 	encode gzip
 	reverse_proxy api:8000
 	header {

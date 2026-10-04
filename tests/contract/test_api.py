@@ -96,6 +96,22 @@ def test_another_customers_conversation_and_case_read_as_not_found(api):
     assert client.get("/v1/cases/not-a-case", headers=stranger).status_code == 404
 
 
+def test_the_analyst_queue_lists_transfers_and_customers_cannot_read_it(api):
+    client, _ = api
+    headers = login(client, CO_01)
+    conversation = client.post("/v1/conversations", json={}, headers=headers).json()["conversation_id"]
+    say(client, headers, conversation, text="Quiero hablar con una persona")
+    say(client, headers, conversation, text="no")
+    analyst = {"Authorization": f"Bearer {client.post('/v1/demo-analyst-session').json()['token']}"}
+    assert client.get("/v1/queue", headers=headers).status_code == 401
+    [item] = client.get("/v1/queue", headers=analyst).json()
+    assert (item["kind"], item["queue"], item["trace_id"]) == ("transfer", "complaints", f"trace-{conversation}")
+    path = f"/v1/transfers/{item['reference']}"
+    assert client.get(path, headers=headers).status_code == 401
+    assert client.get(path, headers=analyst).json()["reason"] == "person_requested"
+    assert client.get("/v1/transfers/TRF-999999", headers=analyst).status_code == 404
+
+
 def test_handoff_needs_the_analyst_role(api):
     client, _ = api
     headers = login(client, CO_02)

@@ -8,6 +8,7 @@ license = { file = "LICENSE" }
 authors = [{ name = "Team HAGAMOS" }]
 # Runtime dependencies are added when a step needs them (contracts, API, data, ML).
 dependencies = [
+    "anthropic>=0.69",
     "duckdb>=1.1",
     "fastapi>=0.115",
     "holidays>=0.60",
