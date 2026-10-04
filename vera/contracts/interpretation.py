@@ -1,6 +1,7 @@
 """Closed schema returned by the interpreter for each customer message."""
 
 from enum import StrEnum
+from typing import Annotated
 
 from pydantic import Field
 
@@ -44,6 +45,11 @@ class Interpretation(Contract):
     has_card: Answer = Answer.NOT_SAID
     authorized_payment: Answer = Answer.NOT_SAID
     coercion: bool = False
+    regulator_mentioned: bool = False
+    pix_mentioned: bool = False
+    # Answer to the yes-or-no question asked in the previous turn, and option numbers the customer referred to.
+    answer: Answer = Answer.NOT_SAID
+    selected_numbers: tuple[Annotated[int, Field(ge=1, le=50)], ...] = ()
     language: Language
     # POL-14: below the calibrated threshold the agent asks instead of acting.
     confidence: float = Field(ge=0, le=1)
