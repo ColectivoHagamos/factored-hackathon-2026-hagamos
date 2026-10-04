@@ -1,4 +1,7 @@
-"""Bank adapter over the pseudonymized demo subset (read-only DuckDB); card blocks live in the writable state."""
+"""Bank adapter over the pseudonymized demo subset (read-only DuckDB); card blocks live in the writable state.
+
+A DuckDB connection must not be shared by threads, so every query runs on its own cursor of the connection.
+"""
 
 from datetime import datetime
 from pathlib import Path
@@ -22,38 +25,56 @@ class DemoBank:
         self._state = state
 
     def customer(self, customer_ref: str) -> CustomerRecord | None:
-        row = self._connection.execute(
-            "SELECT customer_ref, alias, country_code, segment, age_band, scenarios FROM customers "
-            "WHERE customer_ref = ?",
-            [customer_ref],
-        ).fetchone()
+        row = (
+            self._connection.cursor()
+            .execute(
+                "SELECT customer_ref, alias, country_code, segment, age_band, scenarios FROM customers "
+                "WHERE customer_ref = ?",
+                [customer_ref],
+            )
+            .fetchone()
+        )
         return _customer(row) if row else None
 
     def customers(self) -> tuple[CustomerRecord, ...]:
-        rows = self._connection.execute(
-            "SELECT customer_ref, alias, country_code, segment, age_band, scenarios FROM customers ORDER BY alias"
-        ).fetchall()
+        rows = (
+            self._connection.cursor()
+            .execute(
+                "SELECT customer_ref, alias, country_code, segment, age_band, scenarios FROM customers ORDER BY alias"
+            )
+            .fetchall()
+        )
         return tuple(_customer(row) for row in rows)
 
     def charges(self, customer_ref: str, since: datetime, until: datetime) -> tuple[ChargeRecord, ...]:
-        rows = self._connection.execute(
-            f"SELECT {CHARGE_COLUMNS} FROM charges WHERE customer_ref = ? AND occurred_at >= ? AND occurred_at <= ? "
-            "ORDER BY occurred_at",
-            [customer_ref, since, until],
-        ).fetchall()
+        rows = (
+            self._connection.cursor()
+            .execute(
+                f"SELECT {CHARGE_COLUMNS} FROM charges "
+                "WHERE customer_ref = ? AND occurred_at >= ? AND occurred_at <= ? ORDER BY occurred_at",
+                [customer_ref, since, until],
+            )
+            .fetchall()
+        )
         return tuple(_charge(row) for row in rows)
 
     def disputes_since(self, customer_ref: str, since: datetime) -> int:
-        return self._connection.execute(
-            "SELECT count(*) FROM disputes WHERE customer_ref = ? AND created_at >= ?", [customer_ref, since]
-        ).fetchone()[0]
+        return (
+            self._connection.cursor()
+            .execute("SELECT count(*) FROM disputes WHERE customer_ref = ? AND created_at >= ?", [customer_ref, since])
+            .fetchone()[0]
+        )
 
     def cards(self, customer_ref: str) -> tuple[CardRecord, ...]:
-        rows = self._connection.execute(
-            "SELECT card_ref, customer_ref, card_type, masked_card, status FROM cards WHERE customer_ref = ? "
-            "ORDER BY card_ref",
-            [customer_ref],
-        ).fetchall()
+        rows = (
+            self._connection.cursor()
+            .execute(
+                "SELECT card_ref, customer_ref, card_type, masked_card, status FROM cards WHERE customer_ref = ? "
+                "ORDER BY card_ref",
+                [customer_ref],
+            )
+            .fetchall()
+        )
         blocked = self._state.blocked_cards()
         return tuple(CardRecord(*row[:4], "blocked" if row[0] in blocked else row[4]) for row in rows)
 

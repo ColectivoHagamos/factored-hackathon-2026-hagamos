@@ -1,6 +1,7 @@
 """SQLite event log. Append-only is enforced by the database itself, not only by this code."""
 
 import sqlite3
+import threading
 from pathlib import Path
 
 from vera.contracts.events import Event
@@ -26,9 +27,15 @@ BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
 class SqliteEventLog:
     def __init__(self, path: str | Path) -> None:
         self._connection = sqlite3.connect(str(path), isolation_level=None, check_same_thread=False)
+        # One connection serves every thread of the API, and SQLite allows one statement at a time on it.
+        self._lock = threading.RLock()
         self._connection.executescript(SCHEMA)
 
     def append(self, event: Event) -> None:
+        with self._lock:
+            self._append(event)
+
+    def _append(self, event: Event) -> None:
         # BEGIN IMMEDIATE takes the write lock before reading the last hash, so two writers cannot both pass.
         self._connection.execute("BEGIN IMMEDIATE")
         try:
@@ -56,9 +63,10 @@ class SqliteEventLog:
         self._connection.execute("COMMIT")
 
     def read(self, conversation_id: str) -> tuple[Event, ...]:
-        rows = self._connection.execute(
-            "SELECT body FROM events WHERE conversation_id = ? ORDER BY seq", (conversation_id,)
-        ).fetchall()
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT body FROM events WHERE conversation_id = ? ORDER BY seq", (conversation_id,)
+            ).fetchall()
         return tuple(Event.model_validate_json(body) for (body,) in rows)
 
     def close(self) -> None:

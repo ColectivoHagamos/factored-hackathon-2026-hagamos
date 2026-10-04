@@ -78,7 +78,11 @@ class CardsPort(Protocol):
 
 class CasesPort(Protocol):
     def register(self, case: Case, customer_ref: str, charge_refs: tuple[str, ...], idempotency_key: str) -> Case:
-        """Store the case once per key; a repeated key returns the case stored the first time."""
+        """Store the case once per key; a repeated key returns the case stored the first time.
+
+        The stored case may carry another case id than the one given: the store assigns it, so that two
+        registrations at the same time never share one. Callers use the case returned.
+        """
         ...
 
     def read(self, case_id: str, customer_ref: str) -> Case | None:
