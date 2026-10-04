@@ -179,7 +179,7 @@ class Conversation:
         else:
             expecting = "yes_no"
         if message.text:
-            context = {"language": language.value, "expecting": expecting}
+            context = {"language": language.value, "expecting": expecting, "question": turn.state.step.value}
             if flagged:
                 # The gateway flagged the text: only deterministic rules read it, never a model it could steer.
                 context["flagged"] = "yes"
