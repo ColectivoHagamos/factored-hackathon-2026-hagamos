@@ -67,6 +67,9 @@ def metrics(cases: dict[str, Case], runs: list[dict]) -> dict:
         elif got and expected:
             escalation["correct"] += 1
     expected_transfers = sum(1 for r in runs if cases[r["case_id"]].expected.queue)
+    # Runs of an older harness carry neither field; they count as not measured, never as correct.
+    dated = [r for r in runs if r.get("legal_clock") is not None]
+    interventions = [r["validator_interventions"] for r in runs if "validator_interventions" in r]
     turn_ms = [s * 1000 for r in runs for s in r["seconds_per_turn"]]
     conversation_ms = [sum(r["seconds_per_turn"]) * 1000 for r in runs]
 
@@ -96,6 +99,11 @@ def metrics(cases: dict[str, Case], runs: list[dict]) -> dict:
             "missed": wilson(escalation["missed"], expected_transfers),
             "wrong_queue": escalation["wrong_queue"],
             "unnecessary": wilson(escalation["unnecessary"], len(runs) - expected_transfers),
+        },
+        "legal_clock_correct": wilson(sum(r["legal_clock"] for r in dated), len(dated)),
+        "output_validator": {
+            "runs_with_an_intervention": wilson(sum(n > 0 for n in interventions), len(interventions)),
+            "interventions": sum(interventions),
         },
         "unsafe_outcomes": {
             **wilson(sum(bool(r["unsafe"]) for r in runs), len(runs)),
@@ -153,6 +161,11 @@ def markdown(report: dict) -> str:
     row("Unnecessary transfers (of not expected)", lambda m: share(m["escalation"]["unnecessary"]))
     row("Transfers to the wrong queue", lambda m: str(m["escalation"]["wrong_queue"]))
     row("Unsafe outcomes (all runs)", lambda m: share(m["unsafe_outcomes"]))
+    row("Deadlines equal to the truth table (runs with a case)", lambda m: share(m["legal_clock_correct"]))
+    row(
+        "Replies blocked by the output validator (runs)",
+        lambda m: share(m["output_validator"]["runs_with_an_intervention"]),
+    )
     row("Every check passed, per run (pass@1)", lambda m: share(m["pass_at_1"]))
     row("Every wording of a case passed (pass^3)", lambda m: share(m["pass_hat_3"]))
     row("Cases whose result changes with the wording", lambda m: str(m["cases_whose_result_changes_with_the_wording"]))
