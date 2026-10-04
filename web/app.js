@@ -81,6 +81,8 @@ async function sendMessage(body, shown) {
   setBusy(true);
   try {
     const reply = await api(`/conversations/${state.conversation}/messages`, { method: "POST", body: JSON.stringify(body) });
+    // Only the latest question can be answered; older buttons would answer a step that already passed.
+    document.querySelectorAll("#chat .options").forEach((box) => box.remove());
     const div = bubble(reply.reply, "vera");
     if (reply.pending_confirmation) {
       const pending = document.createElement("div");
