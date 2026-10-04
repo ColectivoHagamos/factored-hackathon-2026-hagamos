@@ -55,10 +55,10 @@ customer text ─▶ gateway ──────▶ interpreter ─────�
 
 A claim classifier (TF-IDF with logistic regression and temperature scaling, Spanish and Portuguese) reads the opening message. It is compared with the keyword patterns of the rules interpreter, the baseline, on phrases that no fit or choice ever saw:
 
-| On 88 test phrases | Accuracy | Macro F1 | Acts on a wrong reading |
-|---|---:|---:|---:|
-| Keyword baseline | 0.432 | 0.378 | 4.5 % |
-| Learned classifier | 0.875 | 0.881 | 3.4 % |
+| On 88 test phrases | Accuracy | Macro F1 | Acts without asking | Right when it acts |
+|---|---:|---:|---:|---:|
+| Keyword baseline | 0.455 | 0.425 | 31.8 % | 92.9 % |
+| Learned classifier | 0.875 | 0.880 | 87.5 % | 96.1 % |
 
 The [model card](docs/model_card.md) covers the data, the split by template family, the leakage check, the calibration, the errors and the limits, and explains why the baseline numbers are optimistic. The deployment uses the classifier (`VERA_LLM=classifier`).
 

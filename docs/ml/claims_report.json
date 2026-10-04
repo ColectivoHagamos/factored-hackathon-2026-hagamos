@@ -63,8 +63,8 @@
   "test": {
     "baseline_keywords": {
       "n": 88,
-      "accuracy": 0.4318,
-      "macro_f1": 0.3779,
+      "accuracy": 0.4545,
+      "macro_f1": 0.425,
       "per_class": {
         "unrecognized_charge": {
           "precision": 0.2812,
@@ -80,14 +80,14 @@
         },
         "scam_transfer": {
           "precision": 1.0,
-          "recall": 0.125,
-          "f1": 0.2222,
+          "recall": 0.25,
+          "f1": 0.4,
           "support": 16
         },
         "human_request": {
-          "precision": 0.8667,
+          "precision": 1.0,
           "recall": 0.8125,
-          "f1": 0.8387,
+          "f1": 0.8966,
           "support": 16
         },
         "out_of_scope": {
@@ -100,13 +100,13 @@
       "per_language": {
         "es": {
           "n": 44,
-          "accuracy": 0.4318,
-          "macro_f1": 0.3718
+          "accuracy": 0.4545,
+          "macro_f1": 0.419
         },
         "pt": {
           "n": 44,
-          "accuracy": 0.4318,
-          "macro_f1": 0.3825
+          "accuracy": 0.4545,
+          "macro_f1": 0.4295
         }
       },
       "confusion_matrix": {
@@ -135,8 +135,8 @@
           [
             12,
             0,
-            2,
-            2,
+            4,
+            0,
             0
           ],
           [
@@ -155,12 +155,12 @@
           ]
         ]
       },
-      "ece": 0.1284,
+      "ece": 0.1239,
       "at_policy_threshold": {
         "threshold": 0.6,
         "acts": 0.3182,
-        "accuracy_when_acting": 0.8571,
-        "acts_on_a_wrong_reading": 0.0455
+        "accuracy_when_acting": 0.9286,
+        "acts_on_a_wrong_reading": 0.0227
       },
       "errors": [
         {
@@ -225,13 +225,6 @@
           "truth": "improper_charge",
           "predicted": "unrecognized_charge",
           "confidence": 0.4
-        },
-        {
-          "text": "Una persona me escribió diciendo que era de soporte del banco y me hizo transferir mis ahorros",
-          "language": "es",
-          "truth": "scam_transfer",
-          "predicted": "human_request",
-          "confidence": 0.95
         },
         {
           "text": "Respondí un correo falso y luego hice el pago que me pidieron",
@@ -393,13 +386,6 @@
           "truth": "improper_charge",
           "predicted": "unrecognized_charge",
           "confidence": 0.4
-        },
-        {
-          "text": "Uma pessoa me escreveu dizendo que era do suporte do banco e me fez transferir minhas economias",
-          "language": "pt",
-          "truth": "scam_transfer",
-          "predicted": "human_request",
-          "confidence": 0.95
         },
         {
           "text": "Respondi um e-mail falso e depois fiz o pagamento que pediram",
