@@ -74,6 +74,20 @@ def test_merchant_date_channel_and_card():
     assert result.has_card == "no"
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "me están obligando a hacer esto",
+        "Me están amenazando para que haga esto",
+        "Me forzaron a dar la clave",
+        "Me obrigaram a fazer a transferência",
+        "Estou sendo ameaçado, me ajude",
+    ],
+)
+def test_coercion_in_any_tense_is_a_threat(text: str):
+    assert read(text).coercion
+
+
 def test_coercion_regulator_and_pix_flags():
     assert read("me están obligando a hacer esto").coercion
     assert read("voy a ir a la CONDUSEF").regulator_mentioned
