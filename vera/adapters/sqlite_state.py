@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS handoffs (
     queue TEXT NOT NULL,
     body TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS conversations (
+    conversation_id TEXT PRIMARY KEY,
+    customer_ref TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS fraud_alerts (
     alert_id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_id TEXT,
@@ -121,6 +125,19 @@ class SqliteState:
                 (case_id, customer_ref, ",".join(signals)),
             )
             return f"ALR-{cursor.lastrowid:06d}"
+
+    def open_conversation(self, conversation_id: str, customer_ref: str) -> None:
+        with self._lock:
+            self._connection.execute(
+                "INSERT INTO conversations (conversation_id, customer_ref) VALUES (?, ?)",
+                (conversation_id, customer_ref),
+            )
+
+    def conversation_owner(self, conversation_id: str) -> str | None:
+        row = self._connection.execute(
+            "SELECT customer_ref FROM conversations WHERE conversation_id = ?", (conversation_id,)
+        ).fetchone()
+        return row[0] if row else None
 
     def close(self) -> None:
         self._connection.close()

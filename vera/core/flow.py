@@ -53,6 +53,10 @@ PENDING_TOKEN = "tok_pending_confirmation"
 SEARCH_DAYS = {ChargeKind.PURCHASE: 30, ChargeKind.BANK_ADJUSTMENT: 90}
 VARIANTS = {Country.MX: LanguageVariant.ES_MX, Country.CO: LanguageVariant.ES_CO, Country.AR: LanguageVariant.ES_AR}
 YES_NO = {Language.ES: ("Sí", "No"), Language.PT: ("Sim", "Não")}
+POLICY_SOURCE = {
+    Language.ES: "Política de disputas de LATAM Bank v{version}",
+    Language.PT: "Política de disputas do LATAM Bank v{version}",
+}
 
 
 @dataclass
@@ -67,6 +71,7 @@ class Turn:
     glass_box: list[GlassBoxEntry] = field(default_factory=list)
     amounts: set[str] = field(default_factory=set)
     pending: PendingConfirmation | None = None
+    multiple_choice: bool = False
 
 
 class Conversation:
@@ -115,6 +120,10 @@ class Conversation:
         if not self._safety_first(turn, reading):
             self._advance(turn, reading)
         return self._finish(turn)
+
+    def history(self, conversation_id: str) -> tuple[Event, ...]:
+        """Events of a conversation, for audit and replay."""
+        return self._log.read(conversation_id)
 
     # Interpretation and safety
 
@@ -324,6 +333,7 @@ class Conversation:
             return
         turn.lines.append(self._text(turn, "sweep"))
         turn.options.extend(Option(n=c.n, label=self._receipt(turn, c)) for c in others)
+        turn.multiple_choice = True
         turn.state = turn.state.advance(step=Step.SWEEP)
 
     def _on_sweep(self, turn: Turn, reading: Interpretation) -> None:
@@ -556,9 +566,10 @@ class Conversation:
             if decision.rule in turn.state.rules_applied and decision.outcome is not Outcome.FRAUD_ALERT:
                 continue
             self._record(turn, EventType.RULE_DECISION, decision.as_event_data())
-            turn.glass_box.append(
-                GlassBoxEntry(rule_id=decision.rule, source=f"LATAM Bank master policy v{decision.version}")
-            )
+            source = POLICY_SOURCE[language_of(turn.state.variant)].format(version=decision.version)
+            entry = GlassBoxEntry(rule_id=decision.rule, source=source)
+            if entry not in turn.glass_box:
+                turn.glass_box.append(entry)
             turn.state = turn.state.advance(rules_applied=[*turn.state.rules_applied, decision.rule])
         return evaluation
 
@@ -684,7 +695,11 @@ class Conversation:
             turn.state = turn.state.advance(step=Step.HANDED_OFF, escalated=True)
             turn.options.clear()
         response = MessageResponse(
-            reply=text, options=tuple(turn.options), pending_confirmation=turn.pending, glass_box=tuple(turn.glass_box)
+            reply=text,
+            options=tuple(turn.options),
+            multiple_choice=turn.multiple_choice,
+            pending_confirmation=turn.pending,
+            glass_box=tuple(turn.glass_box),
         )
         self._record(
             turn,

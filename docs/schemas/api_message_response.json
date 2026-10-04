@@ -121,6 +121,11 @@
       "title": "Options",
       "type": "array"
     },
+    "multiple_choice": {
+      "default": false,
+      "title": "Multiple Choice",
+      "type": "boolean"
+    },
     "pending_confirmation": {
       "anyOf": [
         {

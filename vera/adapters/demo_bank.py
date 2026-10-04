@@ -23,14 +23,15 @@ class DemoBank:
 
     def customer(self, customer_ref: str) -> CustomerRecord | None:
         row = self._connection.execute(
-            "SELECT customer_ref, alias, country_code, segment, age_band FROM customers WHERE customer_ref = ?",
+            "SELECT customer_ref, alias, country_code, segment, age_band, scenarios FROM customers "
+            "WHERE customer_ref = ?",
             [customer_ref],
         ).fetchone()
         return _customer(row) if row else None
 
     def customers(self) -> tuple[CustomerRecord, ...]:
         rows = self._connection.execute(
-            "SELECT customer_ref, alias, country_code, segment, age_band FROM customers ORDER BY alias"
+            "SELECT customer_ref, alias, country_code, segment, age_band, scenarios FROM customers ORDER BY alias"
         ).fetchall()
         return tuple(_customer(row) for row in rows)
 
@@ -61,8 +62,8 @@ class DemoBank:
 
 
 def _customer(row: tuple) -> CustomerRecord:
-    ref, alias, country, segment, age_band = row
-    return CustomerRecord(ref, alias, Country(country), segment, age_band)
+    ref, alias, country, segment, age_band, scenarios = row
+    return CustomerRecord(ref, alias, Country(country), segment, age_band, tuple(scenarios or ()))
 
 
 def _charge(row: tuple) -> ChargeRecord:

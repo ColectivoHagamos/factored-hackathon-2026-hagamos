@@ -5,4 +5,5 @@
 !.python-version
 !vera/
 !api/
+!web/
 **/__pycache__
