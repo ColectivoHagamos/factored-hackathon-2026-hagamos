@@ -168,3 +168,16 @@ def test_a_configured_analyst_key_closes_the_demo_analyst_session():
     client = TestClient(create_app(settings, build(settings, now=Clock())))
     assert client.post("/v1/demo-analyst-session").status_code == 401
     assert client.post("/v1/demo-analyst-session", headers={"X-Analyst-Key": "k3y"}).status_code == 200
+
+
+def test_an_unexpected_failure_is_a_503_without_internals(world):
+    _, _, container = world
+
+    def broken():
+        raise RuntimeError("database file is locked at /state/vera.db")
+
+    container.customers.customers = broken
+    client = TestClient(create_app(container.settings, container), raise_server_exceptions=False)
+    response = client.get("/v1/demo-customers")
+    assert response.status_code == 503 and response.json()["code"] == "provider_unavailable"
+    assert "locked" not in response.text and "/state" not in response.text

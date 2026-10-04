@@ -36,6 +36,7 @@ from vera.contracts.tools import (
     SendFraudAlertInput,
     SweepChargesInput,
     ToolError,
+    ToolErrorCode,
     ViewChargeInput,
 )
 from vera.core.events import new_event
@@ -295,13 +296,16 @@ class Conversation:
         )
         result = self._tools.search_charges(turn.session, self._offers(turn), args)
         self._record_tool(turn, "search_charges", args.model_dump(mode="json"), result)
-        if isinstance(result, ToolError) and reading.merchant_text:
+        if _no_results(result) and reading.merchant_text:
             # The merchant written by the customer may not match the statement; try the recent window without it.
             args = args.model_copy(update={"merchant": None, "date_from": today - timedelta(days=SEARCH_DAYS[kind])})
             result = self._tools.search_charges(turn.session, self._offers(turn), args)
             self._record_tool(turn, "search_charges", args.model_dump(mode="json"), result)
-        if isinstance(result, ToolError):
+        if _no_results(result):
             self._ask_again(turn, "ask_detail")
+            return
+        if isinstance(result, ToolError):
+            self._fail(turn)
             return
         output, offers = result
         turn.state = turn.state.advance(charges_offered=offers.charges, cards_offered=offers.cards, attempts=0)
@@ -385,6 +389,9 @@ class Conversation:
             turn.session, self._offers(turn), SweepChargesInput(candidate_n=turn.state.chosen)
         )
         self._record_tool(turn, "sweep_charges", {"candidate_n": turn.state.chosen}, result)
+        if isinstance(result, ToolError) and result.code is ToolErrorCode.FAILURE:
+            self._fail(turn)
+            return
         if isinstance(result, ToolError):
             self._assess_signals(turn, unrecognized=[])
             return
@@ -827,6 +834,11 @@ class Conversation:
             },
         )
         return response
+
+
+def _no_results(result: object) -> bool:
+    """The search ran and found nothing, which is not the same as a search that failed."""
+    return isinstance(result, ToolError) and result.code is ToolErrorCode.NO_RESULTS
 
 
 def _aside(reading: Interpretation) -> bool:
