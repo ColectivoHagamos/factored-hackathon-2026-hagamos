@@ -112,7 +112,7 @@ def test_past_the_spending_cap_every_message_goes_to_the_fallback():
 
 
 def test_the_prompt_is_versioned_and_carries_no_secret():
-    assert PROMPT_VERSION == "interpreter-v2" and "record_interpretation" in PROMPT
+    assert PROMPT_VERSION == "interpreter-v3" and "record_interpretation" in PROMPT
     assert not re.search(r"sk-ant|api[_-]?key|[A-Za-z0-9_-]{40,}", PROMPT, re.IGNORECASE)
 
 
@@ -150,3 +150,10 @@ def test_with_a_key_the_model_reads_and_the_classifier_stays_underneath():
         "cap_usd": 15.0,
     }
     assert "test-key-not-real" not in repr(Settings(llm="anthropic", llm_api_key="test-key-not-real"))
+
+
+def test_the_request_names_the_open_question_so_a_short_answer_can_be_read():
+    messages = FakeMessages(reply(READ | {"answer": "yes"}))
+    AnthropicInterpreter(messages).interpret("todos", {"language": "es", "expecting": "choice", "question": "sweep"})
+    content = messages.requests[0]["messages"][0]["content"]
+    assert "Open question: the numbers of the other listed charges the customer does NOT recognize" in content

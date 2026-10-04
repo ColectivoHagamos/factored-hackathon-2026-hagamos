@@ -12,9 +12,10 @@ Fields:
   - scam_transfer: a transfer or payment the customer made, deceived by a third party.
   - human_request: the customer asks to talk to a person, an agent or an analyst, in any form.
   - out_of_scope: anything else, such as a balance, a loan, a password or Pix.
-  When the expected answer is a yes or no or a choice, keep the claim type the message implies, or unrecognized_charge when it says nothing about the claim.
+  When the expected answer is a yes or no or a choice, keep the claim type the message implies, or unrecognized_charge when it says nothing about the claim. A short answer to the open question ("todos", "ninguno", "sí, la tengo", "el segundo") is never out_of_scope: use out_of_scope after the first message only when the customer clearly raises another topic.
 - answer: yes or no when the message answers the previous yes-or-no question, otherwise not_said.
 - selected_numbers: the option numbers the customer chose, when the expected answer is a choice ("el segundo" is 2). Empty otherwise.
+- The request names the open question. In the sweep, VERA listed the other charges of the card and asked for the numbers of the ones the customer does NOT recognize: record those numbers; "todos" or "los reconozco todos" means the customer recognizes them all, so answer is yes and selected_numbers is empty; "ninguno" or "no reconozco ninguno" means the customer recognizes none of them, so answer is no.
 - merchant_text: the merchant or store name as the customer wrote it, without changing it. Null when there is none.
 - amount and currency: only when the customer states an amount; currency only when stated (COP, ARS or USD).
 - date_text: the words the customer used for the date ("ayer", "el 15 de junio"), never a computed date. When VERA asked when a transfer was made, this is the answer.

@@ -18,7 +18,7 @@ from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, Dec
 from vera.llm.rules_adapter import RulesInterpreter
 from vera.ports.interpreter import InterpreterPort
 
-PROMPT_VERSION = "interpreter-v2"
+PROMPT_VERSION = "interpreter-v3"
 PROMPT = (Path(__file__).parent / "prompts" / f"{PROMPT_VERSION}.md").read_text(encoding="utf-8")
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 TOOL = "record_interpretation"
@@ -34,6 +34,20 @@ EXPECTING = {
     "choice": "a choice among numbered options",
     "yes_no": "an answer to a yes-or-no question",
     "details": "when the transfer was made and how a third party contacted the customer (a scam, POL-10)",
+}
+# The open question, so that a short answer can be read; nothing in it is about the customer.
+QUESTIONS = {
+    "ask_claim": "what happened with the card or the account",
+    "choose_charge": "which of the listed charges the customer is asking about",
+    "clarify": "VERA showed the receipt of the charge and asked whether the customer recognizes it now",
+    "ask_channel": "whether the purchase was made online",
+    "ask_card": "whether the customer has the card",
+    "sweep": "the numbers of the other listed charges the customer does NOT recognize, «todos» or «ninguno»",
+    "confirm_block": "whether to block the card",
+    "confirm_register": "whether to register the dispute",
+    "confirm_person": "whether the customer wants to be passed to a person",
+    "person_offered": "VERA offered to review the case first: yes keeps VERA, no asks for the person",
+    "scam_details": "when the transfer was made and how the third party contacted the customer",
 }
 
 logger = logging.getLogger("vera.llm")
@@ -161,13 +175,11 @@ class AnthropicInterpreter:
 
 
 def _request(masked_text: str, context: dict[str, str]) -> str:
-    expecting = EXPECTING.get(context.get("expecting", ""), "a message")
-    language = context.get("language", "es")
-    return (
-        f"Expected from the customer: {expecting}.\n"
-        f"Language of the conversation so far: {language}.\n"
-        f"<customer_message>\n{masked_text}\n</customer_message>"
-    )
+    lines = [f"Expected from the customer: {EXPECTING.get(context.get('expecting', ''), 'a message')}."]
+    if question := QUESTIONS.get(context.get("question", "")):
+        lines.append(f"Open question: {question}.")
+    lines.append(f"Language of the conversation so far: {context.get('language', 'es')}.")
+    return "\n".join([*lines, f"<customer_message>\n{masked_text}\n</customer_message>"])
 
 
 def _with_safety_floor(reading: Interpretation, floor: Interpretation) -> Interpretation:
