@@ -24,8 +24,14 @@ class ClassifierInterpreter:
 
     def interpret(self, masked_text: str, context: dict[str, str]) -> Interpretation:
         reading = self._rules.interpret(masked_text, context)
-        # A person or a threat found by the rules always wins (POL-01, POL-02).
-        if context.get("expecting") != "claim" or reading.claim_type is ClaimType.HUMAN_REQUEST or reading.coercion:
+        # A person or a threat found by the rules always wins (POL-01, POL-02); text flagged by the gateway as an
+        # injection is never given to the model, which the same text could steer.
+        if (
+            context.get("expecting") != "claim"
+            or context.get("flagged")
+            or reading.claim_type is ClaimType.HUMAN_REQUEST
+            or reading.coercion
+        ):
             return reading
         claim, probability = self._model.predict(masked_text)
         return reading.model_copy(update={"claim_type": claim, "confidence": round(probability, 4)})

@@ -9,5 +9,9 @@ class InterpreterPort(Protocol):
     name: str
 
     def interpret(self, masked_text: str, context: dict[str, str]) -> Interpretation:
-        """Fields of one masked customer message; context carries only the language and the pending question."""
+        """Fields of one masked customer message.
+
+        The context carries only the language, the kind of answer expected and, when the gateway raised injection
+        signals, "flagged".
+        """
         ...
