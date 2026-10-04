@@ -29,6 +29,7 @@ class ClassifierInterpreter:
         if (
             context.get("expecting") != "claim"
             or context.get("flagged")
+            or reading.asks_if_human
             or reading.claim_type is ClaimType.HUMAN_REQUEST
             or reading.coercion
         ):

@@ -10,6 +10,7 @@ templates:
   empathy: "Entiendo que ver un cargo que no {reconoces} preocupa. Vamos a revisarlo juntos."
   ask_detail: "No encontré ese cargo en los últimos días. ¿Me {dices} el monto aproximado, el comercio o la fecha?"
   choose_charge: "Encontré estos cargos. ¿Cuál {quieres} revisar? {Escribe} el número."
+  not_a_person: "No, soy VERA, una asistente de inteligencia artificial de LATAM Bank. {Puedes} pedir hablar con una persona cuando {quieras}."
   offer_person: "¿{Quieres} que {te} pase con una persona?"
   named_not_found: "No encontré un cargo con ese nombre. Estos son los cargos de los últimos días: ¿alguno es el que {quieres} revisar? {Escribe} el número."
   receipt: "{date}: {merchant}, {amount}. Estado: {status}."

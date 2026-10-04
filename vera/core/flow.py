@@ -145,6 +145,11 @@ class Conversation:
         reading = self._interpret(turn, message, flagged=bool(security_signals))
         if security_signals:
             self._security_event(turn, security_signals)
+        if reading.asks_if_human and reading.claim_type is not ClaimType.HUMAN_REQUEST:
+            # VERA never passes for a person: it says what it is, offers one, and keeps the open question.
+            turn.lines.append(self._text(turn, "not_a_person"))
+            self._repeat_question(turn)
+            return
         if self._safety_first(turn, reading):
             return
         if security_signals:

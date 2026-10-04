@@ -127,3 +127,17 @@ def test_more_ways_to_ask_for_a_person(text: str):
 
 def test_a_scam_story_about_someone_from_the_bank_is_not_a_request_for_a_person():
     assert read("Hablé con alguien del banco por teléfono y me engañaron").claim_type == "scam_transfer"
+
+
+@pytest.mark.parametrize(
+    ("text", "claim"),
+    [
+        ("¿Eres una persona?", "unrecognized_charge"),
+        ("¿Es usted un robot?", "unrecognized_charge"),
+        ("Você é uma pessoa?", "unrecognized_charge"),
+        ("¿Eres una persona? Quiero hablar con una persona", "human_request"),
+    ],
+)
+def test_asking_whether_vera_is_a_person_is_not_asking_for_one(text: str, claim: str):
+    reading = read(text)
+    assert reading.asks_if_human and reading.claim_type == claim
