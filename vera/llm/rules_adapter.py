@@ -47,6 +47,12 @@ HUMAN = (
     r"\b(uma pessoa|atendente|falar com alguem|pessoa de verdade|um agente|gerente|supervisor|"
     r"atendimento humano|carne e osso|(passe|passa) (para|pra) alguem)\b",
 )
+# In a scam story a role is part of the story ("un supuesto asesor del banco me llamó"); it is a request only when
+# the customer asks for one in so many words. Reading a request as a story costs nothing: a scam goes to a person.
+REQUEST_WORDS = (
+    r"\b(quiero|quisiera|necesito|prefiero|hablar con|pase(me|nos)?|pasa(me|nos)?|comunique(me|nos)?|comunica(me|nos)?|"
+    r"me atienda|quero|preciso|prefiro|falar com|me passe|me passa|me transfira)\b",
+)
 # "¿Eres una persona?", "¿es usted un robot?", "você é uma pessoa?": whether VERA is human, asked, not requested.
 ASKS_IF_HUMAN = (
     r"\b(eres|es usted|sos|estoy hablando con|hablo con) "
@@ -117,7 +123,7 @@ DATE_PATTERN = (
 # POL-10: how a third party reached the customer, checked in this order: a call over WhatsApp is still a call.
 # "Me llamó" is left out: without accents it is "me llamo", which introduces a name.
 CONTACT = (
-    (ContactChannel.PHONE_CALL, r"\b(me llamaron|llamada|llamaron|telefono|celular|ligaram|ligacao|ligou)\b"),
+    (ContactChannel.PHONE_CALL, r"\b(me llamaron|llamada|llamaron|telefono|telefone|celular|ligaram|ligacao|ligou)\b"),
     (ContactChannel.MESSAGE, r"\b(whatsapp|wsp|wpp|zap|telegram|sms|mensaje de texto|mensajito|mensagem|mensajes?)\b"),
     (ContactChannel.EMAIL, r"\b(correo|e-?mail|mail)\b"),
     (ContactChannel.SOCIAL_MEDIA, r"\b(facebook|instagram|tiktok|redes sociales|marketplace|twitter|redes)\b"),
@@ -147,7 +153,7 @@ class RulesInterpreter:
         asks_if_human = _any(ASKS_IF_HUMAN, text)
         # The question names a person without asking for one; a request in the same message still counts.
         rest = re.sub("|".join(ASKS_IF_HUMAN), " ", text)
-        human = _any(HUMAN, rest)
+        human = _any(HUMAN, rest) and not (_any(SCAM, rest) and not _any(REQUEST_WORDS, rest))
         claim, confident = self._claim(rest, human)
         amount, currency = _amount(text)
         return Interpretation(

@@ -89,6 +89,20 @@ def test_coercion_in_any_tense_is_a_threat(text: str):
 
 
 @pytest.mark.parametrize(
+    ("text", "claim"),
+    [
+        ("Le transferí a un supuesto ejecutivo del banco, era una estafa", "scam_transfer"),
+        ("Una persona me llamó diciendo que era del banco y le transferí mis ahorros", "scam_transfer"),
+        ("Um falso gerente me ligou e eu transferi o dinheiro", "scam_transfer"),
+        ("Me estafaron con una transferencia y quiero hablar con un asesor", "human_request"),
+        ("Caí num golpe, quero falar com uma pessoa", "human_request"),
+    ],
+)
+def test_a_role_in_a_scam_story_is_not_a_request_unless_the_customer_asks(text: str, claim: str):
+    assert read(text).claim_type == claim
+
+
+@pytest.mark.parametrize(
     ("text", "channel"),
     [
         ("Ayer me llamaron del banco", "phone_call"),
