@@ -7,12 +7,11 @@ from typing import Annotated, Literal, Self
 from pydantic import AwareDatetime, StringConstraints, model_validator
 
 from vera.contracts.cases import Case
-from vera.contracts.common import CandidateNumber, Contract, Identifier, Language, ShortText
-from vera.contracts.handoff import Action
+from vera.contracts.common import CandidateNumber, Contract, Identifier, Language, PolicyRuleId, ShortText
+from vera.contracts.handoff import Action, Handoff, Queue, Transfer
 from vera.contracts.legal import RouteId
 
 MessageText = Annotated[str, StringConstraints(min_length=1, max_length=2000)]
-PolicyRuleId = Annotated[str, StringConstraints(pattern=r"^((POL|PROH)-\d{2}|(CO|MX|AR|BR)-R\d{2})$")]
 
 
 class DemoSessionRequest(Contract):
@@ -82,6 +81,31 @@ class CaseView(Contract):
     legal_route: RouteId | None = None
     deadline: date | None = None
     actions: tuple[Action, ...] = ()
+
+
+class QueueItem(Contract):
+    """One conversation waiting for an analyst: a case handoff or a transfer note, for the console."""
+
+    kind: Literal["case", "transfer"]
+    reference: Identifier
+    created_at: AwareDatetime
+    queue: Queue
+    summary: ShortText
+    requires_pt_analyst: bool
+    trace_id: Identifier
+
+    @classmethod
+    def of(cls, item: Handoff | Transfer) -> "QueueItem":
+        transfer = isinstance(item, Transfer)
+        return cls(
+            kind="transfer" if transfer else "case",
+            reference=item.transfer_id if transfer else item.case_id,
+            created_at=item.created_at,
+            queue=item.suggested_queue,
+            summary=item.summary,
+            requires_pt_analyst=item.requires_pt_analyst,
+            trace_id=item.trace_id,
+        )
 
 
 class HealthResponse(Contract):

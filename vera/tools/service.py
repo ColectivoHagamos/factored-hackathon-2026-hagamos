@@ -13,11 +13,12 @@ from pydantic import BaseModel
 
 from vera.contracts.cases import Case
 from vera.contracts.charges import ChargeDetail
-from vera.contracts.handoff import Handoff
+from vera.contracts.handoff import Handoff, Transfer
 from vera.contracts.interpretation import ClaimType
 from vera.contracts.tools import (
     BlockCardInput,
     CreateHandoffInput,
+    CreateTransferInput,
     ReadCaseInput,
     RegisterDisputeInput,
     SearchChargesInput,
@@ -103,6 +104,9 @@ class ToolService:
 
     def create_handoff(self, session: Session, args: CreateHandoffInput, handoff: Handoff) -> GateResult:
         return guarded_write("create_handoff", lambda: self._gate.create_handoff(session, args, handoff))
+
+    def create_transfer(self, session: Session, args: CreateTransferInput, note: Transfer) -> GateResult:
+        return guarded_write("create_transfer", lambda: self._gate.create_transfer(session, args, note))
 
     def send_fraud_alert(self, session: Session, offers: Offers, args: SendFraudAlertInput) -> GateResult:
         return guarded_write("send_fraud_alert", lambda: self._gate.send_fraud_alert(session, offers, args))

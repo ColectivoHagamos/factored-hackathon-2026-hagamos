@@ -8,10 +8,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from vera.contracts.handoff import GoodwillCandidate, GoodwillCriterion, Handoff, NetworkClock
+from vera.contracts.handoff import GoodwillCandidate, GoodwillCriterion, Handoff, NetworkClock, Transfer
 from vera.contracts.legal import LegalRule
 
 EXAMPLE = json.loads((Path(__file__).parent / "examples" / "handoff.json").read_text(encoding="utf-8"))
+TRANSFER = json.loads((Path(__file__).parent / "examples" / "transfer.json").read_text(encoding="utf-8"))
 TEXT = "Test text used only to validate the contract."
 
 
@@ -138,3 +139,27 @@ class TestLegalRule:
     def test_immediate_obligation_needs_no_value(self):
         immediate = TERM | {"unit": "immediate", "value": None}
         assert LegalRule(**rule(id="AR-R01", country="AR", route="AR-claim", terms=[immediate])).terms[0].value is None
+
+
+class TestTransfer:
+    """The note of a conversation that went to a person without a case handoff (POL-01)."""
+
+    def test_the_example_is_valid_and_never_carries_the_transcript(self):
+        note = Transfer.model_validate(TRANSFER)
+        assert note.pending_action_not_run == "register_dispute" and note.charges[0].fraud_score_band == "<=30"
+        assert not {"transcript", "messages", "text"} & set(Transfer.model_fields)
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("transfer_id", "DSP-000001"),
+            ("reason", "customer_was_rude"),
+            ("requires_pt_analyst", True),
+            ("pending_action_not_run", "refund"),
+            ("rules_applied", ["RULE-1"]),
+            ("transcript", "hola"),
+        ],
+    )
+    def test_invalid_notes_are_rejected(self, field: str, value):
+        with pytest.raises(ValidationError):
+            Transfer.model_validate(TRANSFER | {field: value})

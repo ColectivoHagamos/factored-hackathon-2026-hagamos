@@ -35,6 +35,8 @@ class Language(StrEnum):
 Amount = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=2)]
 CandidateNumber = Annotated[int, Field(ge=1, le=50)]
 CaseId = Annotated[str, StringConstraints(pattern=r"^DSP-\d{6}$")]
+TransferId = Annotated[str, StringConstraints(pattern=r"^TRF-\d{6}$")]
+PolicyRuleId = Annotated[str, StringConstraints(pattern=r"^((POL|PROH)-\d{2}|(CO|MX|AR|BR)-R\d{2})$")]
 MaskedCard = Annotated[str, StringConstraints(pattern=r"^•••• \d{4}$")]
 Sha256Hex = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 ShortText = Annotated[str, StringConstraints(min_length=1, max_length=200)]

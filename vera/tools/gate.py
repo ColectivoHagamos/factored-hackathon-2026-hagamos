@@ -15,11 +15,12 @@ from enum import StrEnum
 from pydantic import BaseModel
 
 from vera.contracts.cases import Case
-from vera.contracts.handoff import Handoff
+from vera.contracts.handoff import Handoff, Transfer
 from vera.contracts.interpretation import ClaimType
 from vera.contracts.tools import (
     BlockCardInput,
     CreateHandoffInput,
+    CreateTransferInput,
     ReadCaseInput,
     RegisterDisputeInput,
     RegisterDisputeOutput,
@@ -45,8 +46,10 @@ RISK_TABLE: dict[str, Risk] = {
     "block_card": Risk.MEDIUM,
     "register_dispute": Risk.MEDIUM,
     "create_handoff": Risk.MEDIUM,
-    # An internal notice required by POL-16: it acts on nothing of the customer's, so it needs no confirmation.
+    # Internal notices required by POL-16 and POL-01: they act on nothing of the customer's, so they need no
+    # confirmation.
     "send_fraud_alert": Risk.MEDIUM,
+    "create_transfer": Risk.MEDIUM,
 }
 CONFIRMED_WRITES = ("block_card", "register_dispute")
 
@@ -99,6 +102,10 @@ class ActionGate:
 
     def create_handoff(self, session: Session, args: CreateHandoffInput, handoff: Handoff) -> GateResult:
         output = self._toolbox.create_handoff(session, args, handoff)
+        return GateResult(output, read_back_matches=not isinstance(output, ToolError))
+
+    def create_transfer(self, session: Session, args: CreateTransferInput, note: Transfer) -> GateResult:
+        output = self._toolbox.create_transfer(session, args, note)
         return GateResult(output, read_back_matches=not isinstance(output, ToolError))
 
     def send_fraud_alert(self, session: Session, offers: Offers, args: SendFraudAlertInput) -> GateResult:

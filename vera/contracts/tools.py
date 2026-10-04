@@ -12,8 +12,8 @@ from pydantic import Field, StringConstraints, model_validator
 
 from vera.contracts.cases import Case, DisputeReason
 from vera.contracts.charges import Candidate, ChargeDetail, ChargeKind
-from vera.contracts.common import Amount, CandidateNumber, CaseId, Contract, Identifier, Money, ShortText
-from vera.contracts.handoff import Queue
+from vera.contracts.common import Amount, CandidateNumber, CaseId, Contract, Identifier, Money, ShortText, TransferId
+from vera.contracts.handoff import Queue, TransferReason
 from vera.contracts.interpretation import DeclaredChannel
 
 ConfirmationToken = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{16,128}$")]
@@ -116,6 +116,17 @@ class CreateHandoffOutput(Contract):
     handoff_id: Identifier
 
 
+class CreateTransferInput(Contract):
+    """A conversation that goes to a person without a case handoff leaves a note with what is known (POL-01)."""
+
+    queue: Queue
+    reason: TransferReason
+
+
+class CreateTransferOutput(Contract):
+    transfer_id: TransferId
+
+
 class SendFraudAlertInput(Contract):
     """POL-16: an alert to the Fraud team with the signals, the charges and the block status, with or without a case.
 
@@ -132,7 +143,8 @@ class SendFraudAlertOutput(Contract):
     alert_id: Identifier
 
 
-# The seven tools of the design and the POL-16 alert. Moving or promising money is not a tool (PROH-03).
+# The seven tools of the design, the POL-16 alert and the transfer note. Moving or promising money is not a tool
+# (PROH-03).
 TOOL_INPUTS: dict[str, type[Contract]] = {
     "search_charges": SearchChargesInput,
     "view_charge": ViewChargeInput,
@@ -142,6 +154,7 @@ TOOL_INPUTS: dict[str, type[Contract]] = {
     "read_case": ReadCaseInput,
     "create_handoff": CreateHandoffInput,
     "send_fraud_alert": SendFraudAlertInput,
+    "create_transfer": CreateTransferInput,
 }
 
 TOOL_OUTPUTS: dict[str, type[Contract]] = {
@@ -153,4 +166,5 @@ TOOL_OUTPUTS: dict[str, type[Contract]] = {
     "read_case": Case,
     "create_handoff": CreateHandoffOutput,
     "send_fraud_alert": SendFraudAlertOutput,
+    "create_transfer": CreateTransferOutput,
 }

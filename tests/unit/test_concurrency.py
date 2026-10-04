@@ -4,6 +4,7 @@ The load test found the failure these tests pin: one SQLite connection used by t
 registrations at the same time computing the same case id.
 """
 
+import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -15,6 +16,7 @@ from vera.adapters.mock_bank import CLOCK, CUSTOMERS, MockBank
 from vera.adapters.sqlite_event_log import SqliteEventLog
 from vera.adapters.sqlite_state import SqliteState
 from vera.contracts.events import EventType
+from vera.contracts.handoff import Transfer
 from vera.contracts.tools import RegisterDisputeInput, SearchChargesInput, ToolError
 from vera.core.events import new_event, verify_chain
 from vera.policy.model import load_policy
@@ -47,6 +49,19 @@ def test_registrations_at_the_same_time_get_distinct_case_ids(tmp_path: Path):
         outputs = list(pool.map(register, range(len(targets))))
     case_ids = [output.case_id for output in outputs if not isinstance(output, ToolError)]
     assert len(case_ids) >= 5 and len(set(case_ids)) == len(case_ids)
+
+
+def test_transfers_at_the_same_time_get_distinct_ids_and_one_per_conversation(tmp_path: Path):
+    state = SqliteState(tmp_path / "state.sqlite")
+    example = Path(__file__).parents[1] / "contract" / "examples" / "transfer.json"
+    note = Transfer.model_validate(json.loads(example.read_text(encoding="utf-8")))
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        stored = list(pool.map(lambda i: state.transfer(note, f"conv-{i % 20}"), range(60)))
+    ids: dict[str, set[str]] = {}
+    for index, transfer in enumerate(stored):
+        ids.setdefault(f"conv-{index % 20}", set()).add(transfer.transfer_id)
+    assert all(len(found) == 1 for found in ids.values())
+    assert len(set().union(*ids.values())) == 20
 
 
 def test_conversations_opened_and_read_from_many_threads_never_collide(tmp_path: Path):

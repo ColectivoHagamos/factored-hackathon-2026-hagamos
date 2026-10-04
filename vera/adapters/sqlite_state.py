@@ -1,4 +1,4 @@
-"""Writable state of the demo in SQLite: cases, card blocks and handoffs, each idempotent by key.
+"""Writable state of the demo in SQLite: cases, card blocks, handoffs and transfers, each idempotent by key.
 
 The API serves requests from several threads and a SQLite connection cannot be used by two at once, so every
 statement, read or write, runs under one reentrant lock and fetches its rows before releasing it.
@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 
 from vera.contracts.cases import Case
-from vera.contracts.handoff import Handoff, Queue
+from vera.contracts.handoff import Handoff, Queue, Transfer
 from vera.ports.bank import FraudAlertRecord
 
 SCHEMA = """
@@ -30,6 +30,12 @@ CREATE TABLE IF NOT EXISTS card_blocks (
 CREATE TABLE IF NOT EXISTS handoffs (
     handoff_id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_id TEXT NOT NULL,
+    queue TEXT NOT NULL,
+    body TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS transfers (
+    transfer_id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL UNIQUE,
     queue TEXT NOT NULL,
     body TEXT NOT NULL
 );
@@ -129,6 +135,33 @@ class SqliteState:
     def handoff_of(self, case_id: str) -> Handoff | None:
         row = self._one("SELECT body FROM handoffs WHERE case_id = ? ORDER BY handoff_id DESC LIMIT 1", (case_id,))
         return Handoff.model_validate_json(row[0]) if row else None
+
+    def transfer(self, note: Transfer, conversation_id: str) -> Transfer:
+        with self._lock:
+            row = self._one("SELECT body FROM transfers WHERE conversation_id = ?", (conversation_id,))
+            if row:
+                return Transfer.model_validate_json(row[0])
+            count = self._one("SELECT count(*) FROM transfers")[0]
+            stored = note.model_copy(update={"transfer_id": f"TRF-{count + 1:06d}"})
+            self._connection.execute(
+                "INSERT INTO transfers (transfer_id, conversation_id, queue, body) VALUES (?, ?, ?, ?)",
+                (stored.transfer_id, conversation_id, stored.suggested_queue.value, stored.model_dump_json()),
+            )
+            return stored
+
+    def transfer_of(self, transfer_id: str) -> Transfer | None:
+        row = self._one("SELECT body FROM transfers WHERE transfer_id = ?", (transfer_id,))
+        return Transfer.model_validate_json(row[0]) if row else None
+
+    def queue(self, limit: int = 50) -> tuple[Handoff | Transfer, ...]:
+        """What is waiting for an analyst, newest first: the latest handoff of each case and every transfer."""
+        handoffs = self._all(
+            "SELECT body FROM handoffs WHERE handoff_id IN (SELECT max(handoff_id) FROM handoffs GROUP BY case_id)"
+        )
+        transfers = self._all("SELECT body FROM transfers")
+        items = [Handoff.model_validate_json(row[0]) for row in handoffs]
+        items += [Transfer.model_validate_json(row[0]) for row in transfers]
+        return tuple(sorted(items, key=lambda item: item.created_at, reverse=True)[:limit])
 
     def fraud_alert(self, alert: FraudAlertRecord) -> str:
         with self._lock:

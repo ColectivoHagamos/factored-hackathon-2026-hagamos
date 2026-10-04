@@ -30,11 +30,12 @@ from vera.contracts.api import (
     MessageRequest,
     MessageResponse,
     MetricsResponse,
+    QueueItem,
     StartConversationRequest,
     StartConversationResponse,
 )
 from vera.contracts.cases import Case
-from vera.contracts.handoff import Handoff
+from vera.contracts.handoff import Handoff, Transfer
 from vera.contracts.tools import ReadCaseInput
 from vera.gateway.injection import signals as injection_signals
 from vera.gateway.masking import mask
@@ -221,6 +222,18 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         if found is None:
             raise ApiFailure(ApiErrorCode.NOT_FOUND)
         return found
+
+    @app.get(f"{PREFIX}/transfers/{{transfer_id}}", response_model=Transfer, tags=["cases"])
+    def transfer(transfer_id: str, _: SessionToken = Depends(analyst_session)) -> Transfer:
+        found = container.state.transfer_of(transfer_id)
+        if found is None:
+            raise ApiFailure(ApiErrorCode.NOT_FOUND)
+        return found
+
+    @app.get(f"{PREFIX}/queue", response_model=list[QueueItem], tags=["cases"])
+    def queue(_: SessionToken = Depends(analyst_session)) -> list[QueueItem]:
+        """What waits for an analyst, newest first: case handoffs and transfer notes."""
+        return [QueueItem.of(item) for item in container.state.queue()]
 
     # ADR 0002: the API also serves the web, so the demo is one URL and one deployment.
     if WEB.is_dir():

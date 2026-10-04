@@ -46,7 +46,7 @@ customer text ─▶ gateway ──────▶ interpreter ─────�
   - A message that slips through still meets the closed schema, the session isolation and the gate.
 - **Failures go to a person.** A tool that fails is retried once if it only reads; then the case goes to a person, and nothing is filled in (POL-13).
 - **Every turn is an event in a hash-chained log,** so a conversation can be audited and replayed.
-- **The analyst receives a handoff** with verified and declared facts, the legal and network clocks, the actions taken and the open questions.
+- **The analyst receives a handoff** with verified and declared facts, the legal and network clocks, the actions taken and the open questions. A conversation that goes to a person without a case still leaves a transfer note with what is known: the reason and its rule, the charges read from the tools, what the customer declared, any action left pending and never run, and what to ask. The console lists both, newest first. Neither carries the transcript.
 - **Security and operations:** the threat model and what remains open are in [SECURITY.md](SECURITY.md). Logs, the trace of a conversation, metrics, alerts and the load test are in [docs/operations.md](docs/operations.md).
 
 ## The learned component
