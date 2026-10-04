@@ -13,6 +13,8 @@ dependencies = [
     "holidays>=0.60",
     "pydantic>=2.9",
     "pyyaml>=6.0",
+    "scikit-learn>=1.5",
+    "threadpoolctl>=3.5",
     "uvicorn>=0.32",
 ]
 

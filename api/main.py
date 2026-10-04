@@ -1,6 +1,7 @@
 """HTTP entry point. Routes only authenticate, validate and delegate; business rules live in the domain."""
 
 import hmac
+import logging
 import secrets
 from collections import defaultdict, deque
 from collections.abc import Callable
@@ -30,6 +31,7 @@ from vera.contracts.api import (
 from vera.contracts.cases import Case
 from vera.contracts.handoff import Handoff
 from vera.contracts.tools import ReadCaseInput
+from vera.gateway.injection import signals as injection_signals
 from vera.gateway.masking import mask
 from vera.ports.tools import Session
 
@@ -46,7 +48,9 @@ MESSAGES = {
     ApiErrorCode.UNAUTHORIZED: "Session missing, invalid or expired",
     ApiErrorCode.NOT_FOUND: "Not found",
     ApiErrorCode.RATE_LIMITED: "Too many messages; wait a minute",
+    ApiErrorCode.PROVIDER_UNAVAILABLE: "Service temporarily unavailable; try again in a moment",
 }
+logger = logging.getLogger("vera.api")
 
 
 class DemoCustomer(BaseModel):
@@ -95,6 +99,12 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     def failure(_: Request, error: ApiFailure) -> JSONResponse:
         body = ApiError(code=error.code, message=MESSAGES.get(error.code, error.code.value.replace("_", " ")))
         return JSONResponse(body.model_dump(mode="json"), status_code=STATUS[error.code])
+
+    @app.exception_handler(Exception)
+    def unexpected(_: Request, error: Exception) -> JSONResponse:
+        # Nothing internal reaches the client; the operators get the trace in the log.
+        logger.error("unexpected error", exc_info=error)
+        return failure(_, ApiFailure(ApiErrorCode.PROVIDER_UNAVAILABLE))
 
     def customer_session(authorization: str = Header(default="")) -> SessionToken:
         return _verify(container, authorization, "customer")
@@ -150,8 +160,10 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     ) -> MessageResponse:
         _own(container, conversation_id, session)
         limiter.check(session.subject)
+        # Injection signals are read on the original text; only the masked text goes further.
+        signals = injection_signals(body.text) if body.text else ()
         masked = body.model_copy(update={"text": mask(body.text)}) if body.text else body
-        return container.conversation.reply(Session(session.subject, conversation_id), masked)
+        return container.conversation.reply(Session(session.subject, conversation_id), masked, signals)
 
     @app.get(f"{PREFIX}/cases/{{case_id}}", response_model=CaseView, tags=["cases"])
     def case(case_id: str, session: SessionToken = Depends(customer_session)) -> CaseView:

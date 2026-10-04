@@ -1,0 +1,377 @@
+# Claim phrases for the learned classifier (P42), written by the team. No phrase comes from the dataset; balance
+# and other out-of-scope questions are our own paraphrases.
+#
+# Three families share no template, so a phrase never leaks from training into the test:
+#   a: complete sentences, a neutral register. Training.
+#   b: chat style, short, without accents, typos, voseo. Validation: regularization and threshold.
+#   c: other wordings, longer stories and hard cases (a balance word in a fee complaint, "transfer me" to a person).
+#      Test only; nothing is fitted or chosen on it.
+families:
+  a:
+    es:
+      unrecognized_charge:
+        - No reconozco un cargo de Uber en mi tarjeta
+        - Tengo una compra que no hice en Rappi
+        - Me aparece un cobro de Netflix que yo no autoricé
+        - Hay un movimiento en mi tarjeta que no es mío
+        - Alguien hizo una compra con mi tarjeta de crédito
+        - Veo un cargo de Amazon que desconozco
+        - Ayer me llegó una notificación de una compra que no realicé
+        - En mi estado de cuenta hay una compra en Madrid que no hice
+        - No hice esa compra de 120.000 pesos
+        - Desconozco un pago con mi tarjeta débito
+        - Me cobraron una compra en una tienda donde nunca he estado
+        - Hay dos compras en el extranjero que no son mías
+        - Usaron mi tarjeta sin mi permiso
+      improper_charge:
+        - Me cobraron una comisión que no corresponde
+        - Me están cobrando una cuota de manejo que no debería pagar
+        - Me cobraron dos veces la misma compra
+        - Hay un cobro duplicado en mi resumen
+        - Me cargaron intereses que no corresponden
+        - Me cobraron un seguro que nunca contraté
+        - El monto que me cobraron es mayor al de la compra
+        - Me aplicaron un ajuste que no corresponde
+        - Cobraron la anualidad aunque me dijeron que era gratis
+        - Me descontaron un cargo por mantenimiento de cuenta que no aplica
+        - La compra era de 50 dólares y me cobraron 80
+        - Me cobraron una penalidad por pago tardío pero pagué a tiempo
+      scam_transfer:
+        - Me llamaron del banco, les di el código y luego transferí dinero
+        - Me estafaron por WhatsApp e hice una transferencia
+        - Transferí dinero a una cuenta que me pasó un supuesto asesor
+        - Caí en una estafa de un vendedor en internet y le pagué por adelantado
+        - Alguien se hizo pasar por el banco y me pidió mover mi dinero a una cuenta segura
+        - Hice un depósito a alguien que me engañó
+        - Me engañaron con un falso premio y pagué para reclamarlo
+        - Pagué una inversión que resultó ser falsa
+        - Me escribieron diciendo que era mi hijo y le transferí
+        - Mandé dinero por una transferencia y era un fraude
+        - Le compré a alguien por redes sociales, le transferí y nunca me entregó nada
+        - Me pidieron la clave por teléfono y después hice el pago que me indicaron
+      human_request:
+        - Quiero hablar con una persona
+        - Necesito que me atienda un asesor
+        - ¿Me puede pasar con un humano, por favor?
+        - Prefiero hablar con alguien real
+        - Comuníqueme con un agente
+        - No quiero hablar con un robot
+        - Páseme con alguien del banco
+        - Quiero que me atienda un operador
+        - Necesito hablar con un ejecutivo
+        - ¿Hay alguna persona que me pueda ayudar?
+        - Deseo ser atendido por una persona
+        - Quiero un asesor humano
+      out_of_scope:
+        - ¿Cuál es mi saldo?
+        - Quiero saber cuánto dinero tengo en la cuenta
+        - Necesito un préstamo
+        - ¿Cómo abro una cuenta de ahorros?
+        - Quiero cambiar mi clave de la aplicación
+        - ¿Cuál es la tasa de interés del crédito hipotecario?
+        - ¿Cuándo es mi fecha de corte?
+        - Quiero aumentar el cupo de mi tarjeta
+        - ¿Dónde queda la sucursal más cercana?
+        - ¿Cuánto debo de mi tarjeta?
+        - Necesito un certificado bancario
+        - Quiero pedir una tarjeta nueva
+    pt:
+      unrecognized_charge:
+        - Não reconheço uma compra no meu cartão
+        - Apareceu uma cobrança da Uber que eu não fiz
+        - Tem uma compra no meu cartão que não é minha
+        - Alguém usou o meu cartão de crédito
+        - Não fiz essa compra na Amazon
+        - Recebi uma notificação de uma compra que não realizei
+        - Há um gasto no exterior que eu não reconheço
+        - Desconheço um pagamento feito com meu cartão de débito
+        - Usaram o meu cartão sem a minha autorização
+        - Tem duas compras no meu extrato que eu não fiz
+        - Não reconheço essa cobrança de 300 reais
+        - Fizeram uma compra numa loja onde eu nunca estive
+      improper_charge:
+        - Cobraram uma tarifa que não deveriam
+        - Fui cobrado duas vezes pela mesma compra
+        - Tem uma cobrança duplicada na minha fatura
+        - Cobraram juros que não são devidos
+        - Estão cobrando um seguro que eu não contratei
+        - O valor cobrado é maior do que o da compra
+        - Cobraram a anuidade que era para ser grátis
+        - Aplicaram um ajuste indevido na minha conta
+        - Cobraram uma taxa de manutenção que não se aplica
+        - A compra foi de 50 dólares e cobraram 80
+        - Cobraram multa por atraso, mas eu paguei em dia
+        - Tem uma cobrança indevida do banco na fatura
+      scam_transfer:
+        - Me ligaram fingindo ser do banco e eu fiz uma transferência
+        - Caí num golpe pelo WhatsApp e transferi dinheiro
+        - Transferi para uma conta que um falso atendente me passou
+        - Paguei adiantado a um vendedor falso na internet
+        - Um homem se passou pelo banco e pediu para eu mover o dinheiro
+        - Fiz um depósito para um golpista
+        - Me enganaram com um prêmio falso e paguei uma taxa
+        - Investi num esquema que era golpe
+        - Recebi mensagem dizendo que era meu filho e mandei dinheiro
+        - Mandei dinheiro por transferência e era fraude
+        - Comprei de alguém nas redes sociais, transferi e não recebi nada
+        - Pediram a minha senha por telefone e depois fiz o pagamento que mandaram
+      human_request:
+        - Quero falar com uma pessoa
+        - Preciso de um atendente
+        - Pode me passar para um humano, por favor?
+        - Prefiro falar com alguém de verdade
+        - Me transfira para um agente
+        - Não quero falar com um robô
+        - Quero ser atendido por uma pessoa
+        - Preciso falar com um gerente
+        - Tem alguém que possa me ajudar?
+        - Me passe para o atendimento humano
+        - Quero um atendente humano
+        - Gostaria de falar com alguém do banco
+      out_of_scope:
+        - Qual é o meu saldo?
+        - Quero saber quanto dinheiro tenho na conta
+        - Preciso de um empréstimo
+        - Como abro uma conta poupança?
+        - Quero trocar a senha do aplicativo
+        - Qual é a taxa de juros do financiamento?
+        - Quando fecha a minha fatura?
+        - Quero aumentar o limite do cartão
+        - Onde fica a agência mais próxima?
+        - Quanto eu devo no cartão?
+        - Fiz um Pix errado
+        - Preciso de um comprovante de residência do banco
+  b:
+    es:
+      unrecognized_charge:
+        - no reconozco este cargo
+        - q es este cobro de spotify?? yo no fui
+        - alguien me clono la tarjeta
+        - me salio una compra rara en la app
+        - tengo cargos que no son mios
+        - no compre nada en mercado libre y me aparece
+        - me robaron la tarjeta y hay compras
+        - che, hay un consumo que no hice
+        - un pago de 300 que no reconozco
+        - nunca compre en esa tienda
+        - aparece un gasto en dolares que no hice
+        - mi tarjeta tiene movimientos raros
+      improper_charge:
+        - me cobraron doble
+        - cobro de mas en mi tarjeta
+        - me metieron una comision rara del banco
+        - por q me cobran cuota de manejo si era gratis
+        - me cobraron 2 veces el mismo pago
+        - ese seguro yo no lo pedi y me lo cobran
+        - me cobraron intereses de mas
+        - la cuota vino mas cara de lo acordado
+        - me descontaron plata por un cargo del banco que no va
+        - no corresponde ese cargo administrativo
+        - che me cobraron mantenimiento y no corresponde
+        - cobro indebido en mi resumen
+      scam_transfer:
+        - me estafaron, transferi plata
+        - hice una transferencia a un estafador
+        - me enganaron por whatsapp y les mande plata
+        - cai en un fraude telefonico y transferi
+        - le pase plata a un falso vendedor
+        - me enganaron y deposite
+        - un tipo se hizo pasar por el banco y le di los codigos
+        - fui victima de una estafa, mande dinero
+        - pague por algo en marketplace y era estafa
+        - me llamaron diciendo q eran del banco y transferi todo
+        - me sacaron plata con un cuento
+        - deposite a una cuenta falsa
+      human_request:
+        - una persona porfa
+        - quiero un humano
+        - pasame con alguien
+        - asesor
+        - hablar con agente
+        - no quiero bot
+        - atencion humana por favor
+        - me comunicas con alguien real?
+        - necesito un asesor ya
+        - persona real
+        - operador
+        - quiero hablar con alguien de verdad
+      out_of_scope:
+        - saldo
+        - cuanto tengo en la cuenta
+        - prestamo
+        - como saco un credito
+        - quiero mi extracto
+        - cambiar contrasena
+        - horario de atencion?
+        - abrir cuenta
+        - cuanto debo
+        - pago minimo de la tarjeta
+        - subir el cupo
+        - se me bloqueo la app
+    pt:
+      unrecognized_charge:
+        - nao reconheco essa compra
+        - q cobranca eh essa?? nao fui eu
+        - clonaram meu cartao
+        - apareceu uma compra estranha no app
+        - tem gastos que nao sao meus
+        - nao comprei nada no mercado livre e aparece
+        - roubaram meu cartao e tem compras
+        - tem um debito que eu nao fiz
+        - uma compra de 200 que eu nao reconheco
+        - nunca comprei nessa loja
+        - apareceu gasto em dolar que nao fiz
+        - meu cartao ta com movimentacao estranha
+      improper_charge:
+        - me cobraram em dobro
+        - cobranca a mais no cartao
+        - enfiaram uma tarifa estranha
+        - pq to pagando anuidade se era gratis
+        - cobraram 2 vezes o mesmo pagamento
+        - esse seguro eu nao pedi e ta cobrando
+        - juros a mais na fatura
+        - a parcela veio mais cara do que o combinado
+        - descontaram dinheiro por uma tarifa do banco
+        - nao procede essa taxa administrativa
+        - cobraram manutencao e nao devia
+        - cobranca indevida na fatura
+      scam_transfer:
+        - cai num golpe, transferi dinheiro
+        - fiz uma transferencia pra um golpista
+        - me enganaram no zap e mandei dinheiro
+        - golpe por telefone, transferi
+        - passei dinheiro pra um vendedor falso
+        - me enganaram e depositei
+        - um cara se passou pelo banco e eu passei os codigos
+        - fui vitima de golpe, mandei grana
+        - paguei por algo no marketplace e era golpe
+        - ligaram dizendo q eram do banco e transferi tudo
+        - me tiraram dinheiro com uma historia falsa
+        - depositei numa conta falsa
+      human_request:
+        - uma pessoa por favor
+        - quero um humano
+        - me passa pra alguem
+        - atendente
+        - falar com agente
+        - nao quero robo
+        - atendimento humano
+        - me coloca com alguem de verdade?
+        - preciso de um atendente agora
+        - pessoa real
+        - gerente
+        - quero falar com alguem de verdade
+      out_of_scope:
+        - meu saldo
+        - quanto tenho na conta
+        - emprestimo
+        - como pego um credito
+        - quero meu extrato
+        - trocar senha
+        - horario de atendimento?
+        - abrir conta
+        - quanto devo
+        - pagamento minimo do cartao
+        - aumentar limite
+        - o app bloqueou
+  c:
+    es:
+      unrecognized_charge:
+        - Buenas tardes, revisando mis movimientos encontré un consumo en una gasolinera que no hice
+        - Me llegó un SMS de una compra por 85 dólares y yo tengo la tarjeta conmigo
+        - Hola, en el extracto aparece una compra en Cancún y nunca he ido
+        - Hay un débito de una suscripción que jamás contraté
+        - Alguien está usando mis datos para comprar en línea
+        - Me notificaron un pago en un restaurante y yo estaba en mi casa
+        - Ese consumo de 45.000 no lo reconozco para nada
+        - No sé qué es este cargo de PayPal
+        - Perdí la billetera y ahora veo compras
+        - Le juro que no hice esa compra
+      improper_charge:
+        - Revisé el resumen y el banco me cobró una comisión por un servicio que cancelé
+        - La compra salió repetida tres veces en el estado de cuenta
+        - Me están cobrando la tarjeta adicional que nunca pedí
+        - Me debitaron un cargo por sobregiro y nunca me pasé del límite
+        - El comercio cobró en dólares y la conversión que aplicaron no es la correcta
+        - Pagué el total y aun así me cobraron intereses
+        - Me cobraron una comisión por consultar el saldo
+        - Aparece un cargo del banco llamado ajuste que no corresponde
+        - Me renovaron el seguro sin consultarme y lo cobraron
+        - El monto debitado no coincide con el ticket
+      scam_transfer:
+        - Una persona me escribió diciendo que era de soporte del banco y me hizo transferir mis ahorros
+        - Respondí un correo falso y luego hice el pago que me pidieron
+        - Me ofrecieron un trabajo desde casa y tuve que pagar una inscripción, era mentira
+        - Me presionaron por teléfono para mover la plata a otra cuenta
+        - Hice un giro a un supuesto familiar en problemas
+        - Pagué el depósito de un alquiler a alguien que no era el dueño
+        - Me convencieron de invertir en criptomonedas y transferí todo
+        - Me engañó alguien que conocí en una aplicación de citas y le mandé dinero
+      human_request:
+        - Disculpe, ¿hay manera de que me atienda un ser humano?
+        - Esto no me sirve, quiero un agente de servicio al cliente
+        - Prefiero que me llame alguien del banco
+        - ¿Puedo hablar con un funcionario?
+        - Necesito la ayuda de una persona, no de una máquina
+        - Comuníqueme con atención al cliente
+        - Transfiérame con su supervisor
+        - ¿Me atiende alguien de carne y hueso?
+      out_of_scope:
+        - ¿Me puede decir cuánto tengo disponible?
+        - Quisiera información sobre los CDT
+        - ¿Cómo activo la tarjeta nueva?
+        - Necesito el número de mi cuenta
+        - ¿Qué requisitos piden para una tarjeta de crédito?
+        - Quiero actualizar mi dirección
+        - ¿Hasta qué hora abre el banco?
+        - ¿Cuál es el límite de mi tarjeta?
+    pt:
+      unrecognized_charge:
+        - Boa tarde, olhando meus movimentos achei um abastecimento que não fiz
+        - Recebi um SMS de uma compra de 85 dólares e o cartão está comigo
+        - Oi, no extrato tem uma compra em Salvador e eu nunca fui lá
+        - Tem um débito de uma assinatura que eu nunca contratei
+        - Alguém está usando meus dados para comprar pela internet
+        - Avisaram de um pagamento num restaurante e eu estava em casa
+        - Esse gasto de 450 reais eu não reconheço de jeito nenhum
+        - Não sei o que é essa cobrança do PayPal
+        - Perdi a carteira e agora aparecem compras
+        - Juro que não fiz essa compra
+      improper_charge:
+        - Olhei a fatura e o banco cobrou uma tarifa de um serviço que cancelei
+        - A compra saiu repetida três vezes na fatura
+        - Estão cobrando um cartão adicional que eu nunca pedi
+        - Debitaram juros de cheque especial e eu nunca passei do limite
+        - A loja cobrou em dólar e a conversão aplicada não está certa
+        - Paguei o total e mesmo assim cobraram juros
+        - Cobraram uma tarifa por consultar o saldo
+        - Aparece uma cobrança do banco chamada ajuste que não procede
+        - Renovaram o seguro sem me consultar e cobraram
+        - O valor debitado não bate com o comprovante
+      scam_transfer:
+        - Uma pessoa me escreveu dizendo que era do suporte do banco e me fez transferir minhas economias
+        - Respondi um e-mail falso e depois fiz o pagamento que pediram
+        - Me ofereceram um trabalho em casa e tive que pagar uma inscrição, era mentira
+        - Me pressionaram por telefone para mover o dinheiro para outra conta
+        - Mandei dinheiro para um suposto parente em apuros
+        - Paguei o depósito de um aluguel para alguém que não era o dono
+        - Me convenceram a investir em criptomoedas e transferi tudo
+        - Fui enganada por alguém que conheci num aplicativo de namoro e mandei dinheiro
+      human_request:
+        - Com licença, tem como eu ser atendido por um ser humano?
+        - Isso não está ajudando, quero um agente do atendimento ao cliente
+        - Prefiro que alguém do banco me ligue
+        - Posso falar com um funcionário?
+        - Preciso da ajuda de uma pessoa, não de uma máquina
+        - Me encaminhe para o atendimento ao cliente
+        - Me transfira para o seu supervisor
+        - Alguém de carne e osso pode me atender?
+      out_of_scope:
+        - Pode me dizer quanto tenho disponível?
+        - Queria informações sobre o CDB
+        - Como desbloqueio o cartão novo?
+        - Preciso do número da minha conta
+        - Quais são os requisitos para um cartão de crédito?
+        - Quero atualizar meu endereço
+        - Até que horas a agência abre?
+        - Qual é o limite do meu cartão?

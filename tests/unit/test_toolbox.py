@@ -1,4 +1,4 @@
-"""Tests of the seven tools on the mock bank: numbered options, exposure, idempotency and duplicates."""
+"""Tests of the tools on the mock bank: numbered options, exposure, idempotency and duplicates."""
 
 from datetime import date
 from decimal import Decimal
@@ -121,3 +121,9 @@ def handoff_example() -> Handoff:
 
     path = Path(__file__).parents[1] / "contract" / "examples" / "handoff.json"
     return Handoff.model_validate(json.loads(path.read_text(encoding="utf-8")))
+
+
+@pytest.mark.parametrize("named", ["Sao Paulo", "são paulo", "UBER"])
+def test_what_the_customer_named_matches_the_merchant_or_the_city_without_case_or_accents(tools: Toolbox, named: str):
+    output, _ = search(tools, merchant=named)
+    assert {c.merchant for c in output.candidates} == {"Uber"} and len(output.candidates) == 2

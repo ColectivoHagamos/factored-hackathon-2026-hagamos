@@ -12,7 +12,8 @@
         "clarification_confirmed",
         "reply",
         "handoff",
-        "fraud_alert"
+        "fraud_alert",
+        "security_event"
       ],
       "title": "EventType",
       "type": "string"

@@ -18,6 +18,8 @@ class Step(StrEnum):
     SWEEP = "sweep"
     CONFIRM_BLOCK = "confirm_block"
     CONFIRM_REGISTER = "confirm_register"
+    # The reading of a request for a person was unsure, so VERA asked before transferring.
+    CONFIRM_PERSON = "confirm_person"
     DONE = "done"
     HANDED_OFF = "handed_off"
 
@@ -31,10 +33,15 @@ class FlowState(BaseModel):
     charges_offered: dict[int, str] = {}
     cards_offered: dict[int, str] = {}
     chosen: int | None = None
+    # Charges shown in the sweep: the only ones the customer can disown there.
+    swept: list[int] = []
     disputed: list[int] = []
     declared_channel: DeclaredChannel | None = None
     has_card: Answer = Answer.NOT_SAID
     signals: list[Signal] = []
+    # POL-16: the charges of a fraud alert that is due, and the alert once it was sent.
+    fraud_alert_charges: list[int] = []
+    fraud_alert_id: str | None = None
     attempts: int = 0
     pending_tool: str | None = None
     pending_arguments: dict | None = None
@@ -44,5 +51,7 @@ class FlowState(BaseModel):
     rules_applied: list[str] = []
 
     def advance(self, **changes: object) -> "FlowState":
-        """A new state with the given changes, validated like the original."""
+        """A new state with the given changes; a new question starts its own count of attempts (POL-05)."""
+        if changes.get("step", self.step) != self.step:
+            changes.setdefault("attempts", 0)
         return FlowState.model_validate(self.model_dump() | changes)

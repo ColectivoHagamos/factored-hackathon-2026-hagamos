@@ -1,0 +1,50 @@
+{
+  "additionalProperties": false,
+  "description": "POL-16: an alert to the Fraud team with the signals, the charges and the block status, with or without a case.\n\nIt is not the dispute handoff and decides nothing about money.",
+  "properties": {
+    "charges_n": {
+      "items": {
+        "maximum": 50,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Charges N",
+      "type": "array"
+    },
+    "signals": {
+      "items": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Signals",
+      "type": "array"
+    },
+    "card_blocked": {
+      "title": "Card Blocked",
+      "type": "boolean"
+    },
+    "case_id": {
+      "anyOf": [
+        {
+          "pattern": "^DSP-\\d{6}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Case Id"
+    }
+  },
+  "required": [
+    "charges_n",
+    "signals",
+    "card_blocked"
+  ],
+  "title": "SendFraudAlertInput",
+  "type": "object"
+}

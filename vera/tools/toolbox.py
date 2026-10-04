@@ -1,10 +1,11 @@
-"""The seven tools of the agent, scoped to the session customer and to the options offered in the conversation.
+"""The tools of the agent, scoped to the session customer and to the options offered in the conversation.
 
 Charges and cards are shown as numbered options; a number keeps pointing to the same reference for the whole
 conversation. Anything that was not offered, or belongs to another customer, reads as not found.
 """
 
 import hashlib
+import unicodedata
 from collections.abc import Callable
 from datetime import datetime, time, timedelta
 from decimal import Decimal
@@ -24,6 +25,8 @@ from vera.contracts.tools import (
     RegisterDisputeOutput,
     SearchChargesInput,
     SearchChargesOutput,
+    SendFraudAlertInput,
+    SendFraudAlertOutput,
     SweepChargesInput,
     SweepChargesOutput,
     ToolError,
@@ -31,7 +34,15 @@ from vera.contracts.tools import (
     ViewChargeInput,
 )
 from vera.policy.engine import exposure_usd
-from vera.ports.bank import CardRecord, CardsPort, CasesPort, ChargeRecord, RoutingPort, TransactionsPort
+from vera.ports.bank import (
+    CardRecord,
+    CardsPort,
+    CasesPort,
+    ChargeRecord,
+    FraudAlertRecord,
+    RoutingPort,
+    TransactionsPort,
+)
 from vera.ports.tools import Offers, Session
 
 MAX_CANDIDATES = 10
@@ -144,6 +155,22 @@ class Toolbox:
             return ToolError(code=ToolErrorCode.NOT_FOUND)
         return CreateHandoffOutput(handoff_id=self._routing.hand_off(handoff, args.queue))
 
+    def send_fraud_alert(
+        self, session: Session, offers: Offers, args: SendFraudAlertInput
+    ) -> SendFraudAlertOutput | ToolError:
+        charges = [self._offered_charge(session, offers, n) for n in args.charges_n]
+        foreign_case = args.case_id is not None and self._cases.read(args.case_id, session.customer_ref) is None
+        if None in charges or foreign_case:
+            return ToolError(code=ToolErrorCode.NOT_FOUND)
+        alert = FraudAlertRecord(
+            customer_ref=session.customer_ref,
+            case_id=args.case_id,
+            signals=args.signals,
+            charge_refs=tuple(charge.charge_ref for charge in charges if charge),
+            card_blocked=args.card_blocked,
+        )
+        return SendFraudAlertOutput(alert_id=self._routing.fraud_alert(alert))
+
     # Helpers
 
     def _offer(self, offers: Offers, charges: list[ChargeRecord]) -> Offers:
@@ -195,9 +222,17 @@ def _matches(charge: ChargeRecord, args: SearchChargesInput, offers: Offers) -> 
         Decimal("0.01"), args.amount * Decimal("0.01")
     ):
         return False
-    if args.merchant and (charge.merchant is None or args.merchant.casefold() not in charge.merchant.casefold()):
+    if args.merchant and not any(
+        _fold(args.merchant) in _fold(field) for field in (charge.merchant, charge.city) if field
+    ):
         return False
     return not (args.card_n and offers.cards.get(args.card_n) != charge.card_ref)
+
+
+def _fold(text: str) -> str:
+    """Lower case without accents: «Sao Paulo» finds «São Paulo»."""
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
 
 
 def _exposure(charges: list[ChargeRecord]) -> tuple[Money, ...]:

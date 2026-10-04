@@ -12,21 +12,10 @@ def test_a1_dispute_of_a_recent_purchase_in_colombia(client):
     assert customer.country == "CO"
     assert "inteligencia artificial" in customer.greeting
 
-    reply = customer.say(text="No reconozco un cargo de mi tarjeta")
-    if reply["options"] and not any(o.get("answer") for o in reply["options"]):
-        reply = customer.say(selected_option=Customer.approved_option(reply))
+    reply = customer.pick_approved(customer.say(text="No reconozco un cargo de mi tarjeta"))
     assert "¿Reconoce el cargo" in reply["reply"]
 
-    reply = customer.say(selected_option="no")
-    if "internet" in reply["reply"]:
-        reply = customer.say(selected_option="yes")
-    if "tarjeta con usted" in reply["reply"]:
-        reply = customer.say(selected_option="yes")
-    if reply.get("multiple_choice"):
-        reply = customer.say(text="todos")
-    if reply.get("pending_confirmation", {}) and reply["pending_confirmation"]["action"] == "block_card":
-        reply = customer.say(selected_option="no")
-
+    reply = customer.deny_until_registration(reply)
     assert reply["pending_confirmation"]["action"] == "register_dispute"
     done = customer.say(selected_option="yes")
 

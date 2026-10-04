@@ -7,7 +7,8 @@ from dataclasses import dataclass, field
 from typing import Self
 
 ADAPTERS = ("mock", "dataset")
-INTERPRETERS = ("rules", "anthropic", "openai_compatible")
+# Only interpreters that exist are accepted, so /v1/health never reports one that is not in use.
+INTERPRETERS = ("rules", "classifier")
 
 
 @dataclass(frozen=True)
