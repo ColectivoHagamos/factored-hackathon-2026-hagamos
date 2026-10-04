@@ -29,6 +29,9 @@ CARD_QUESTION = re.compile(r"tarjeta con|cartão está com")
 RECOGNIZE_QUESTION = re.compile(r"[Rr]econoc|reconhece")
 IS_THIS_THE_CHARGE = re.compile(r"Es este el cobro|É esta a cobrança")
 PERSON_OFFER = re.compile(r"pase con una persona|passe a conversa para uma pessoa")
+# POL-01 (v1.5): before the transfer a customer asked for, VERA offers once to review the case first.
+REVIEW_FIRST = re.compile(r"conectar con un analista|conectar você com um analista")
+BACK_TO_QUESTION = re.compile(r"pregunta anterior|pergunta anterior")
 MAX_TURNS = 14
 START = datetime.combine(load_policy().parameters.system_clock, datetime.min.time()).replace(hour=10)
 
@@ -113,6 +116,8 @@ class Customer:
         self.transcript = Transcript(case.id, variant)
         self.asked_for_a_person = False
         self.free_text_questions = 0
+        # The last question VERA asked, to answer it again when VERA comes back to it after a detour.
+        self.open_question = ""
 
     def talk(self) -> Transcript:
         token = self.client.post("/v1/demo-session", json={"demo_customer": self.case.customer}).json()["token"]
@@ -188,6 +193,10 @@ class Customer:
                 return {"selected_option": mine["n"]}
             return {"text": phrase(self.phrases, "none_of_these", language, variant)}
         text = reply["reply"]
+        if BACK_TO_QUESTION.search(text):
+            text = self.open_question
+        elif not (REVIEW_FIRST.search(text) or PERSON_OFFER.search(text)):
+            self.open_question = text
         if options and CARD_QUESTION.search(text):
             return {"selected_option": "yes" if script.has_card else "no"}
         if options and "internet" in text:
@@ -199,6 +208,9 @@ class Customer:
             return {"selected_option": "yes" if script.recognizes_after_receipt else "no"}
         if options and PERSON_OFFER.search(text):
             return {"selected_option": "yes" if self.case.block == "human" else "no"}
+        if options and REVIEW_FIRST.search(text):
+            # A customer who asked for a person insists; anyone else lets VERA review the case first.
+            return {"selected_option": "no" if self.case.block == "human" else "yes"}
         if options and IS_THIS_THE_CHARGE.search(text):
             mine = self.case.target and self.charges.shown_in(self.case.target[0], text)
             return {"selected_option": "yes" if mine else "no"}

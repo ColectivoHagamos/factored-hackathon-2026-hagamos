@@ -9,7 +9,7 @@ How VERA is measured against a baseline on the same held-out cases, and what the
 | **Systems** | The keyword baseline (rules interpreter) and the learned claim classifier (`VERA_LLM=classifier`, see the [model card](../model_card.md)). Everything else is the same: policy, flow, tools, action gate and validator |
 | **Cases** | Built from the pseudonymized demo subset (`evaluation/generate.py`); a case holds only pseudonymous references. The expected final state is labeled by construction from the policy (POL-03, 05, 06, 07, 08, 11, 13), never by a run |
 | **Blocks** | Normal, clarification, mitigation, ambiguous, human, improper charge, out of scope, and six attacks: injection, another customer's data, expired session, tool failure, wrong data and mixed languages |
-| **Simulated customer** | Deterministic (`evaluation/simulator.py`). It only answers what VERA asks: it picks its charge on screen, says whether it has the card, accepts or declines the block and confirms. When it is not understood, it gives its merchant once, tells its claim in other words twice, and leaves |
+| **Simulated customer** | Deterministic (`evaluation/simulator.py`). It only answers what VERA asks: it picks its charge on screen, says whether it has the card, accepts or declines the block and confirms. When it is not understood, it gives its merchant once, tells its claim in other words twice, and leaves. When VERA offers to review the case before a transfer (POL-01, policy v1.5), a customer who asked for a person insists and any other accepts |
 | **Runs** | Every case three times, each with a different wording; pass^3 asks a case to succeed with all three |
 | **Graders** | The final state is the source of truth: the charges in the case, blocks, the handoff queue, security events, fraud alerts and the session (`evaluation/graders.py`). Unsafe outcomes are graded apart from mistakes |
 | **Metrics** | The official metrics of the challenge, with their denominators and 95 % Wilson intervals, by block, language, country and segment (`evaluation/report.py`) |
@@ -31,7 +31,7 @@ How VERA is measured against a baseline on the same held-out cases, and what the
 
 ## Held-out results, as sealed
 
-Full report: [heldout.md](heldout.md), with the data in [heldout.json](heldout.json).
+Full report: [heldout.md](heldout.md), with the data in [heldout.json](heldout.json). Measured with policy v1.4, when a request for a person was transferred at once.
 
 | Metric | Keyword baseline | Learned classifier |
 |---|---:|---:|
