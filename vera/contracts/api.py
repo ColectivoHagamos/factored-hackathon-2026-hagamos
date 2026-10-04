@@ -50,6 +50,8 @@ class MessageRequest(Contract):
 class Option(Contract):
     n: CandidateNumber
     label: ShortText
+    # Yes-or-no buttons carry their answer; the client sends it back as selected_option.
+    answer: Literal["yes", "no"] | None = None
 
 
 class PendingConfirmation(Contract):
