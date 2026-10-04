@@ -185,9 +185,17 @@ class Conversation:
     def _safety_first(self, turn: Turn, reading: Interpretation) -> bool:
         """POL-01, POL-02 and POL-09 win over every other step."""
         customer = self._tools.customer(turn.session)
+        person = reading.claim_type is ClaimType.HUMAN_REQUEST
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        if person and not sure and turn.state.step is not Step.HANDED_OFF:
+            # POL-14 before POL-01: when the reading is unsure, a person is offered, not imposed.
+            turn.lines.append(self._text(turn, "offer_person"))
+            self._yes_no(turn)
+            turn.state = turn.state.advance(step=Step.CONFIRM_PERSON)
+            return True
         facts = Facts(
             account_country=customer.country,
-            human_requested=reading.claim_type is ClaimType.HUMAN_REQUEST,
+            human_requested=person,
             coercion=reading.coercion,
             regulator_mentioned=reading.regulator_mentioned,
             already_escalated=turn.state.escalated,
@@ -237,6 +245,7 @@ class Conversation:
             Step.SWEEP: self._on_sweep,
             Step.CONFIRM_BLOCK: self._on_block,
             Step.CONFIRM_REGISTER: self._on_register,
+            Step.CONFIRM_PERSON: self._on_person,
         }
         handler = handlers.get(turn.state.step)
         if handler is None:
@@ -252,7 +261,24 @@ class Conversation:
         turn.lines.append(self._text(turn, "pix" if Outcome.OUT_OF_SCOPE in evaluation.outcomes else "out_of_scope"))
         self._repeat_question(turn)
 
+    def _on_person(self, turn: Turn, reading: Interpretation) -> None:
+        if reading.answer is Answer.YES:
+            self._evaluate(turn, Facts(account_country=self._country(turn), human_requested=True))
+            turn.lines.append(self._text(turn, "handoff_now"))
+            self._hand_off(turn, Queue.COMPLAINTS)
+            return
+        turn.state = turn.state.advance(step=Step.ASK_CLAIM)
+        if reading.answer is Answer.NO:
+            turn.lines.append(self._text(turn, "ask_claim_again"))
+        else:
+            self._on_claim(turn, reading)
+
     def _on_claim(self, turn: Turn, reading: Interpretation) -> None:
+        if turn.state.claim_type is not None:
+            # The claim is known and VERA asked for a detail: this message only narrows the search.
+            known = turn.state.claim_type is ClaimType.IMPROPER_CHARGE
+            self._search(turn, reading, ChargeKind.BANK_ADJUSTMENT if known else ChargeKind.PURCHASE)
+            return
         customer = self._tools.customer(turn.session)
         evaluation = self._evaluate(
             turn,
@@ -296,7 +322,8 @@ class Conversation:
         )
         result = self._tools.search_charges(turn.session, self._offers(turn), args)
         self._record_tool(turn, "search_charges", args.model_dump(mode="json"), result)
-        if _no_results(result) and reading.merchant_text:
+        missed = _no_results(result) and reading.merchant_text is not None
+        if missed:
             # The merchant written by the customer may not match the statement; try the recent window without it.
             args = args.model_copy(update={"merchant": None, "date_from": today - timedelta(days=SEARCH_DAYS[kind])})
             result = self._tools.search_charges(turn.session, self._offers(turn), args)
@@ -309,11 +336,12 @@ class Conversation:
             return
         output, offers = result
         turn.state = turn.state.advance(charges_offered=offers.charges, cards_offered=offers.cards, attempts=0)
-        if len(output.candidates) == 1:
+        # AC-2: a charge other than the one named is never presented as the one in question; the customer chooses.
+        if len(output.candidates) == 1 and not missed:
             self._clarify(turn, output.candidates[0].n)
             return
         self._evaluate(turn, Facts(account_country=self._country(turn), candidates_found=len(output.candidates)))
-        turn.lines.append(self._text(turn, "choose_charge"))
+        turn.lines.append(self._text(turn, "named_not_found" if missed else "choose_charge"))
         turn.options.extend(Option(n=c.n, label=self._receipt(turn, c)) for c in output.candidates)
         turn.state = turn.state.advance(step=Step.CHOOSE_CHARGE)
 

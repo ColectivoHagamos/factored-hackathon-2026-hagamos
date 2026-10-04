@@ -7,6 +7,8 @@ templates:
   empathy: "Entendo que ver uma cobrança que você não reconhece preocupa. Vamos verificar juntos."
   ask_detail: "Não encontrei essa cobrança nos últimos dias. Pode me dizer o valor aproximado, o estabelecimento ou a data?"
   choose_charge: "Encontrei estas cobranças. Qual você quer verificar? Escreva o número."
+  offer_person: "Você quer que eu passe a conversa para uma pessoa?"
+  named_not_found: "Não encontrei uma cobrança com esse nome. Estas são as cobranças dos últimos dias: alguma é a que você quer verificar? Escreva o número."
   receipt: "{date}: {merchant}, {amount}. Situação: {status}."
   unnamed_purchase: "Compra"
   unnamed_bank_adjustment: "Ajuste do banco"
