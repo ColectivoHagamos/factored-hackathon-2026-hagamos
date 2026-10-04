@@ -35,6 +35,7 @@ templates:
   handoff: "Un analista revisará el caso y {te} contactará. No {tienes} que repetir lo que ya me {dijiste}."
   handoff_now: "Con gusto. Paso la conversación a una persona ahora mismo."
   turn_limit: "Para no alargar más esta conversación, paso el caso a una persona ahora mismo. No {tienes} que repetir lo que ya me {dijiste}."
+  handoff_unclear: "Para no hacer{te} repetir más, paso la conversación a una persona ahora mismo."
   handoff_pt: "Un analista que habla portugués revisará el caso."
   safety: "Si {estas} en riesgo, {llama} a la línea de emergencias de {tu} país. Paso la conversación a una persona ahora mismo."
   out_of_scope: "Por aquí ayudo con cargos que no {reconoces} y con cobros indebidos. Para consultar el saldo u otros productos, {usa} la app o la banca en línea."

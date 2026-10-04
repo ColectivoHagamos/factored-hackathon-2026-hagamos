@@ -209,6 +209,9 @@ class Conversation:
     # State machine
 
     def _advance(self, turn: Turn, reading: Interpretation) -> None:
+        if turn.state.step is not Step.ASK_CLAIM and _aside(reading):
+            self._answer_aside(turn, reading)
+            return
         handlers = {
             Step.ASK_CLAIM: self._on_claim,
             Step.CHOOSE_CHARGE: self._on_choice,
@@ -224,6 +227,14 @@ class Conversation:
             turn.lines.append(self._text(turn, "closing"))
             return
         handler(turn, reading)
+
+    def _answer_aside(self, turn: Turn, reading: Interpretation) -> None:
+        """What VERA does not cover is said and oriented (POL-15 for Pix); the open question stays open."""
+        evaluation = self._evaluate(
+            turn, Facts(account_country=self._country(turn), pix_mentioned=reading.pix_mentioned)
+        )
+        turn.lines.append(self._text(turn, "pix" if Outcome.OUT_OF_SCOPE in evaluation.outcomes else "out_of_scope"))
+        self._repeat_question(turn)
 
     def _on_claim(self, turn: Turn, reading: Interpretation) -> None:
         customer = self._tools.customer(turn.session)
@@ -323,7 +334,7 @@ class Conversation:
             turn.state = turn.state.advance(step=Step.DONE)
             return
         if reading.answer is Answer.NOT_SAID:
-            self._ask_again(turn, "ask_recognize", step=Step.CLARIFY, yes_no=True)
+            self._ask_again(turn, "ask_recognize", step=Step.CLARIFY)
             return
         if turn.state.declared_channel is None:
             turn.lines.append(self._text(turn, "ask_channel"))
@@ -433,7 +444,7 @@ class Conversation:
         elif reading.answer is Answer.NO:
             turn.lines.append(self._text(turn, "block_skipped"))
         else:
-            self._ask_again(turn, "confirm_options", step=Step.CONFIRM_BLOCK, yes_no=True)
+            self._ask_again(turn, "confirm_options", step=Step.CONFIRM_BLOCK)
             return
         self._propose_registration(turn)
 
@@ -472,7 +483,7 @@ class Conversation:
             turn.state = turn.state.advance(step=Step.DONE, pending_tool=None, pending_arguments=None)
             return
         if reading.answer is not Answer.YES:
-            self._ask_again(turn, "confirm_options", step=Step.CONFIRM_REGISTER, yes_no=True)
+            self._ask_again(turn, "confirm_options", step=Step.CONFIRM_REGISTER)
             return
         args = RegisterDisputeInput.model_validate(turn.state.pending_arguments)
         claim = turn.state.claim_type or ClaimType.UNRECOGNIZED_CHARGE
@@ -666,32 +677,35 @@ class Conversation:
         yes, no = YES_NO[language_of(turn.state.variant)]
         turn.options.extend([Option(n=1, label=yes, answer="yes"), Option(n=2, label=no, answer="no")])
 
-    def _ask_again(self, turn: Turn, template: str, step: Step | None = None, yes_no: bool = False) -> None:
+    def _ask_again(self, turn: Turn, template: str, step: Step | None = None) -> None:
+        """POL-05: the same question again, or one more detail, at most three times; then a person."""
         attempts = turn.state.attempts + 1
         evaluation = self._evaluate(
             turn,
             Facts(account_country=self._country(turn), candidates_found=0, question_attempts=attempts),
         )
         if evaluation.escalate:
-            turn.lines.append(self._text(turn, "handoff_now"))
+            turn.lines.append(self._text(turn, "handoff_unclear"))
             self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
             return
         turn.lines.append(self._text(turn, template))
-        if yes_no:
-            self._yes_no(turn)
+        if step in (None, turn.state.step):
+            self._show_again(turn)
         turn.state = turn.state.advance(attempts=attempts, step=step or turn.state.step)
 
     def _repeat_question(self, turn: Turn) -> None:
         """The open question is asked again with its options, so a message on the side does not cut the flow."""
         if turn.state.step is Step.ASK_CLAIM:
             turn.lines.append(self._text(turn, "ask_claim_again"))
-            return
+        elif turn.asked and turn.asked.data.get("options"):
+            turn.lines.append(self._text(turn, "back_to_question"))
+            self._show_again(turn)
+
+    def _show_again(self, turn: Turn) -> None:
+        """The options and the pending confirmation of the previous reply are offered again."""
         shown = turn.asked.data if turn.asked else {}
-        if not shown.get("options"):
-            return
-        turn.lines.append(self._text(turn, "back_to_question"))
-        turn.options.extend(Option.model_validate(option) for option in shown["options"])
-        turn.multiple_choice = turn.state.step is Step.SWEEP
+        turn.options.extend(Option.model_validate(option) for option in shown.get("options", []))
+        turn.multiple_choice = turn.state.step is Step.SWEEP and bool(turn.options)
         if shown.get("pending"):
             turn.pending = PendingConfirmation.model_validate(shown["pending"])
 
@@ -762,6 +776,15 @@ class Conversation:
             },
         )
         return response
+
+
+def _aside(reading: Interpretation) -> bool:
+    """A message about something else that answers nothing of the open question."""
+    return (
+        reading.claim_type is ClaimType.OUT_OF_SCOPE
+        and reading.answer is Answer.NOT_SAID
+        and not reading.selected_numbers
+    )
 
 
 def _exposure(details: list[ChargeDetail]) -> tuple[Money, ...]:

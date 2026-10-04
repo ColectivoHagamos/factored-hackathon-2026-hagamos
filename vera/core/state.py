@@ -44,5 +44,7 @@ class FlowState(BaseModel):
     rules_applied: list[str] = []
 
     def advance(self, **changes: object) -> "FlowState":
-        """A new state with the given changes, validated like the original."""
+        """A new state with the given changes; a new question starts its own count of attempts (POL-05)."""
+        if changes.get("step", self.step) != self.step:
+            changes.setdefault("attempts", 0)
         return FlowState.model_validate(self.model_dump() | changes)
