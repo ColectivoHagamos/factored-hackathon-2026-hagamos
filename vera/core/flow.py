@@ -157,7 +157,12 @@ class Conversation:
 
     def _interpret(self, turn: Turn, message: MessageRequest) -> Interpretation:
         language = language_of(turn.state.variant)
-        expecting = "choice" if turn.state.step in (Step.CHOOSE_CHARGE, Step.SWEEP) else "yes_no"
+        if turn.state.step is Step.ASK_CLAIM and turn.state.claim_type is None:
+            expecting = "claim"
+        elif turn.state.step in (Step.CHOOSE_CHARGE, Step.SWEEP):
+            expecting = "choice"
+        else:
+            expecting = "yes_no"
         if message.text:
             reading = self._interpreter.interpret(message.text, {"language": language.value, "expecting": expecting})
             provider = self._interpreter.name

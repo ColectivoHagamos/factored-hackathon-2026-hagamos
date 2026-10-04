@@ -21,14 +21,17 @@ CARD_QUESTION = re.compile(r"tarjeta con|cartão está com")
 APPROVED = ("aprobado", "aprovada")
 
 
-@pytest.fixture(scope="module")
-def client() -> Iterator:
+@pytest.fixture(scope="module", params=["rules", "classifier"])
+def client(request) -> Iterator:
+    """In memory, every scenario runs with both interpreters; against a URL, with the one deployed."""
     url = os.environ.get("VERA_E2E_URL")
     if url:
+        if request.param != "rules":
+            pytest.skip("a deployment runs the interpreter it was configured with")
         with httpx2.Client(base_url=url, timeout=30) as remote:
             yield remote
         return
-    settings = Settings(session_secret="e2e-secret", messages_per_minute=200)
+    settings = Settings(session_secret="e2e-secret", messages_per_minute=200, llm=request.param)
     yield TestClient(create_app(settings, build(settings, now=lambda: CLOCK)))
 
 
