@@ -14,9 +14,11 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from vera.contracts.events import Event, EventType
+from vera.core.state import Step
 
 logger = logging.getLogger("vera.operations")
 LATENCY_SAMPLES = 2000
+ENDED = (Step.DONE.value, Step.HANDED_OFF.value)
 
 
 def log_event(event: str, **fields: object) -> None:
@@ -41,6 +43,7 @@ def turn_summary(events: Sequence[Event]) -> dict:
     rules = [e.data.get("rule") for e in turn if e.type is EventType.RULE_DECISION]
     results = [(e.data.get("tool"), e.data.get("result")) for e in turn if e.type is EventType.TOOL_RESULT]
     handoffs = [e.data.get("queue") for e in turn if e.type is EventType.HANDOFF]
+    before, after = _state(events[:start]), _state(turn)
     return {
         "rules": [rule for rule in rules if rule and rule != "output_validator"],
         "tools": [f"{tool}:{result}" for tool, result in results],
@@ -49,7 +52,31 @@ def turn_summary(events: Sequence[Event]) -> dict:
         "security_event": any(e.type is EventType.SECURITY_EVENT for e in turn),
         "validator_blocked": "output_validator" in rules,
         "fraud_alert": any(e.type is EventType.FRAUD_ALERT for e in turn),
+        **_person(turn, before, after),
     }
+
+
+def _person(turn: Sequence[Event], before: dict, after: dict) -> dict:
+    """POL-01, policy section 16: who asks for a person, who takes the offer to go on, and how they end."""
+    decisions = [e.data for e in turn if e.type is EventType.RULE_DECISION and e.data.get("rule") == "POL-01"]
+    outcomes = {decision.get("outcome") for decision in decisions}
+    at_offer = before.get("step") == Step.PERSON_OFFERED.value
+    person = None
+    if "handoff" in outcomes:
+        person = "transferred"
+    elif "offer_before_transfer" in outcomes:
+        person = "offered"
+    elif at_offer and after.get("step") not in (*ENDED, Step.PERSON_OFFERED.value):
+        person = "offer_taken"
+    # A conversation that took the offer in an earlier turn and ends now, other than by asking for a person again.
+    ended = before.get("step") not in ENDED and after.get("step") in ENDED
+    after_offer = ended and not at_offer and person != "transferred" and after.get("person_offers", 0) > 0
+    return {"person": person, "ended_after_offer": after["step"] if after_offer else None}
+
+
+def _state(events: Sequence[Event]) -> dict:
+    """State of the conversation in the last reply of these events."""
+    return next((e.data.get("state", {}) for e in reversed(events) if e.type is EventType.REPLY), {})
 
 
 class Metrics:
@@ -60,6 +87,10 @@ class Metrics:
         self._counts: Counter[str] = Counter()
         self._request_ms: deque[float] = deque(maxlen=LATENCY_SAMPLES)
         self._turn_ms: deque[float] = deque(maxlen=LATENCY_SAMPLES)
+
+    def conversation(self) -> None:
+        with self._lock:
+            self._counts["conversations"] += 1
 
     def request(self, status: int, ms: float) -> None:
         with self._lock:
@@ -76,6 +107,10 @@ class Metrics:
             self._counts["fraud_alerts"] += summary["fraud_alert"]
             if summary["handoff"]:
                 self._counts[f"handoffs_{summary['handoff']}"] += 1
+            if summary["person"]:
+                self._counts[f"person_{summary['person']}"] += 1
+            if summary["ended_after_offer"]:
+                self._counts[f"ended_after_offer_{summary['ended_after_offer']}"] += 1
             self._turn_ms.append(ms)
 
     def snapshot(self) -> dict:
