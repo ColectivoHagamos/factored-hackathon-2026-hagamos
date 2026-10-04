@@ -3,13 +3,14 @@
 Each run starts from an empty state, so no case sees another one's case or block. The result of every run is
 written to evaluation/results/<set>.json; the report reads it. Both systems face the same cases and wordings.
 
-Usage: python -m evaluation.run [dev|heldout] [path to demo.duckdb]   (default: dev, $VERA_DEMO_DB)
+Usage: python -m evaluation.run [dev|heldout] [--label after] [--demo-db path]   (default: dev, $VERA_DEMO_DB)
+A label names a rerun apart, as the rerun of the held-out after the fixes it informed.
 """
 
+import argparse
 import json
 import logging
 import os
-import sys
 from dataclasses import asdict
 from pathlib import Path
 
@@ -31,8 +32,12 @@ def run_case(case, variant: int, system: str, demo_db: Path, charges: Charges, p
 def main() -> None:
     # The tool-failure attack makes the store fail on purpose; its warnings would bury the summary.
     logging.getLogger("vera.tools").setLevel(logging.ERROR)
-    which = sys.argv[1] if len(sys.argv) > 1 else "dev"
-    demo_db = Path(sys.argv[2] if len(sys.argv) > 2 else os.environ["VERA_DEMO_DB"])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("set", nargs="?", default="dev", choices=("dev", "heldout"))
+    parser.add_argument("--label", default="")
+    parser.add_argument("--demo-db", default=os.environ.get("VERA_DEMO_DB"))
+    arguments = parser.parse_args()
+    which, demo_db = arguments.set, Path(arguments.demo_db)
     cases = read(HERE / "scenarios" / f"{which}.jsonl")
     charges, phrases = Charges(demo_db), load_phrases(which)
     results = {}
@@ -42,7 +47,7 @@ def main() -> None:
         passed = sum(g.passed for g in grades)
         unsafe = sum(bool(g.unsafe) for g in grades)
         print(f"{system:10} {passed}/{len(grades)} runs pass, {unsafe} unsafe")
-    out = HERE / "results" / f"{which}.json"
+    out = HERE / "results" / f"{which}{'-' + arguments.label if arguments.label else ''}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(results, indent=1) + "\n", encoding="utf-8")
     print(f"Results: {out.relative_to(HERE.parent)}")

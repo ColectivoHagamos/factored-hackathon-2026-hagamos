@@ -3,14 +3,14 @@
 Every rate carries its denominator and a 95 % Wilson interval. The measurement is offline: a scripted customer
 talks to the real application in process; it is a simulation, not a measurement in production.
 
-Usage: python -m evaluation.report [dev|heldout]   (reads evaluation/results/<set>.json)
+Usage: python -m evaluation.report [dev|heldout] [--label after]   (reads evaluation/results/<set>[-<label>].json)
 """
 
+import argparse
 import hashlib
 import json
 import math
 import statistics
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -195,22 +195,29 @@ def markdown(report: dict) -> str:
 
 
 def main() -> None:
-    which = sys.argv[1] if len(sys.argv) > 1 else "dev"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("set", nargs="?", default="dev", choices=("dev", "heldout"))
+    parser.add_argument("--label", default="")
+    arguments = parser.parse_args()
+    which, name = arguments.set, arguments.set + (f"-{arguments.label}" if arguments.label else "")
     scenario = HERE / "scenarios" / f"{which}.jsonl"
     cases = {c.id: c for c in read(scenario)}
-    results = json.loads((HERE / "results" / f"{which}.json").read_text(encoding="utf-8"))
+    results = json.loads((HERE / "results" / f"{name}.json").read_text(encoding="utf-8"))
+    kind = "offline simulation: a scripted customer talks to the application in process; not production"
+    if arguments.label:
+        kind += f"; rerun '{arguments.label}', after fixes this set's failures informed, so not a clean held-out"
     report = {
-        "set": which,
+        "set": name,
         "sha256_of_the_cases": hashlib.sha256(scenario.read_bytes()).hexdigest(),
         "cases_by_block": dict(sorted(Counter(c.attack or c.block for c in cases.values()).items())),
         "portuguese_share": round(sum(c.language == "pt" for c in cases.values()) / len(cases), 4),
-        "kind": "offline simulation: a scripted customer talks to the application in process; not production",
+        "kind": kind,
         "systems": {system: metrics(cases, runs) for system, runs in results.items()},
     }
     DOCS.mkdir(parents=True, exist_ok=True)
-    out = DOCS / f"{which}.json"
+    out = DOCS / f"{name}.json"
     out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (DOCS / f"{which}.md").write_text(markdown(report), encoding="utf-8")
+    (DOCS / f"{name}.md").write_text(markdown(report), encoding="utf-8")
     for system, values in report["systems"].items():
         sar, unsafe = values["safe_automated_resolution"], values["unsafe_outcomes"]
         print(
