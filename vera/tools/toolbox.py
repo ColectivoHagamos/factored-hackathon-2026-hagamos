@@ -6,7 +6,6 @@ conversation. Anything that was not offered, or belongs to another customer, rea
 
 import hashlib
 from collections.abc import Callable
-from dataclasses import dataclass, field, replace
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
@@ -33,42 +32,10 @@ from vera.contracts.tools import (
 )
 from vera.policy.engine import exposure_usd
 from vera.ports.bank import CardRecord, CardsPort, CasesPort, ChargeRecord, RoutingPort, TransactionsPort
+from vera.ports.tools import Offers, Session
 
 MAX_CANDIDATES = 10
 SWEEP_DAYS = 120
-
-
-@dataclass(frozen=True)
-class Session:
-    customer_ref: str
-    conversation_id: str
-
-
-@dataclass(frozen=True)
-class Offers:
-    """Numbered options of one conversation: number to reference, for charges and for cards."""
-
-    charges: dict[int, str] = field(default_factory=dict)
-    cards: dict[int, str] = field(default_factory=dict)
-
-    def with_charges(self, refs: list[str]) -> "Offers":
-        return replace(self, charges=_numbered(self.charges, refs))
-
-    def with_cards(self, refs: list[str]) -> "Offers":
-        return replace(self, cards=_numbered(self.cards, refs))
-
-    def number_of_card(self, card_ref: str | None) -> int | None:
-        return next((n for n, ref in self.cards.items() if ref == card_ref), None)
-
-
-def _numbered(current: dict[int, str], refs: list[str]) -> dict[int, str]:
-    numbered = dict(current)
-    known = set(numbered.values())
-    for ref in refs:
-        if ref not in known:
-            numbered[len(numbered) + 1] = ref
-            known.add(ref)
-    return numbered
 
 
 class Toolbox:
@@ -198,6 +165,8 @@ class Toolbox:
             country=charge.country_code,
             status=charge.status,
             card=card.masked_card if card else None,
+            card_type=card.card_type if card else None,
+            card_n=offers.number_of_card(charge.card_ref),
             is_known_merchant=charge.is_known_merchant,
         )
 

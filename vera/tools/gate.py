@@ -9,7 +9,6 @@ import hashlib
 import hmac
 import json
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
@@ -27,7 +26,8 @@ from vera.contracts.tools import (
     ToolError,
     ToolErrorCode,
 )
-from vera.tools.toolbox import Offers, Session, Toolbox
+from vera.ports.tools import Confirmation, GateResult, Offers, Session
+from vera.tools.toolbox import Toolbox
 
 
 class Risk(StrEnum):
@@ -46,19 +46,6 @@ RISK_TABLE: dict[str, Risk] = {
     "create_handoff": Risk.MEDIUM,
 }
 CONFIRMED_WRITES = ("block_card", "register_dispute")
-
-
-@dataclass(frozen=True)
-class Confirmation:
-    token: str
-    tool: str
-    expires_at: datetime
-
-
-@dataclass(frozen=True)
-class GateResult:
-    output: BaseModel | ToolError
-    read_back_matches: bool
 
 
 def arguments_digest(arguments: BaseModel) -> str:
