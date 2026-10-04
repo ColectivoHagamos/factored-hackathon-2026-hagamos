@@ -34,8 +34,8 @@ check-policy: ## Check the executable policy; set VERA_MASTER_POLICY to compare 
 ml-report: ## Retrain the claim classifier and write docs/ml/claims_report.json (learned component against baseline)
 	$(UV) run python -m ml.evaluate_claims
 
-evaluation: ## Run SET=dev (default) or SET=heldout, LABEL=after for a rerun, and write docs/evaluation; needs VERA_DEMO_DB
-	$(UV) run python -m evaluation.run $(or $(SET),dev) $(if $(LABEL),--label $(LABEL))
+evaluation: ## Run SET=dev (default) or SET=heldout, LABEL=after for a rerun, SYSTEMS=rules,classifier,anthropic; needs VERA_DEMO_DB
+	$(UV) run python -m evaluation.run $(or $(SET),dev) $(if $(LABEL),--label $(LABEL)) $(if $(SYSTEMS),--systems $(SYSTEMS))
 	$(UV) run python -m evaluation.report $(or $(SET),dev) $(if $(LABEL),--label $(LABEL))
 
 serve: ## Run the API locally with reload, mock adapter and rules interpreter

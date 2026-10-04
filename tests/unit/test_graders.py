@@ -129,7 +129,9 @@ class FakeState:
 
 
 def container(state: FakeState, events: list) -> SimpleNamespace:
-    return SimpleNamespace(state=state, conversation=SimpleNamespace(history=lambda conversation: events))
+    return SimpleNamespace(
+        state=state, conversation=SimpleNamespace(history=lambda conversation: events), llm_usage=None
+    )
 
 
 def dispute_case() -> Case:
@@ -234,3 +236,16 @@ def test_the_report_counts_both_measures_and_leaves_older_runs_unmeasured():
     older = metrics(cases, [report_run()])
     assert older["legal_clock_correct"]["rate"] is None
     assert older["output_validator"]["runs_with_an_intervention"]["rate"] is None
+
+
+def test_the_cost_of_a_language_model_is_counted_per_run_and_per_safe_resolution():
+    cases = {"T-1": dispute_case()}
+    runs = [
+        report_run(llm_calls=2, llm_fallbacks=0, llm_cost_usd=0.005),
+        report_run(llm_calls=1, llm_fallbacks=1, llm_cost_usd=0.003, passed=False),
+    ]
+    efficiency = metrics(cases, runs)["efficiency"]
+    assert efficiency["cost_usd_per_attempted_case"] == 0.004 and efficiency["cost_usd_per_safe_resolution"] == 0.008
+    assert (efficiency["llm_calls"], efficiency["llm_fallbacks"], efficiency["cost_usd_total"]) == (3, 1, 0.008)
+    without_model = metrics(cases, [report_run()])["efficiency"]
+    assert without_model["cost_usd_per_attempted_case"] == 0.0 and without_model["llm_calls"] == 0
