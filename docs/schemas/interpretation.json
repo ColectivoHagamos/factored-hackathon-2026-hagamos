@@ -136,6 +136,30 @@
       "title": "Coercion",
       "type": "boolean"
     },
+    "regulator_mentioned": {
+      "default": false,
+      "title": "Regulator Mentioned",
+      "type": "boolean"
+    },
+    "pix_mentioned": {
+      "default": false,
+      "title": "Pix Mentioned",
+      "type": "boolean"
+    },
+    "answer": {
+      "$ref": "#/$defs/Answer",
+      "default": "not_said"
+    },
+    "selected_numbers": {
+      "default": [],
+      "items": {
+        "maximum": 50,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "title": "Selected Numbers",
+      "type": "array"
+    },
     "language": {
       "$ref": "#/$defs/Language"
     },
