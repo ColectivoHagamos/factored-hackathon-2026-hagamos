@@ -55,8 +55,9 @@ ASKS_IF_HUMAN = (
     r"uma ia)\b",
 )
 COERCION = (
-    r"\b(me amenaz|amenazad|me obligan|me estan obligando|secuestr|extorsi|me tienen retenid|me apuntan)",
-    r"\b(ameaca|me obrigam|me obrigando|sequestr|extorsao)",
+    r"\b(me (estan )?amenaz|amenazad|me obligan|me obligaron|me estan obligando|me (estan )?forz|me forzaron)",
+    r"\b(secuestr|extorsi|me tienen retenid|me apuntan)",
+    r"\b(ameaca|me obrigam|me obrigaram|me obrigando|me forcaram|sequestr|extorsao)",
 )
 REGULATOR = (
     r"\b(condusef|superintendencia|superfinanciera|sfc|bcra|defensor del consumidor|defensoria|procon)\b",
