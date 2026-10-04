@@ -25,21 +25,23 @@ def handoff_with(path: str, value) -> dict:
     return data
 
 
+TERM = {"party": "bank", "what": "answer", "value": 15, "unit": "days", "starts_at": "receipt", "counts_from": "filing"}
+
+
 def rule(**fields) -> dict:
     base = {
         "id": "CO-R15",
         "country": "CO",
         "route": "CO-bank-complaint",
+        "summary": "Petitions are answered within 15 days",
         "literal_text": TEXT,
         "text_sha256": hashlib.sha256(TEXT.encode("utf-8")).hexdigest(),
-        "source": {"title": "Law 1755 of 2015, articles 14 and 32", "url": "https://www.example.org/law-1755"},
+        "source": {"title": "Ley 1755 de 2015", "provision": "arts. 14 and 32", "url": "https://www.example.org/law"},
         "effective_from": "2015-06-30",
         "level": "N1",
         "executable": True,
         "layer": "law",
-        "party": "bank",
-        "term_value": 15,
-        "term_unit": "calendar_days",
+        "terms": [TERM],
     }
     return base | fields
 
@@ -97,7 +99,7 @@ class TestHandoff:
 
 
 class TestLegalRule:
-    def test_n1_law_rule_is_executable(self):
+    def test_n1_law_rule_with_its_literal_text_is_executable(self):
         assert LegalRule(**rule()).executable
 
     @pytest.mark.parametrize(
@@ -105,24 +107,34 @@ class TestLegalRule:
         [
             {"level": "N2"},
             {"layer": "network"},
-            {"term_unit": None},
-            {"party": None},
+            {"literal_text": None, "text_sha256": None},
             {"literal_text": TEXT + " Edited."},
+            {"text_sha256": None},
             {"effective_to": "2014-01-01"},
+            {"early_adoption": True, "effective_from": None},
             {"id": "CO-15"},
-            {"source": {"title": "Law", "url": "not a url"}},
+            {"terms": [TERM | {"unit": "immediate"}]},
+            {"terms": [TERM | {"follows": "missing"}]},
+            {"source": {"title": "Law", "provision": "art. 1", "url": "not a url"}},
         ],
     )
     def test_invalid_rules_are_rejected(self, fields: dict):
         with pytest.raises(ValidationError):
             LegalRule(**rule(**fields))
 
-    def test_n2_reference_is_informed_without_being_executable(self):
-        reference = LegalRule(**rule(id="MX-R11", country="MX", route="MX-une", level="N2", executable=False))
-        assert not reference.executable
+    def test_rule_pending_its_literal_text_is_kept_but_not_executable(self):
+        pending = LegalRule(
+            **rule(
+                id="MX-R01",
+                country="MX",
+                route="MX-clarification",
+                literal_text=None,
+                text_sha256=None,
+                executable=False,
+            )
+        )
+        assert not pending.executable and pending.literal_text is None
 
     def test_immediate_obligation_needs_no_value(self):
-        immediate = LegalRule(
-            **rule(id="AR-R01", country="AR", route="AR-claim", term_value=None, term_unit="immediate")
-        )
-        assert immediate.term_value is None
+        immediate = TERM | {"unit": "immediate", "value": None}
+        assert LegalRule(**rule(id="AR-R01", country="AR", route="AR-claim", terms=[immediate])).terms[0].value is None

@@ -1,0 +1,16 @@
+# Adjustments to the holiday library, per country. Each entry needs its official source; adjustments win
+# over the library. Dates listed under to_verify keep the library behavior until someone checks them.
+CO:
+  add: []
+  remove: []
+  to_verify:
+    - date: 2026-07-13
+      note: The library marks Our Lady of the Rosary of Chiquinquira (observed); confirm against the official calendar
+MX:
+  add: []
+  remove: []
+  to_verify: []
+AR:
+  add: []
+  remove: []
+  to_verify: []

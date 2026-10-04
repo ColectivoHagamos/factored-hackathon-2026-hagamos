@@ -1,5 +1,15 @@
 {
   "$defs": {
+    "CountsFrom": {
+      "description": "When a term starts: the fact (customer windows), the filing of the claim, or a later event.",
+      "enum": [
+        "event",
+        "filing",
+        "later"
+      ],
+      "title": "CountsFrom",
+      "type": "string"
+    },
     "Jurisdiction": {
       "enum": [
         "MX",
@@ -55,6 +65,12 @@
           "title": "Title",
           "type": "string"
         },
+        "provision": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Provision",
+          "type": "string"
+        },
         "url": {
           "format": "uri",
           "maxLength": 2083,
@@ -65,9 +81,100 @@
       },
       "required": [
         "title",
+        "provision",
         "url"
       ],
       "title": "Source",
+      "type": "object"
+    },
+    "Term": {
+      "additionalProperties": false,
+      "properties": {
+        "party": {
+          "$ref": "#/$defs/Party"
+        },
+        "what": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "What",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "unit": {
+          "$ref": "#/$defs/TermUnit"
+        },
+        "starts_at": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Starts At",
+          "type": "string"
+        },
+        "counts_from": {
+          "$ref": "#/$defs/CountsFrom"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Key"
+        },
+        "follows": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Follows"
+        },
+        "applies_when": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applies When"
+        }
+      },
+      "required": [
+        "party",
+        "what",
+        "unit",
+        "starts_at",
+        "counts_from"
+      ],
+      "title": "Term",
       "type": "object"
     },
     "TermUnit": {
@@ -97,23 +204,53 @@
       "title": "Route",
       "type": "string"
     },
-    "literal_text": {
+    "summary": {
+      "maxLength": 200,
       "minLength": 1,
-      "title": "Literal Text",
-      "type": "string"
-    },
-    "text_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Text Sha256",
+      "title": "Summary",
       "type": "string"
     },
     "source": {
       "$ref": "#/$defs/Source"
     },
+    "literal_text": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Literal Text"
+    },
+    "text_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Text Sha256"
+    },
     "effective_from": {
-      "format": "date",
-      "title": "Effective From",
-      "type": "string"
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effective From"
     },
     "effective_to": {
       "anyOf": [
@@ -143,40 +280,13 @@
     "layer": {
       "$ref": "#/$defs/Layer"
     },
-    "party": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/Party"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
-    },
-    "term_value": {
-      "anyOf": [
-        {
-          "minimum": 0,
-          "type": "integer"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Term Value"
-    },
-    "term_unit": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/TermUnit"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "terms": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Term"
+      },
+      "title": "Terms",
+      "type": "array"
     },
     "response_languages": {
       "default": [
@@ -188,16 +298,32 @@
       },
       "title": "Response Languages",
       "type": "array"
+    },
+    "checked_on": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checked On"
+    },
+    "legal_review": {
+      "default": false,
+      "title": "Legal Review",
+      "type": "boolean"
     }
   },
   "required": [
     "id",
     "country",
     "route",
-    "literal_text",
-    "text_sha256",
+    "summary",
     "source",
-    "effective_from",
     "level",
     "executable",
     "layer"
