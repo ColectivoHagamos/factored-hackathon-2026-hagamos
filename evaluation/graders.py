@@ -24,6 +24,7 @@ class Grade:
     attempted: bool
     turns: int
     seconds_per_turn: tuple[float, ...]
+    explained_again: int
 
 
 def grade(case: Case, transcript: Transcript, container: Container, conversation: str, charges: Charges) -> Grade:
@@ -76,4 +77,5 @@ def grade(case: Case, transcript: Transcript, container: Container, conversation
         attempted=attempted,
         turns=len(transcript.turns),
         seconds_per_turn=tuple(transcript.seconds_per_turn),
+        explained_again=transcript.explained_again,
     )

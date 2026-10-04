@@ -1,6 +1,6 @@
-# What the simulated customer says in the held-out evaluation (P24). Written apart from the classifier phrases
-# (ml/phrases/claims.yaml) and checked against them for leakage. Each template has three variants: run k of a case
-# uses variant k, so pass^3 asks one case to succeed with three different wordings.
+# What the simulated customer says in the development set (P24), the only set used to debug the harness and to find
+# what to fix. Written apart from the classifier phrases (ml/phrases/claims.yaml) and checked against them for leakage;
+# the sealed held-out has its own wordings (phrases_heldout.yaml). Run k of a case uses variant k.
 # Placeholders are filled when the case runs, from the demo subset: {merchant}, {wrong_merchant}, {other}.
 templates:
   dispute:
