@@ -288,3 +288,8 @@ def test_pol17_a_goodwill_candidate_is_flagged_for_the_analyst_and_never_shown_t
     assert handoff.goodwill_candidate.flagged and handoff.suggested_queue == "complaints"
     decisions = [e.data["rule"] for e in world.log.read("conv-1") if e.type is EventType.RULE_DECISION]
     assert "POL-17" in decisions
+
+
+def test_a_bank_adjustment_is_named_in_the_receipt(world: World):
+    _, receipt = world.chat(MX_02, "Me cobraron un ajuste que no corresponde")
+    assert "Ajuste del banco, Puebla, USD 18" in receipt.reply
