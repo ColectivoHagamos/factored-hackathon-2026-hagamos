@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help install test lint format schemas check check-policy serve demo
+.PHONY: help install test lint format schemas check check-policy serve demo data
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -36,3 +36,6 @@ serve: ## Run the API locally with reload, mock adapter and rules interpreter
 
 demo: ## Build and start the containers of the local demo (no credentials)
 	docker compose up --build
+
+data: ## Build the data lake outside the repository from ../data (or VERA_DATA); needs the local dataset
+	$(UV) run python -m pipeline.bronze
