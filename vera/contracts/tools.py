@@ -45,6 +45,7 @@ class SearchChargesInput(Contract):
     date_from: date
     date_to: date
     amount: Amount | None = None
+    # What the customer named: it matches the merchant or the city of the charge ("un cargo en Madrid").
     merchant: ShortText | None = None
     card_n: CandidateNumber | None = None
     kind: ChargeKind | None = None
