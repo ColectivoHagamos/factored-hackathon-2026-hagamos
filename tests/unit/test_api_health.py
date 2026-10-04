@@ -26,7 +26,10 @@ def test_openapi_is_served_under_the_versioned_prefix():
 
 
 def test_defaults_need_no_configuration():
-    assert Settings.from_env({}) == Settings(adapter="mock", llm="rules", version="dev")
+    defaults = Settings.from_env({})
+    assert (defaults.adapter, defaults.llm, defaults.version, defaults.state_db) == ("mock", "rules", "dev", ":memory:")
+    # Without configuration each start gets its own random secrets.
+    assert defaults.session_secret != Settings.from_env({}).session_secret
     assert Settings.from_env({"VERA_ADAPTER": "", "VERA_LLM": ""}).adapter == "mock"
 
 

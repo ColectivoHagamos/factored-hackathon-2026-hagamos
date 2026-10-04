@@ -116,6 +116,10 @@ class Conversation:
             self._advance(turn, reading)
         return self._finish(turn)
 
+    def history(self, conversation_id: str) -> tuple[Event, ...]:
+        """Events of a conversation, for audit and replay."""
+        return self._log.read(conversation_id)
+
     # Interpretation and safety
 
     def _interpret(self, turn: Turn, message: MessageRequest) -> Interpretation:
