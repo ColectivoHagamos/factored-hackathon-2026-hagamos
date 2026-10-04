@@ -87,6 +87,10 @@ class SqliteState:
         ).fetchone()
         return row[0] if row else None
 
+    def charges_of_case(self, case_id: str) -> tuple[str, ...]:
+        rows = self._connection.execute("SELECT charge_ref FROM case_charges WHERE case_id = ?", (case_id,))
+        return tuple(sorted(row[0] for row in rows))
+
     def cases_of(self, customer_ref: str) -> tuple[str, ...]:
         rows = self._connection.execute(
             "SELECT case_id FROM cases WHERE customer_ref = ? ORDER BY case_id", (customer_ref,)
