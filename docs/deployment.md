@@ -13,6 +13,12 @@ The public demo runs at **https://vera.colectivohagamos.com** on one small serve
    - checks `https://vera.colectivohagamos.com/v1/health` from the outside.
 3. Images are built only in GitHub Actions, never on the server.
 
+**A shared server.** The demo runs on a server that also hosts other stacks, one of which owns port 80. VERA stays apart:
+- Caddy publishes only 443 and obtains the certificate on that port (TLS-ALPN-01), so `http://` addresses never reach VERA; links are shared as `https://`.
+- The compose project `vera` lives in `/opt/vera`, with memory limits of 512 MB for the API and 128 MB for Caddy.
+- The image is private: the job's short-lived token pulls it, with a Docker configuration of its own in `/opt/vera/.docker`.
+- Nothing prunes images or volumes of the host, and `deploy.sh` touches only the `vera` project.
+
 The CD rewrites `/opt/vera/.env` on every deployment, so a value added by hand on the server does not survive the next one: every setting lives in the repository secrets. Without the three language model secrets, VERA reads with the classifier; with them, Claude reads over the classifier ([ADR 0004](adr/0004-a-language-model-reads-and-the-classifier-stands-underneath.md)). The spending cap of the process is US$ 15, and the same cap is set in the provider's console.
 
 Manual rollback, on the server: `cd /opt/vera && DOMAIN=vera.colectivohagamos.com ./deploy.sh "$(cat .previous_tag)"`.
