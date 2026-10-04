@@ -40,8 +40,11 @@ SECRETOS = {
 }
 
 TELEFONO = re.compile(r"\+\d{2} \d{3} \d{3} \d{4}")
-# Partes con largo acotado (RFC 5321) para que la búsqueda sea lineal también en archivos grandes
-EMAIL = re.compile(r"[A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.){1,8}[A-Za-z]{2,24}")
+# Partes con largo acotado (RFC 5321) para que la búsqueda sea lineal. La parte local empieza con letra o número,
+# así un diff con «+@decorador.atributo» no se confunde con un correo.
+EMAIL = re.compile(
+    r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@(?:[A-Za-z0-9-]{1,63}\.){1,8}[A-Za-z]{2,24}"
+)
 DOMINIOS_PERMITIDOS = ("example.com", "example.org", "ejemplo.com", "ejemplo.org")
 CANDIDATO_PAN = re.compile(r"(?<!\d)[3-6]\d{12,18}(?!\d)")
 EXTENSIONES_BINARIAS = (".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".woff", ".woff2", ".zip")
