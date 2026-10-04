@@ -1,0 +1,68 @@
+# Herramientas locales del equipo y archivos ocultos: no se versionan.
+# Solo se publican los ocultos que necesita el proyecto.
+.*
+!.gitignore
+!.gitattributes
+!.dockerignore
+!.editorconfig
+!.env.example
+!.python-version
+!.gitkeep
+!.github/
+.github/*.md
+/SKILLS/
+/*.md
+!/README.md
+
+# Datos: el dataset y todo lo que se derive de él viven fuera del repo
+data/
+data_lake/
+demo/
+*.csv
+*.parquet
+*.duckdb
+*.duckdb.wal
+*.feather
+*.arrow
+*Data_Dictionary*
+
+# Bases de datos locales (casos y eventos se crean en cada entorno)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Modelos serializados: se entrenan en el build, no se versionan
+*.pkl
+*.pickle
+*.joblib
+
+# Secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+credentials*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Web
+node_modules/
+
+# Editores y sistema
+.DS_Store
+.idea/
+.vscode/
