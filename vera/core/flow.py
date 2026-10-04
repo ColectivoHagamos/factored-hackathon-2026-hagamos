@@ -652,9 +652,9 @@ class Conversation:
     def _receipt(self, turn: Turn, charge: Candidate) -> str:
         language = language_of(turn.state.variant)
         when = f"{day(charge.occurred_at.date(), language)}, {charge.occurred_at:%H:%M}"
-        place = ", ".join(part for part in (charge.merchant, charge.city) if part) or (
-            "Ajuste del banco" if language is Language.ES else "Ajuste do banco"
-        )
+        # Bank adjustments never carry a merchant, and a few purchases lack one: the receipt names the kind instead.
+        label = charge.merchant or self._text(turn, f"unnamed_{charge.kind.value}")
+        place = ", ".join(part for part in (label, charge.city) if part)
         amount = money(charge.amount, charge.currency)
         turn.amounts.add(amount)
         status = status_word(charge.status, language)

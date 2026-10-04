@@ -11,6 +11,8 @@ templates:
   ask_detail: "No encontré ese cargo en los últimos días. ¿Me {dices} el monto aproximado, el comercio o la fecha?"
   choose_charge: "Encontré estos cargos. ¿Cuál {quieres} revisar? {Escribe} el número."
   receipt: "{date}: {merchant}, {amount}. Estado: {status}."
+  unnamed_purchase: "Compra"
+  unnamed_bank_adjustment: "Ajuste del banco"
   status_pending: "Ese cargo todavía está pendiente: no es un cobro firme y puede cambiar o desaparecer en los próximos días."
   status_declined: "Ese intento fue rechazado: no se cobró."
   status_reversed: "Ese cargo fue revertido: el dinero ya volvió a la cuenta."

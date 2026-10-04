@@ -8,6 +8,8 @@ templates:
   ask_detail: "Não encontrei essa cobrança nos últimos dias. Pode me dizer o valor aproximado, o estabelecimento ou a data?"
   choose_charge: "Encontrei estas cobranças. Qual você quer verificar? Escreva o número."
   receipt: "{date}: {merchant}, {amount}. Situação: {status}."
+  unnamed_purchase: "Compra"
+  unnamed_bank_adjustment: "Ajuste do banco"
   status_pending: "Essa cobrança ainda está pendente: não é definitiva e pode mudar ou desaparecer nos próximos dias."
   status_declined: "Essa tentativa foi recusada: nada foi cobrado."
   status_reversed: "Essa cobrança foi estornada: o dinheiro já voltou para a conta."
