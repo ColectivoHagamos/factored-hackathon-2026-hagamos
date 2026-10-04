@@ -1,5 +1,5 @@
-# Herramientas locales del equipo y archivos ocultos: no se versionan.
-# Solo se publican los ocultos que necesita el proyecto.
+# Local team tooling and hidden files are not versioned.
+# Only the hidden files the project needs are published.
 .*
 !.gitignore
 !.gitattributes
@@ -14,7 +14,7 @@
 /*.md
 !/README.md
 
-# Datos: el dataset y todo lo que se derive de él viven fuera del repo
+# Data: the dataset and anything derived from it live outside the repository
 data/
 data_lake/
 demo/
@@ -26,18 +26,18 @@ demo/
 *.arrow
 *Data_Dictionary*
 
-# Bases de datos locales (casos y eventos se crean en cada entorno)
+# Local databases (cases and events are created in each environment)
 *.db
 *.sqlite
 *.sqlite3
 *.db-journal
 
-# Modelos serializados: se entrenan en el build, no se versionan
+# Serialized models are trained at build time and never versioned
 *.pkl
 *.pickle
 *.joblib
 
-# Secretos
+# Secrets
 .env
 .env.*
 !.env.example
@@ -62,7 +62,7 @@ dist/
 # Web
 node_modules/
 
-# Editores y sistema
+# Editors and operating system
 .DS_Store
 .idea/
 .vscode/
