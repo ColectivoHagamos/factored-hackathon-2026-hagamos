@@ -64,7 +64,9 @@ def test_a_turn_is_traced_by_its_conversation_and_never_logs_what_the_customer_w
     routes = {r["route"] for r in lines if r["event"] == "request"}
     assert "/v1/conversations/{conversation_id}/messages" in routes
     everything = json.dumps(lines, ensure_ascii=False)
-    assert "Libreria" not in everything and "9010" not in everything and CO_01 not in everything
+    # The card as typed and as masked; four bare digits could appear by chance inside a random request id.
+    assert "4000123456789010" not in everything and "•••• 9010" not in everything
+    assert "Libreria" not in everything and CO_01 not in everything
 
 
 def test_metrics_are_for_the_analyst_role_only(client):
