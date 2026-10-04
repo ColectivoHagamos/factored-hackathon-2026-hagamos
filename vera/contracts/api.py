@@ -122,6 +122,8 @@ class MetricsResponse(Contract):
     counts: dict[str, int]
     request_ms: dict[str, float | int | None]
     turn_ms: dict[str, float | int | None]
+    # Calls, fallbacks, tokens and spending of the language model, when one is in use (P41).
+    llm: dict[str, float | int] | None = None
 
 
 class ApiErrorCode(StrEnum):

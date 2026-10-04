@@ -144,7 +144,10 @@ def create_app(settings: Settings | None = None, container: Container | None = N
 
     @app.get(f"{PREFIX}/metrics", response_model=MetricsResponse, tags=["operations"])
     def operations_metrics(session: SessionToken = Depends(analyst_session)) -> MetricsResponse:
-        return MetricsResponse(interpreter=container.interpreter, degraded=container.degraded, **metrics.snapshot())
+        llm = container.llm_usage() if container.llm_usage else None
+        return MetricsResponse(
+            interpreter=container.interpreter, degraded=container.degraded, llm=llm, **metrics.snapshot()
+        )
 
     @app.get(f"{PREFIX}/demo-customers", response_model=list[DemoCustomer], tags=["demo"])
     def demo_customers() -> list[DemoCustomer]:
