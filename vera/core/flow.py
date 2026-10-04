@@ -50,6 +50,7 @@ from vera.ports.interpreter import InterpreterPort
 from vera.ports.tools import Offers, Session, ToolsPort
 
 PENDING_TOKEN = "tok_pending_confirmation"
+MAX_TURNS = 40
 SEARCH_DAYS = {ChargeKind.PURCHASE: 30, ChargeKind.BANK_ADJUSTMENT: 90}
 VARIANTS = {Country.MX: LanguageVariant.ES_MX, Country.CO: LanguageVariant.ES_CO, Country.AR: LanguageVariant.ES_AR}
 YES_NO = {Language.ES: ("Sí", "No"), Language.PT: ("Sim", "Não")}
@@ -72,6 +73,8 @@ class Turn:
     amounts: set[str] = field(default_factory=set)
     pending: PendingConfirmation | None = None
     multiple_choice: bool = False
+    # The previous reply: what the customer was asked and with which options.
+    asked: Event | None = None
 
 
 class Conversation:
@@ -109,15 +112,30 @@ class Conversation:
         self._finish(turn)
         return turn.lines[0]
 
-    def reply(self, session: Session, message: MessageRequest) -> MessageResponse:
+    def reply(
+        self, session: Session, message: MessageRequest, security_signals: tuple[str, ...] = ()
+    ) -> MessageResponse:
+        """One customer turn; security_signals come from the gateway, read on the original text."""
         events = self._log.read(session.conversation_id)
         if not events:
             raise LookupError("unknown conversation")
-        state = FlowState.model_validate(next(e for e in reversed(events) if e.type is EventType.REPLY).data["state"])
-        turn = Turn(session, state, events[-1])
+        asked = next(e for e in reversed(events) if e.type is EventType.REPLY)
+        turn = Turn(session, FlowState.model_validate(asked.data["state"]), events[-1], asked=asked)
+        turns = 1 + sum(1 for event in events if event.type is EventType.CUSTOMER_MESSAGE)
         self._record(turn, EventType.CUSTOMER_MESSAGE, {"text": message.text, "option": message.selected_option})
+        if turns > MAX_TURNS:
+            self._turn_limit(turn)
+            return self._finish(turn)
         reading = self._interpret(turn, message)
-        if not self._safety_first(turn, reading):
+        if security_signals:
+            self._security_event(turn, security_signals)
+        if self._safety_first(turn, reading):
+            return self._finish(turn)
+        if security_signals:
+            # POL-03: the message is data; nothing is searched or changed.
+            turn.lines.append(self._text(turn, "not_found"))
+            self._repeat_question(turn)
+        else:
             self._advance(turn, reading)
         return self._finish(turn)
 
@@ -169,6 +187,24 @@ class Conversation:
             turn.lines.append(self._text(turn, "handoff_now"))
         self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
         return True
+
+    def _security_event(self, turn: Turn, signals: tuple[str, ...]) -> None:
+        """POL-03: every attempt is recorded with its signals, also when a person takes over."""
+        facts = Facts(
+            account_country=self._country(turn),
+            instruction_in_message=any(s != "other_customer" for s in signals),
+            foreign_charge_requested="other_customer" in signals,
+            already_escalated=turn.state.escalated,
+        )
+        self._evaluate(turn, facts)
+        self._record(turn, EventType.SECURITY_EVENT, {"rule": "POL-03", "signals": [*signals]})
+
+    def _turn_limit(self, turn: Turn) -> None:
+        """LLM10: past the limit nothing more is interpreted and the conversation goes to a person once."""
+        if turn.state.step is not Step.HANDED_OFF:
+            self._record(turn, EventType.RULE_DECISION, {"rule": "turn_limit", "turns": MAX_TURNS})
+            self._hand_off(turn, turn.state.queue or Queue.COMPLAINTS)
+        turn.lines.append(self._text(turn, "turn_limit"))
 
     # State machine
 
@@ -645,6 +681,20 @@ class Conversation:
             self._yes_no(turn)
         turn.state = turn.state.advance(attempts=attempts, step=step or turn.state.step)
 
+    def _repeat_question(self, turn: Turn) -> None:
+        """The open question is asked again with its options, so a message on the side does not cut the flow."""
+        if turn.state.step is Step.ASK_CLAIM:
+            turn.lines.append(self._text(turn, "ask_claim_again"))
+            return
+        shown = turn.asked.data if turn.asked else {}
+        if not shown.get("options"):
+            return
+        turn.lines.append(self._text(turn, "back_to_question"))
+        turn.options.extend(Option.model_validate(option) for option in shown["options"])
+        turn.multiple_choice = turn.state.step is Step.SWEEP
+        if shown.get("pending"):
+            turn.pending = PendingConfirmation.model_validate(shown["pending"])
+
     def _fail(self, turn: Turn) -> None:
         """POL-13: a failed tool or a read-back that does not match goes to a person; nothing is filled in."""
         self._evaluate(
@@ -707,6 +757,7 @@ class Conversation:
             {
                 "text": text,
                 "options": [o.model_dump(mode="json") for o in turn.options],
+                "pending": turn.pending.model_dump(mode="json") if turn.pending else None,
                 "state": turn.state.model_dump(mode="json"),
             },
         )

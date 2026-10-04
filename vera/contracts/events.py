@@ -19,6 +19,8 @@ class EventType(StrEnum):
     REPLY = "reply"
     HANDOFF = "handoff"
     FRAUD_ALERT = "fraud_alert"
+    # POL-03: one per attempt, with the gateway signals that raised it.
+    SECURITY_EVENT = "security_event"
 
 
 class Event(Contract):
