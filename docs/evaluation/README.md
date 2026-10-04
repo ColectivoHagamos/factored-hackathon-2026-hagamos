@@ -71,7 +71,20 @@ All 30 unsafe runs, and most of the classifier's other failures, share one root 
 
 ## After the fixes
 
-The fixes for causes 1 and 2 are written against the development set and unit tests with other wordings, never against the held-out phrases. The rerun of the held-out after them is published apart, as **not a clean held-out**, because the failures it found informed the fixes.
+Causes 1 and 2 were fixed in #48: the merchant is now found wherever it is named, and more ways to ask for a person match. The fixes were tested with wordings of their own, never with held-out phrases. The same 299 cases and wordings were then run again. That rerun is published apart ([heldout-after.md](heldout-after.md), [heldout-after.json](heldout-after.json)) and is **not a clean held-out**, because its failures informed the fixes. The sealed numbers above remain the honest measurement.
+
+| Learned classifier | Sealed run | After the fixes |
+|---|---:|---:|
+| Safe automated resolution (in-scope runs) | 44.5 % | 52.0 % |
+| Containment | 57.3 % | 60.2 % |
+| Customer had to explain again | 4.3 % | 2.9 % |
+| Missed transfers | 17 of 360 | 3 of 360 |
+| Unnecessary transfers | 40 of 537 | 0 of 537 |
+| **Unsafe outcomes** | **30 of 897** | **0 of 897** |
+| pass@1 / pass^3 | 88.6 % / 68.9 % | 97.9 % / 96.7 % |
+
+- **The keyword baseline did not change** (pass@1 55.5 %, no unsafe outcome). Its failures come from not understanding the claim, which a better merchant extraction does not fix.
+- **All 19 runs the classifier still fails are improper charges, cause 3.** "Un cargo del banco que no entiendo" is read as an unrecognized purchase. They fail safely: no case is registered, and in 3 of them the conversation goes to a person. Fixing it means retraining with more improper-charge phrases, which would then need a new sealed set to be measured honestly.
 
 ## Reproduce
 
