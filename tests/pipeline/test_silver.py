@@ -43,10 +43,13 @@ def test_the_latest_processed_version_of_a_repeated_key_is_kept(lake: Path, repo
 
 
 def test_values_are_typed_normalized_and_minimized(lake: Path, report: dict):
-    t1, t2, t6 = rows(lake, "silver", "transactions", "transaction_id, country_code, amount_usd, amount_usd_imputed")
-    assert t1 == ("T1", "BR", Decimal("30.00"), True)
-    assert t2 == ("T2", "MX", Decimal("50.00"), False)
-    assert t6 == ("T6", "AR", Decimal("100.00"), True)
+    by_id = {
+        r[0]: r[1:]
+        for r in rows(lake, "silver", "transactions", "transaction_id, country_code, amount_usd, amount_usd_imputed")
+    }
+    assert by_id["T1"] == ("BR", Decimal("30.00"), True)
+    assert by_id["T2"] == ("MX", Decimal("50.00"), False)
+    assert by_id["T6"] == ("AR", Decimal("100.00"), True)
     assert report["tables"]["transactions"]["metrics"] == {
         "amount_usd_copied_from_usd_amount": 0,
         "amount_usd_imputed_with_fixed_rate": 2,
