@@ -54,6 +54,7 @@ class DemoCustomer(BaseModel):
     alias: str
     country: str
     segment: str
+    scenarios: list[str]
 
 
 class ApiFailure(Exception):
@@ -108,7 +109,13 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     @app.get(f"{PREFIX}/demo-customers", response_model=list[DemoCustomer], tags=["demo"])
     def demo_customers() -> list[DemoCustomer]:
         return [
-            DemoCustomer(customer_ref=c.customer_ref, alias=c.alias, country=c.country.value, segment=c.segment)
+            DemoCustomer(
+                customer_ref=c.customer_ref,
+                alias=c.alias,
+                country=c.country.value,
+                segment=c.segment,
+                scenarios=list(c.scenarios),
+            )
             for c in container.customers.customers()
         ]
 

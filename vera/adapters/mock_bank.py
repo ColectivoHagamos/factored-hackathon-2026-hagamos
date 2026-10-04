@@ -16,11 +16,11 @@ CLOCK = datetime(2026, 6, 18, 9, 0)
 RATES = {Currency.USD: Decimal(1), Currency.COP: Decimal(4000), Currency.ARS: Decimal(350)}
 
 CUSTOMERS = (
-    CustomerRecord("CUS-MOCK00000000001", "CO-01 · plus", Country.CO, "plus", "30-44"),
-    CustomerRecord("CUS-MOCK00000000002", "CO-02 · basic", Country.CO, "basic", "60+"),
-    CustomerRecord("CUS-MOCK00000000003", "MX-01 · premium", Country.MX, "premium", "45-59"),
-    CustomerRecord("CUS-MOCK00000000004", "AR-01 · basic", Country.AR, "basic", "18-29"),
-    CustomerRecord("CUS-MOCK00000000005", "MX-02 · student", Country.MX, "student", "18-29"),
+    CustomerRecord("CUS-MOCK00000000001", "CO-01 · plus", Country.CO, "plus", "30-44", ("A1", "A7", "A8")),
+    CustomerRecord("CUS-MOCK00000000002", "CO-02 · basic", Country.CO, "basic", "60+", ("A2", "A3", "A6", "A9")),
+    CustomerRecord("CUS-MOCK00000000003", "MX-01 · premium", Country.MX, "premium", "45-59", ("A4",)),
+    CustomerRecord("CUS-MOCK00000000004", "AR-01 · basic", Country.AR, "basic", "18-29", ("A5",)),
+    CustomerRecord("CUS-MOCK00000000005", "MX-02 · student", Country.MX, "student", "18-29", ("A10",)),
 )
 
 CARDS = (
