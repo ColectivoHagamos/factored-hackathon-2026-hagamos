@@ -25,13 +25,17 @@ Hexagonal architecture (ports and adapters): the domain does not depend on infra
 | `docs/schemas/` | JSON Schema of every boundary model, generated with `python -m scripts.export_schemas` |
 | `tests/` | Unit, contract, property, architecture and end-to-end tests |
 
-## Tests
+## Quick start
+
+Requirements: [uv](https://docs.astral.sh/uv/) and GNU Make. No credentials or dataset access are needed.
 
 ```bash
-uv sync
-uv run pytest
-uv run ruff check .
+make install   # locked dependencies, Python 3.12
+make check     # lint, format, tests, schema drift and publication check
+make help      # every available target
 ```
+
+Configuration is read from environment variables; `.env.example` lists them, all optional. Without any value VERA uses the mock data adapter and the rules interpreter, so no secret is required to run it.
 
 Continuous integration (GitHub Actions) runs on every pull request and on every push to `development`, `qa` and `production`: lint, format, tests and `scripts/check_publication.py`, which blocks the publication of data, secrets, forbidden files and files larger than 10 MB.
 
