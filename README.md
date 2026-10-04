@@ -80,6 +80,12 @@ The 30 unsafe runs had one root cause. When the merchant was not extracted ("apa
 
 After the fixes, a rerun of the same cases gives the classifier **0 unsafe outcomes**, a pass^3 of 96.7 % and 52.0 % safe automated resolution. That rerun is labeled **not a clean held-out**, because the failures informed the fixes. The sealed numbers above remain the honest measurement.
 
+A second labeled rerun, under policy v1.5, adds **Claude Haiku 4.5 over the classifier**:
+- pass^3 of 99.3 %, with 0 unsafe outcomes;
+- the customer explains again in 1.7 % of runs;
+- improper charges pass 80 % of the time, against 53 % for the classifier alone;
+- each case costs US$ 0.0038, with a p95 of 1.5 s per turn.
+
 This is an offline simulation with a scripted customer, not a measurement in production. Method, failure analysis and the breakdown by block, language, country and segment: [docs/evaluation](docs/evaluation/README.md).
 
 ## Run it
@@ -126,7 +132,7 @@ LATAM Bank data is synthetic and belongs to Factored. **No dataset record is ver
 
 ## Limits
 
-- **The language model is built but not measured.** The Claude adapter is tested with a fake client; it enters the evaluation, with its cost and latency per case, once the API key exists. The deployment reads with the classifier until then.
+- **The language model was measured only in a labeled rerun,** not in the sealed first run: the floor under it carries fixes that the held-out informed. The deployment reads with the classifier until the language model secrets are set.
 - **Legal deadlines are dated only where an official text is loaded:** Colombia (Ley 1755) and Argentina (Ley 25.065 and BCRA). Mexican routes and the Decreto 587 are recorded without a date until their texts are loaded and reviewed.
 - **The evaluation is an offline simulation.** The team wrote all its wordings, and the human blind set, which measures real language variety, is still pending.
 - **The classifier still reads some improper bank charges as unrecognized purchases** (19 of 897 runs after the fixes). Those runs fail safely: no case is registered.

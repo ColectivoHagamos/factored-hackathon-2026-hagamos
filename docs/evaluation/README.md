@@ -6,14 +6,14 @@ How VERA is measured against a baseline on the same held-out cases, and what the
 
 | | |
 |---|---|
-| **Systems** | The keyword baseline (rules interpreter) and the learned claim classifier (`VERA_LLM=classifier`, see the [model card](../model_card.md)). Everything else is the same: policy, flow, tools, action gate and validator |
+| **Systems** | The keyword baseline (rules interpreter) and the learned claim classifier (`VERA_LLM=classifier`, see the [model card](../model_card.md)). From the v1.5 rerun on, also Claude Haiku 4.5 over the classifier (`VERA_LLM=anthropic`, [ADR 0004](../adr/0004-a-language-model-reads-and-the-classifier-stands-underneath.md)). Everything else is the same: policy, flow, tools, action gate and validator |
 | **Cases** | Built from the pseudonymized demo subset (`evaluation/generate.py`); a case holds only pseudonymous references. The expected final state is labeled by construction from the policy (POL-03, 05, 06, 07, 08, 11, 13), never by a run |
 | **Blocks** | Normal, clarification, mitigation, ambiguous, human, improper charge, out of scope, and six attacks: injection, another customer's data, expired session, tool failure, wrong data and mixed languages |
 | **Simulated customer** | Deterministic (`evaluation/simulator.py`). It only answers what VERA asks: it picks its charge on screen, says whether it has the card, accepts or declines the block and confirms. When it is not understood, it gives its merchant once, tells its claim in other words twice, and leaves. When VERA offers to review the case before a transfer (POL-01, policy v1.5), a customer who asked for a person insists and any other accepts |
 | **Runs** | Every case three times, each with a different wording; pass^3 asks a case to succeed with all three |
 | **Graders** | The final state is the source of truth: the charges in the case, blocks, the handoff queue, security events, fraud alerts and the session (`evaluation/graders.py`). Unsafe outcomes are graded apart from mistakes. The deadlines shown in the glass box are compared with a truth table written by hand for the simulated filing day (2026-06-18), and every reply the output validator blocked is counted. The graders have their own tests with known good and bad runs (`tests/unit/test_graders.py`) |
 | **Metrics** | The official metrics of the challenge, with their denominators and 95 % Wilson intervals, by block, language, country and segment (`evaluation/report.py`) |
-| **Cost** | US$ 0 per case for both systems: no paid model is called. The language model adapters are not part of this evaluation |
+| **Cost** | US$ 0 per case for the baseline and the classifier. For Claude, the real cost of every run, from the tokens the API reported, with its calls and its fallbacks to the classifier |
 
 ## Sets and sealing
 
@@ -67,7 +67,7 @@ All 30 unsafe runs, and most of the classifier's other failures, share one root 
 **What these results are not:**
 
 - **Not a production rate.** The cases are synthetic and the customer is scripted.
-- **Not a measure of the language model.** It is not part of this run.
+- **Not a measure of the language model.** It was not part of this run; it entered with the v1.5 rerun below.
 - **Not a measure of real language variety.** All wordings were written by the team; the human blind set (P25) will measure that apart.
 
 ## After the fixes
@@ -87,6 +87,27 @@ Causes 1 and 2 were fixed in #48: the merchant is now found wherever it is named
 - **The keyword baseline did not change** (pass@1 55.5 %, no unsafe outcome). Its failures come from not understanding the claim, which a better merchant extraction does not fix.
 - **All 19 runs the classifier still fails are improper charges, cause 3.** "Un cargo del banco que no entiendo" is read as an unrecognized purchase. They fail safely: no case is registered, and in 3 of them the conversation goes to a person. Fixing it means retraining with more improper-charge phrases, which would then need a new sealed set to be measured honestly.
 
+## Rerun under policy v1.5, with Claude
+
+The same 299 cases and wordings ran again with the code of 4 October: policy v1.5 (one offer before a transfer), the transfer notes, the scam that waits for its key answers, and Claude over the classifier. Like the previous rerun, it is published apart ([heldout-v15.md](heldout-v15.md), [heldout-v15.json](heldout-v15.json)) and is **not a clean held-out**: the floor under every system carries the fixes this set's failures informed. Claude's prompt was written and debugged on the development set only.
+
+| | Keyword baseline | Learned classifier | Claude over the classifier |
+|---|---:|---:|---:|
+| Safe automated resolution (in-scope runs) | 18.0 % | 52.0 % | 52.0 % |
+| Containment | 24.8 % | 60.3 % | 60.5 % |
+| Customer had to explain again | 68.1 % | 3.7 % | **1.7 %** |
+| Missed / unnecessary transfers | 6 / 321 | 4 / 0 | 6 / 0 |
+| **Unsafe outcomes** | **0 of 897** | **0 of 897** | **0 of 897** |
+| pass@1 / pass^3 | 55.5 % / 55.5 % | 98.4 % / 96.7 % | **99.3 % / 99.3 %** |
+| Improper charges, pass@1 | 80.0 % | 53.3 % | 80.0 % |
+| Latency per turn p50 / p95 | 5 / 10 ms | 7 / 12 ms | 8 / 1,548 ms |
+| Cost per case / per safe resolution | US$ 0 | US$ 0 | US$ 0.0038 / 0.0087 |
+| Model calls / fallbacks to the classifier | — | — | 1,244 / 1 |
+
+- **Claude reads what the classifier misread.** Improper charges, cause 3 above, go from 53.3 % to 80.0 %, and the customer explains again half as often. Every wording of 297 of the 299 cases passes.
+- **Its 6 failed runs are two improper-charge cases, in all three wordings** (one in Spanish, one in Portuguese). They end safely: no case is registered and nothing is done. They were not debugged on this set.
+- **The price of reading.** Each message read costs about a third of a cent and adds 1 to 2 seconds; answers given with a button cost nothing. The whole run of 897 conversations cost about US$ 3.40.
+
 ## Reproduce
 
 The evaluation needs the pseudonymized demo subset, which lives outside the repository, so it does not run in CI:
@@ -95,4 +116,5 @@ The evaluation needs the pseudonymized demo subset, which lives outside the repo
 export VERA_DEMO_DB=/path/to/demo.duckdb
 make evaluation SET=dev        # development set
 make evaluation SET=heldout    # the sealed set
+make evaluation SET=heldout LABEL=v15 SYSTEMS=rules,classifier,anthropic   # with Claude; needs LLM_API_KEY
 ```
