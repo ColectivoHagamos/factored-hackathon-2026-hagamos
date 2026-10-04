@@ -1,12 +1,15 @@
 """Charges shown to the customer as numbered candidates; the model never sees raw identifiers."""
 
+from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Self
 
 from pydantic import model_validator
 
-from vera.contracts.common import Amount, CandidateNumber, Contract, Currency, MaskedCard, ShortText
+from vera.contracts.common import Amount, CandidateNumber, Contract, Currency, MaskedCard, Money, ShortText
 
 
 class ChargeKind(StrEnum):
@@ -53,3 +56,20 @@ class Candidate(Contract):
 
 class ChargeDetail(Candidate):
     fraud_score_band: FraudScoreBand
+
+
+def check_exposure(charges: Sequence[Candidate], total_exposure: Sequence[Money]) -> None:
+    """Raise unless each charge appears once and the exposure is the sum of approved charges per currency."""
+    numbers = [charge.n for charge in charges]
+    if len(numbers) != len(set(numbers)):
+        raise ValueError("each charge must appear once")
+    currencies = [money.currency for money in total_exposure]
+    if len(currencies) != len(set(currencies)):
+        raise ValueError("total_exposure must have one entry per currency")
+    # Pending or declined charges stay for follow-up or as signals, never as disputed amount.
+    expected: defaultdict[Currency, Decimal] = defaultdict(Decimal)
+    for charge in charges:
+        if charge.status is ChargeStatus.APPROVED:
+            expected[charge.currency] += charge.amount
+    if {money.currency: money.amount for money in total_exposure} != dict(expected):
+        raise ValueError("total_exposure must equal the sum of approved charges per currency")
