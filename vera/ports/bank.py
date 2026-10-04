@@ -22,6 +22,8 @@ class CustomerRecord:
     country: Country
     segment: str
     age_band: str | None
+    # Acceptance scenarios the demo customer was chosen for, such as A1; empty in production.
+    scenarios: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

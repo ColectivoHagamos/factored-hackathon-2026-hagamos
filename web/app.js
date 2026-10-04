@@ -127,7 +127,8 @@ async function loadCustomers() {
   for (const customer of customers) {
     const option = document.createElement("option");
     option.value = customer.customer_ref;
-    option.textContent = customer.alias;
+    const scenarios = customer.scenarios.map((tag) => tag.split("_")[0]).filter((tag) => /^A\d+$/.test(tag));
+    option.textContent = scenarios.length ? `${customer.alias} · ${[...new Set(scenarios)].join(", ")}` : customer.alias;
     $("customer").appendChild(option);
   }
 }
