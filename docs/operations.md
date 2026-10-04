@@ -9,7 +9,7 @@ The API writes one JSON object per line to standard output (`api/observability.p
 | Event | When | Fields |
 |---|---|---|
 | `request` | Every HTTP request | `request_id`, `method`, `route` (the template, such as `/v1/conversations/{conversation_id}/messages`, never the ids), `status`, `ms` |
-| `turn` | Every customer message | `trace_id`, `request_id`, `ms`, `rules` (policy rules applied), `tools` (tool and result, such as `search_charges:ok`), `tool_failures`, `handoff` (queue), `security_event`, `fraud_alert`, `validator_blocked` |
+| `turn` | Every customer message | `trace_id`, `request_id`, `ms`, `rules` (policy rules applied), `tools` (tool and result, such as `search_charges:ok`), `tool_failures`, `handoff` (queue), `security_event`, `fraud_alert`, `validator_blocked`, `person` (`offered`, `offer_taken` or `transferred`, by POL-01), `ended_after_offer` |
 | `interpreter_fallback` | At start, when the configured interpreter cannot start | `configured`, `using`, `error` (the exception type only) |
 
 **What the logs never hold:** the customer's text, a customer reference, a card, an amount or a merchant. Only rule ids, tool names, statuses, timings and random ids are written.
@@ -29,9 +29,12 @@ The trace id of a conversation is `trace-<conversation_id>`. It appears in every
 `GET /v1/metrics` requires the analyst role. It returns counters since the process started and recent latencies:
 
 - `requests`, and responses by class: `responses_2xx`, `responses_4xx`, `responses_5xx`;
-- `turns`, `handoffs_fraud`, `handoffs_complaints`, `security_events`, `fraud_alerts`, `tool_failures` and `validator_blocks`;
+- `conversations`, `turns`, `handoffs_fraud`, `handoffs_complaints`, `security_events`, `fraud_alerts`, `tool_failures` and `validator_blocks`;
+- the way out to a person, which the policy asks to measure from the first day (POL-01, section 16): `person_offered`, `person_offer_taken`, `person_transferred`, and how the conversations that took the offer ended, `ended_after_offer_done` and `ended_after_offer_handed_off`;
 - `request_ms` and `turn_ms`: p50 and p95 over the last 2,000 values;
 - `interpreter` and `degraded`.
+
+With one offer per conversation, the share of customers who ask for a person is `person_offered` over `conversations`, and the share who go on with VERA is `person_offer_taken` over `person_offered`. Compliance reads these against how those conversations end to decide whether to change the number of offers; the way out to a person is never removed.
 
 Spending is not tracked, because no paid model is called (the cost per case is US$ 0); the counter arrives with a language model adapter.
 

@@ -76,6 +76,21 @@ def test_metrics_are_for_the_analyst_role_only(client):
     assert metrics["turn_ms"]["n"] == 1
 
 
+def test_metrics_measure_who_asks_for_a_person_who_takes_the_offer_and_how_they_end(client, lines):
+    """POL-01, policy section 16: the evidence Compliance needs to adjust the number of offers."""
+    for answers in (["sí", "No reconozco un cargo de Libreria Andina", "sí"], ["no"]):
+        headers, conversation = converse(client, "Quiero hablar con una persona")
+        for text in answers:
+            client.post(f"/v1/conversations/{conversation}/messages", json={"text": text}, headers=headers)
+    analyst = client.post("/v1/demo-analyst-session").json()["token"]
+    counts = client.get("/v1/metrics", headers={"Authorization": f"Bearer {analyst}"}).json()["counts"]
+    assert counts["conversations"] == 2 and counts["person_offered"] == 2
+    assert counts["person_offer_taken"] == 1 and counts["ended_after_offer_done"] == 1
+    assert counts["person_transferred"] == 1 and counts["handoffs_complaints"] == 1
+    turns = [r for r in lines if r["event"] == "turn"]
+    assert [r["person"] for r in turns] == ["offered", "offer_taken", None, None, "offered", "transferred"]
+
+
 def test_if_the_classifier_cannot_start_the_rules_answer_and_health_says_degraded(monkeypatch, lines):
     def broken():
         raise MemoryError("not enough memory to fit the model")
