@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^DSP-\\d{6}$",
+      "title": "Case Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id"
+  ],
+  "title": "ReadCaseInput",
+  "type": "object"
+}

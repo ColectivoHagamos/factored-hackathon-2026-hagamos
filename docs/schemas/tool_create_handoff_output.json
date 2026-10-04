@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "handoff_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Handoff Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "handoff_id"
+  ],
+  "title": "CreateHandoffOutput",
+  "type": "object"
+}

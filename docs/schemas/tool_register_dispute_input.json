@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "DeclaredChannel": {
+      "description": "Purchase channel as stated by the customer; the dataset channel is random and never used.",
+      "enum": [
+        "online",
+        "in_person",
+        "unknown"
+      ],
+      "title": "DeclaredChannel",
+      "type": "string"
+    },
+    "DisputeReason": {
+      "enum": [
+        "fraud",
+        "not_received",
+        "not_as_described",
+        "incorrect_amount",
+        "duplicate",
+        "cancelled_recurring",
+        "bank_charge",
+        "recognized_by_customer"
+      ],
+      "title": "DisputeReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "charges_n": {
+      "items": {
+        "maximum": 50,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Charges N",
+      "type": "array"
+    },
+    "reason": {
+      "$ref": "#/$defs/DisputeReason"
+    },
+    "declared_channel": {
+      "$ref": "#/$defs/DeclaredChannel"
+    },
+    "confirmation_token": {
+      "pattern": "^[A-Za-z0-9_-]{16,128}$",
+      "title": "Confirmation Token",
+      "type": "string"
+    }
+  },
+  "required": [
+    "charges_n",
+    "reason",
+    "declared_channel",
+    "confirmation_token"
+  ],
+  "title": "RegisterDisputeInput",
+  "type": "object"
+}
