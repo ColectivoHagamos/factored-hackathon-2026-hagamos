@@ -8,7 +8,7 @@ rules:
   summary: A petition to a financial institution is answered within 15 days of its receipt
   source:
     title: Ley 1755 de 2015
-    provision: arts. 14 and 32
+    provision: arts. 14, 32
     url: http://www.secretariasenado.gov.co/senado/basedoc/ley_1755_2015.html
   literal_text: Artículo 14. Términos para resolver las distintas modalidades de peticiones. Salvo norma legal especial y
     so pena de sanción disciplinaria, toda petición deberá resolverse dentro de los quince (15) días siguientes a su recepción.

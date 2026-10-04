@@ -19,6 +19,7 @@ WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
 COPY vera ./vera
 COPY api ./api
+COPY web ./web
 USER vera
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \

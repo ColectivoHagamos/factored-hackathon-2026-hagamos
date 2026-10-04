@@ -1,0 +1,143 @@
+"use strict";
+
+const api = (path, options = {}) =>
+  fetch(`/v1${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}) },
+  }).then(async (response) => {
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.message || response.statusText);
+    return body;
+  });
+
+const state = { token: null, conversation: null, busy: false };
+const $ = (id) => document.getElementById(id);
+
+function bubble(text, who) {
+  const div = document.createElement("div");
+  div.className = `bubble ${who}`;
+  div.textContent = text;
+  $("chat").appendChild(div);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return div;
+}
+
+function setBusy(busy) {
+  state.busy = busy;
+  $("message").disabled = busy || !state.conversation;
+  $("send").disabled = busy || !state.conversation;
+}
+
+function showOptions(container, options, multiple) {
+  if (!options.length) return;
+  const box = document.createElement("div");
+  box.className = "options";
+  const choices = options.filter((option) => !option.answer);
+  // Several charges in a sweep are answered at once: checkboxes and one button.
+  if (multiple) {
+    for (const option of choices) {
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="checkbox" value="${option.n}"> `;
+      label.append(`${option.n}. ${option.label}`);
+      box.appendChild(label);
+    }
+    const send = document.createElement("button");
+    send.textContent = "Enviar selección";
+    send.onclick = () => {
+      const picked = [...box.querySelectorAll("input:checked")].map((input) => input.value);
+      box.remove();
+      sendMessage(picked.length ? { text: picked.join(" y ") } : { text: "todos" }, picked.join(", ") || "todos");
+    };
+    box.appendChild(send);
+  } else {
+    for (const option of options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = option.answer ? option.label : `${option.n}. ${option.label}`;
+      button.onclick = () => {
+        box.remove();
+        sendMessage({ selected_option: option.answer || option.n }, button.textContent);
+      };
+      box.appendChild(button);
+    }
+  }
+  container.appendChild(box);
+}
+
+function showGlass(entries) {
+  for (const entry of entries) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="rule"></span> · <span class="source"></span><span class="deadline"></span>`;
+    li.querySelector(".rule").textContent = entry.rule_id;
+    li.querySelector(".source").textContent = entry.source;
+    li.querySelector(".deadline").textContent = entry.deadline ? ` · fecha límite ${entry.deadline}` : "";
+    $("rules").appendChild(li);
+  }
+}
+
+async function sendMessage(body, shown) {
+  if (state.busy) return;
+  bubble(shown, "customer");
+  setBusy(true);
+  try {
+    const reply = await api(`/conversations/${state.conversation}/messages`, { method: "POST", body: JSON.stringify(body) });
+    const div = bubble(reply.reply, "vera");
+    if (reply.pending_confirmation) {
+      const pending = document.createElement("div");
+      pending.className = "pending";
+      pending.textContent = "Acción pendiente de su confirmación; nada se hace sin ella.";
+      div.appendChild(pending);
+    }
+    showOptions(div, reply.options, reply.multiple_choice);
+    showGlass(reply.glass_box);
+    const caseId = (reply.reply.match(/DSP-\d{6}/) || [])[0];
+    if (caseId) {
+      $("case").innerHTML = `<p class="note">Caso <strong>${caseId}</strong> registrado. Si pasa a un analista, el detalle queda en la <a href="console.html?case=${caseId}">consola del analista</a>.</p>`;
+    }
+  } catch (error) {
+    bubble(`No se pudo enviar: ${error.message}`, "vera").classList.add("error");
+  } finally {
+    setBusy(false);
+    $("message").focus();
+  }
+}
+
+async function start() {
+  $("chat").innerHTML = "";
+  $("rules").innerHTML = "";
+  $("case").innerHTML = "";
+  try {
+    const session = await api("/demo-session", { method: "POST", body: JSON.stringify({ demo_customer: $("customer").value }) });
+    state.token = session.token;
+    const language = $("language").value;
+    const conversation = await api("/conversations", {
+      method: "POST",
+      body: JSON.stringify(language ? { preferred_language: language } : {}),
+    });
+    state.conversation = conversation.conversation_id;
+    bubble(conversation.greeting, "vera");
+    setBusy(false);
+  } catch (error) {
+    bubble(`No se pudo empezar: ${error.message}`, "vera").classList.add("error");
+  }
+}
+
+async function loadCustomers() {
+  const customers = await api("/demo-customers");
+  for (const customer of customers) {
+    const option = document.createElement("option");
+    option.value = customer.customer_ref;
+    option.textContent = customer.alias;
+    $("customer").appendChild(option);
+  }
+}
+
+$("start").onclick = start;
+$("composer").onsubmit = (event) => {
+  event.preventDefault();
+  const text = $("message").value.trim();
+  if (!text) return;
+  $("message").value = "";
+  sendMessage({ text }, text);
+};
+loadCustomers();

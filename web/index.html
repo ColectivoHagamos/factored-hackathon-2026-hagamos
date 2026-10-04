@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VERA · LATAM Bank</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>VERA · asistente de disputas de LATAM Bank</h1>
+      <p>Demo con datos sintéticos seudonimizados. VERA es una inteligencia artificial; siempre puede pedir una persona.</p>
+    </div>
+    <nav><a href="console.html">Analyst console</a></nav>
+  </header>
+  <main>
+    <div>
+      <section class="card" id="setup">
+        <h2>1 · Elija un cliente de prueba</h2>
+        <div class="row">
+          <div>
+            <label for="customer">Cliente de demo (alias, sin datos personales)</label>
+            <select id="customer"></select>
+          </div>
+          <div>
+            <label for="language">Idioma</label>
+            <select id="language">
+              <option value="">Español</option>
+              <option value="pt">Português</option>
+            </select>
+          </div>
+          <button id="start">Empezar</button>
+        </div>
+        <p class="note">Un número de documento nunca abre una sesión: la demo emite un token firmado por 15 minutos para el cliente elegido.</p>
+      </section>
+      <section class="card" style="margin-top:16px">
+        <h2>2 · Conversación</h2>
+        <div id="chat" aria-live="polite"></div>
+        <form id="composer">
+          <input id="message" type="text" autocomplete="off" placeholder="Escriba su mensaje" disabled>
+          <button id="send" disabled>Enviar</button>
+        </form>
+      </section>
+    </div>
+    <section class="card" id="glass">
+      <h2>Caja de cristal</h2>
+      <p class="note">Cada decisión cita su regla y su fuente. Solo una regla legal verificada da una fecha.</p>
+      <ol id="rules"></ol>
+      <div id="case"></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -143,3 +143,21 @@ def test_openapi_lists_every_endpoint(api):
         "/v1/cases/{case_id}",
         "/v1/cases/{case_id}/handoff",
     } <= paths
+
+
+def test_the_api_serves_the_customer_chat_and_the_analyst_console(api):
+    client, _ = api
+    chat = client.get("/")
+    assert chat.status_code == 200 and "VERA" in chat.text and "app.js" in chat.text
+    assert client.get("/console.html").status_code == 200
+    assert client.get("/app.js").status_code == 200
+
+
+def test_the_sweep_reply_allows_several_options(api):
+    client, _ = api
+    headers = login(client)
+    conversation = client.post("/v1/conversations", json={}, headers=headers).json()["conversation_id"]
+    for text in ("No reconozco un cargo de Libreria Andina", "no", "sí"):
+        say(client, headers, conversation, text=text)
+    sweep = say(client, headers, conversation, text="sí, la tengo")
+    assert sweep.multiple_choice and sweep.options
