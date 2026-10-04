@@ -39,3 +39,4 @@ demo: ## Build and start the containers of the local demo (no credentials)
 
 data: ## Build the data lake outside the repository from ../data (or VERA_DATA); needs the local dataset
 	$(UV) run python -m pipeline.bronze
+	$(UV) run python -m pipeline.silver
