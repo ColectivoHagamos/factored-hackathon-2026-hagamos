@@ -85,6 +85,23 @@ def test_secreto_borrado_sigue_en_el_historial(repo: Path):
     assert [(h.tipo, h.ubicacion) for h in hallazgos] == [("llave de acceso de AWS", "historial")]
 
 
+def test_decoradores_en_el_historial_no_son_correos(repo: Path):
+    contenido = "\n".join(["import pytest", "", "", "@pytest.fixture", "def f():", "    return 1", ""])
+    (repo / "test_x.py").write_text(contenido, encoding="utf-8")
+    _git(repo, "add", "test_x.py")
+    _git(repo, "commit", "-q", "-m", "agrega prueba")
+    assert verificar(repo) == []
+
+
+def test_correo_real_en_el_historial(repo: Path):
+    (repo / "contacto.txt").write_text("escribir a soporte@" + "banco.co\n", encoding="utf-8")
+    _git(repo, "add", "contacto.txt")
+    _git(repo, "commit", "-q", "-m", "agrega contacto")
+    (repo / "contacto.txt").unlink()
+    _git(repo, "commit", "-q", "-am", "quita contacto")
+    assert [(h.tipo, h.ubicacion) for h in verificar(repo)] == [("dirección de correo", "historial")]
+
+
 def test_archivo_grande(repo: Path):
     (repo / "pesado.bin").write_bytes(b"0" * (10 * 1024 * 1024 + 1))
     assert "archivo de más de 10 MB" in _tipos(repo)
