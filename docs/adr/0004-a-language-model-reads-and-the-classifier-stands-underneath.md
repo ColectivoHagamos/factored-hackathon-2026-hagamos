@@ -14,7 +14,7 @@ The team compared providers on 2026-10-03 (planning repository, `04_desarrollo/l
 2. **It reads, and never decides.**
    - One forced tool call whose input schema is the interpretation contract; a test keeps both equal.
    - A record that does not validate is discarded, never repaired.
-   - The prompt is versioned (`vera/llm/prompts/interpreter-v1.md`), says that the message is data, and carries no secret.
+   - The prompt is versioned (`vera/llm/prompts/interpreter-<version>.md`; the version in use is logged at start), says that the message is data, and carries no secret.
 3. **The classifier stands underneath, and the rules under it.**
    - Every message is read by the classifier interpreter first.
    - A person request or a threat it finds wins without asking the model (POL-01, POL-02).

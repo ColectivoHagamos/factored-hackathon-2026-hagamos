@@ -137,7 +137,10 @@ function renderTransfer(t) {
   );
   const declared = t.declared_by_customer;
   target.appendChild(
-    section("Declared by the customer (not verified)", pairs([["Channel", declared.channel], ["Has the card", declared.has_card], ["Made the payment", declared.authorized_payment]])),
+    section(
+      "Declared by the customer (not verified)",
+      pairs([["Channel", declared.channel], ["Has the card", declared.has_card], ["Made the payment", declared.authorized_payment], ["When, in their words", declared.date_text], ["Contacted by", declared.contacted_by]]),
+    ),
   );
   target.appendChild(section("Risk signals", tags(t.risk_signals, "warn")));
   target.appendChild(section("Actions read back", table(["Action", "Result", "Read back"], t.actions.map((a) => [a.action, a.result, a.read_back ? "yes" : "no"]))));

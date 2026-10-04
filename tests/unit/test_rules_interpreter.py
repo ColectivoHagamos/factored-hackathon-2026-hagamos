@@ -88,6 +88,21 @@ def test_coercion_in_any_tense_is_a_threat(text: str):
     assert read(text).coercion
 
 
+@pytest.mark.parametrize(
+    ("text", "channel"),
+    [
+        ("Ayer me llamaron del banco", "phone_call"),
+        ("me escribieron por WhatsApp", "message"),
+        ("Ontem me ligaram", "phone_call"),
+        ("por un link que me mandaron al correo", "email"),
+        ("lo vi en Facebook", "social_media"),
+        ("me llamo [name] y no reconozco un cargo", None),
+    ],
+)
+def test_how_a_third_party_reached_the_customer(text: str, channel: str | None):
+    assert read(text).contact_channel == channel
+
+
 def test_coercion_regulator_and_pix_flags():
     assert read("me están obligando a hacer esto").coercion
     assert read("voy a ir a la CONDUSEF").regulator_mentioned

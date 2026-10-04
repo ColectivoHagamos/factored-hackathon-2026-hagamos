@@ -5,7 +5,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict
 
 from vera.contracts.handoff import LanguageVariant, Queue
-from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel
+from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, DeclaredChannel
 from vera.policy.engine import Signal
 
 
@@ -22,6 +22,8 @@ class Step(StrEnum):
     CONFIRM_PERSON = "confirm_person"
     # POL-01: the customer asked for a person and VERA offered once to go on first.
     PERSON_OFFERED = "person_offered"
+    # POL-10: VERA asked the key questions of a scam and waits for the answer before the transfer.
+    SCAM_DETAILS = "scam_details"
     DONE = "done"
     HANDED_OFF = "handed_off"
 
@@ -40,8 +42,10 @@ class FlowState(BaseModel):
     disputed: list[int] = []
     declared_channel: DeclaredChannel | None = None
     has_card: Answer = Answer.NOT_SAID
-    # POL-10: the customer made the payment, deceived by a third party.
+    # POL-10: the customer made the payment, deceived by a third party; when, in their words, and how they were reached.
     authorized_payment: Answer = Answer.NOT_SAID
+    date_text: str | None = None
+    contacted_by: ContactChannel | None = None
     signals: list[Signal] = []
     # POL-16: the charges of a fraud alert that is due, and the alert once it was sent.
     fraud_alert_charges: list[int] = []

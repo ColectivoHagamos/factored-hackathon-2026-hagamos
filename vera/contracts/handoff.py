@@ -20,7 +20,7 @@ from vera.contracts.common import (
     ShortText,
     TransferId,
 )
-from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel
+from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, DeclaredChannel
 from vera.contracts.legal import Layer, Level, Party, RouteId, RuleId, RuleStatus, TermUnit
 
 NetworkCode = Annotated[str, StringConstraints(pattern=r"^\d{2}\.\d{1,2}(\.\d)?$")]
@@ -83,6 +83,9 @@ class DeclaredFacts(Contract):
     has_card: Answer = Answer.NOT_SAID
     was_in_country: Answer = Answer.NOT_SAID
     authorized_payment: Answer = Answer.NOT_SAID
+    # The date in the customer's own words ("ayer"), and how a third party reached them in a scam (POL-10).
+    date_text: ShortText | None = None
+    contacted_by: ContactChannel | None = None
 
 
 class Sweep(Contract):

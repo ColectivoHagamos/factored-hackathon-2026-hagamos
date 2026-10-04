@@ -200,7 +200,7 @@ def test_a8_the_analyst_gets_what_is_known_and_the_registration_that_never_ran(w
         (("Quiero hablar con una persona", "no"), "person_requested", "complaints", "POL-01"),
         (("Me están obligando a hacer esto, pásame con una persona",), "coercion", "fraud", "POL-02"),
         (("Voy a poner una queja en la Superintendencia Financiera",), "regulator", "complaints", "POL-09"),
-        (("Me llamaron del banco y les transferí dinero, me engañaron",), "scam_transfer", "fraud", "POL-10"),
+        (("Me llamaron del banco y les transferí dinero, me engañaron", "ayer"), "scam_transfer", "fraud", "POL-10"),
         (("hola", "mmm", "no sé"), "not_understood", "complaints", "POL-05"),
     ],
 )
@@ -211,11 +211,38 @@ def test_every_transfer_without_a_case_leaves_the_analyst_a_note(world: World, m
     assert (note.reason, note.suggested_queue) == (reason, queue) and rule in note.rules_applied
 
 
-def test_pol10_the_scam_note_says_the_customer_made_the_payment_and_what_is_still_open(world: World):
-    world.chat(CO_01, "Me llamaron del banco y les transferí dinero, me engañaron")
+def test_pol10_vera_asks_the_key_questions_and_waits_for_the_answer_before_the_transfer(world: World):
+    _, asked, answered = world.chat(CO_01, "Transferí plata a una cuenta y me engañaron", "Fue ayer, por WhatsApp")
+    assert "¿cuándo fue la transferencia" in asked.reply and [o for o in asked.options] == []
+    assert any(entry.rule_id == "POL-10" for entry in asked.glass_box)
+    assert "contracargo" in answered.reply and "fraudes" in answered.reply
     note = transfer_note(world)
-    assert note.claim_type == "scam_transfer" and note.declared_by_customer.authorized_payment == "yes"
-    assert len(note.open_questions) == 2 and note.charges == ()
+    assert world.state_of().step is Step.HANDED_OFF and note.suggested_queue == "fraud"
+    declared = note.declared_by_customer
+    assert (declared.authorized_payment, declared.date_text, declared.contacted_by) == ("yes", "ayer", "message")
+    assert note.open_questions == ("How much was transferred, and to which account or person?",)
+
+
+def test_pol10_what_the_customer_already_said_is_not_asked_again(world: World):
+    _, reply = world.chat(CO_01, "Ayer me llamaron del banco y les transferí dinero, me engañaron")
+    assert "¿cuándo" not in reply.reply and "contracargo" in reply.reply
+    declared = transfer_note(world).declared_by_customer
+    assert (declared.date_text, declared.contacted_by) == ("ayer", "phone_call")
+
+
+def test_pol10_a_question_about_vera_during_the_key_questions_is_answered_and_they_are_asked_again(world: World):
+    *_, answered = world.chat(CO_01, "Transferí plata a una cuenta y me engañaron", "¿Eres un robot?")
+    assert "inteligencia artificial" in answered.reply and "cuándo fue la transferencia" in answered.reply
+    assert world.state_of().step is Step.SCAM_DETAILS
+
+
+@pytest.mark.parametrize("answer", ["Quiero hablar con una persona ya", "¿y mi saldo?", "no sé"])
+def test_pol10_any_answer_to_the_key_questions_goes_to_fraud_without_an_offer(world: World, answer: str):
+    *_, last = world.chat(CO_01, "Transferí plata a una cuenta y me engañaron", answer)
+    note = transfer_note(world)
+    assert world.state_of().step is Step.HANDED_OFF and note.suggested_queue == "fraud"
+    assert "analista ahora mismo. Si" not in last.reply and note.reason == "scam_transfer"
+    assert note.open_questions[1:] == ("When was the transfer made?", "How did the third party contact the customer?")
 
 
 @pytest.mark.parametrize("broken", ["store", "note"])

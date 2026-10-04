@@ -227,6 +227,19 @@
       "title": "ClaimType",
       "type": "string"
     },
+    "ContactChannel": {
+      "description": "How a third party reached the customer before a payment made under deception, as the customer says (POL-10).",
+      "enum": [
+        "phone_call",
+        "message",
+        "email",
+        "social_media",
+        "website",
+        "in_person"
+      ],
+      "title": "ContactChannel",
+      "type": "string"
+    },
     "Country": {
       "enum": [
         "MX",
@@ -282,6 +295,31 @@
         "authorized_payment": {
           "$ref": "#/$defs/Answer",
           "default": "not_said"
+        },
+        "date_text": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date Text"
+        },
+        "contacted_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContactChannel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "DeclaredFacts",
@@ -418,7 +456,9 @@
         "channel": null,
         "has_card": "not_said",
         "was_in_country": "not_said",
-        "authorized_payment": "not_said"
+        "authorized_payment": "not_said",
+        "date_text": null,
+        "contacted_by": null
       }
     },
     "actions": {

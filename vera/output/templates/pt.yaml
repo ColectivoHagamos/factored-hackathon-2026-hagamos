@@ -44,6 +44,8 @@ templates:
   out_of_scope: "Por aqui eu ajudo com cobranças que você não reconhece e com cobranças indevidas. Para consultar o saldo ou outros produtos, use o app ou o internet banking."
   pix: "O LATAM Bank não opera Pix. Para contestar um Pix, você pode usar o Mecanismo Especial de Devolução (MED) do seu banco no Brasil, em até 80 dias após a transação."
   scam: "Sinto muito pelo que aconteceu. Para passar o caso à nossa equipe de fraudes, preciso de dois dados: quando foi a transferência e por qual meio entraram em contato com você?"
+  scam_handoff: "Obrigada. Vou passar o caso para a nossa equipe de fraudes agora mesmo, e um analista vai entrar em contato com você; você não precisa repetir o que já me contou. Uma transferência não tem estorno como uma compra com cartão: a equipe vai analisar o que pode ser feito."
+  scam_again: "Pode me dizer quando foi a transferência e por qual meio entraram em contato com você?"
   improper: "Vou identificar a cobrança para que a equipe de reclamações a analise. Eles decidem se procede."
   not_found: "Não encontrei esse movimento entre os seus."
   ask_claim_again: "Pode me contar o que aconteceu com o seu cartão ou a sua conta?"
