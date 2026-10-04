@@ -102,3 +102,22 @@ templates:
       - Nenhum desses
       - Não é nenhum desses
       - Nenhum
+  # Development set only: scams came after the held-out was sealed.
+  scam:
+    es:
+      - Me engañaron, transferí plata a una cuenta que me pasaron por mensaje y ya no contestan
+      - Hice una transferencia a un supuesto asesor del banco y resultó ser una estafa
+      - Caí en una estafa y le mandé dinero a una cuenta que no conozco
+    pt:
+      - Fiz uma transferência achando que era o banco, mas era golpe
+      - Caí num golpe e transferi dinheiro para uma conta desconhecida
+      - Me enganaram por telefone e depositei numa conta de terceiros
+  scam_answer:
+    es:
+      - Fue ayer en la tarde, me llamaron por teléfono
+      - El lunes; me escribieron por WhatsApp
+      - Hace 3 días, por un correo que parecía del banco
+    pt:
+      - Foi ontem à tarde, me ligaram
+      - Na segunda; me mandaram mensagem no WhatsApp
+      - Há três dias, por um e-mail que parecia do banco
