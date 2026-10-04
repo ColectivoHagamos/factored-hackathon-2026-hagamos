@@ -42,7 +42,10 @@ PORTUGUESE = (
 )
 HUMAN = (
     r"\b(una persona|un humano|humano|un asesor|asesor|agente humano|alguien real|operador|una persona real)\b",
-    r"\b(uma pessoa|atendente|falar com alguem|pessoa de verdade)\b",
+    r"\b(hablar con alguien|(pase|pasa|pasas|comunique|comunica|comunicas)(me|nos)? con alguien|un agente|"
+    r"supervisor|ejecutivo|funcionario|representante|atencion al cliente|servicio al cliente|carne y hueso)\b",
+    r"\b(uma pessoa|atendente|falar com alguem|pessoa de verdade|um agente|gerente|supervisor|"
+    r"atendimento humano|carne e osso|(passe|passa) (para|pra) alguem)\b",
 )
 COERCION = (
     r"\b(me amenaz|amenazad|me obligan|me estan obligando|secuestr|extorsi|me tienen retenid|me apuntan)",
@@ -82,6 +85,15 @@ HAS_CARD = (r"\b(tengo la tarjeta|la tengo conmigo|esta conmigo|la tengo aqui|te
 YES = (r"^\s*(si|sim|claro|correcto|ok|dale|de acuerdo|confirmo|exacto|afirmativo|isso)\b",)
 NO = (r"^\s*(no|nao|nunca|negativo|para nada)\b",)
 EMPTY_NOUNS = {"El", "La", "Los", "Las", "Un", "Una", "Mi", "Me", "Que", "Hola", "Buenas", "Ayer", "Hoy", "O", "A"}
+# Capitalized words that never name a merchant: months, days and the words a sentence often starts with.
+NOT_MERCHANTS = EMPTY_NOUNS | {
+    *("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre"),
+    *("Noviembre", "Diciembre", "Janeiro", "Fevereiro", "Março", "Maio", "Junho", "Julho", "Setembro", "Outubro"),
+    *("Novembro", "Dezembro", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"),
+    *("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sí", "Sim", "No", "Não", "Gracias", "Obrigado"),
+    *("Obrigada", "Oi", "Olá", "Por", "Para", "Pero", "Mas"),
+}
+CAPITALIZED = re.compile(r"[A-ZÁÉÍÓÚÑ][\w&'-]*")
 CURRENCY_WORDS = {
     "usd": Currency.USD,
     "dolares": Currency.USD,
@@ -182,12 +194,38 @@ def _amount(text: str) -> tuple[Decimal | None, Currency | None]:
 
 
 def _merchant(original: str) -> str | None:
-    """Capitalized name after 'de', 'en' or 'em', as in 'un cargo de Uber' or 'compra em Mercado Livre'."""
-    match = re.search(r"\b(?:de|en|em|da|do|na|no)\s+((?:[A-ZÁÉÍÓÚÑ][\w&'-]*\s?){1,3})", original)
-    if not match:
-        return None
-    name = match.group(1).strip()
-    return None if name.split()[0] in EMPTY_NOUNS else name
+    """The merchant or place the customer named.
+
+    First a capitalized name after a preposition ("un cargo de Uber", "compra em Mercado Livre"); else one anywhere
+    else ("aparece Hotel Prado en mis movimientos"), so a name is not lost because of how the sentence was built.
+    """
+    for match in re.finditer(r"\b(?:de|en|em|da|do|na|no)\s+((?:[A-ZÁÉÍÓÚÑ][\w&'-]*\s?){1,3})", original):
+        name = match.group(1).strip()
+        if name.split()[0] not in NOT_MERCHANTS:
+            return name
+    words = [word.group() for word in re.finditer(r"\S+", original)]
+    index = 0
+    while index < len(words):
+        name = _capitalized_run(words, index)
+        starts_sentence = index == 0 or words[index - 1][-1] in ".!?:¿¡"
+        # A capital at the start of a sentence is grammar, unless two or more names follow each other.
+        if name and (not starts_sentence or len(name) > 1):
+            return " ".join(name)
+        index += max(1, len(name))
+    return None
+
+
+def _capitalized_run(words: list[str], start: int) -> list[str]:
+    """Up to three capitalized words from start that are not common words, as in "Hotel Prado"."""
+    run = []
+    for word in words[start : start + 3]:
+        text = word.strip(',;:()¿?¡!"')
+        if not CAPITALIZED.fullmatch(text) or text in NOT_MERCHANTS:
+            break
+        run.append(text)
+        if word[-1] in ",;:.!?":
+            break
+    return run
 
 
 def _numbers(text: str, context: dict[str, str]) -> tuple[int, ...]:

@@ -93,3 +93,37 @@ def test_option_numbers_only_when_a_choice_was_asked():
 
 def test_language_of_the_conversation_is_kept_for_neutral_messages():
     assert read("ok", language="pt").language == "pt"
+
+
+@pytest.mark.parametrize(
+    ("text", "merchant"),
+    [
+        ("Revisando la app vi Libreria Andina en mis compras y no fui yo", "Libreria Andina"),
+        ("Hola, Farmacia Uno me cobró de más", "Farmacia Uno"),
+        ("Necesito ayuda. Mercado Libre me cobró dos veces", "Mercado Libre"),
+        ("Me cobraron algo en Cine Estrella, no fui yo", "Cine Estrella"),
+        ("No reconozco un cargo de mi tarjeta", None),
+        ("Fue el 5 de Junio por la tarde", None),
+        ("Buenas tardes, quiero reclamar", None),
+    ],
+)
+def test_the_merchant_is_found_wherever_the_customer_names_it(text: str, merchant: str | None):
+    assert read(text).merchant_text == merchant
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "¿Me pasas con alguien del banco?",
+        "Necesito hablar con alguien ya",
+        "Comuníqueme con servicio al cliente",
+        "Quero falar com alguém da central",
+        "Me passa pra alguém, por favor",
+    ],
+)
+def test_more_ways_to_ask_for_a_person(text: str):
+    assert read(text).claim_type == "human_request"
+
+
+def test_a_scam_story_about_someone_from_the_bank_is_not_a_request_for_a_person():
+    assert read("Hablé con alguien del banco por teléfono y me engañaron").claim_type == "scam_transfer"

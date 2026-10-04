@@ -60,11 +60,11 @@
         "high": 0.5487
       },
       "explained_again": {
-        "k": 61,
+        "k": 52,
         "n": 222,
-        "rate": 0.2748,
-        "low": 0.2203,
-        "high": 0.337
+        "rate": 0.2342,
+        "low": 0.1833,
+        "high": 0.2942
       },
       "escalation": {
         "expected_transfers": 135,
@@ -94,10 +94,10 @@
         "by_type": {}
       },
       "efficiency": {
-        "turn_ms_p50": 5.2,
-        "turn_ms_p95": 11.8,
-        "conversation_ms_p50": 31.9,
-        "conversation_ms_p95": 51.3,
+        "turn_ms_p50": 4.8,
+        "turn_ms_p95": 11.2,
+        "conversation_ms_p50": 30.0,
+        "conversation_ms_p95": 48.3,
         "turns_p50": 5.0,
         "turns_p95": 8,
         "cost_usd_per_attempted_case": 0.0,
@@ -342,10 +342,10 @@
         "by_type": {}
       },
       "efficiency": {
-        "turn_ms_p50": 6.0,
-        "turn_ms_p95": 11.8,
-        "conversation_ms_p50": 31.2,
-        "conversation_ms_p95": 49.3,
+        "turn_ms_p50": 5.8,
+        "turn_ms_p95": 11.2,
+        "conversation_ms_p50": 31.3,
+        "conversation_ms_p95": 45.5,
         "turns_p50": 5.0,
         "turns_p95": 6,
         "cost_usd_per_attempted_case": 0.0,
