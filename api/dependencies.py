@@ -57,11 +57,21 @@ def interpreter_for(settings: Settings) -> InterpreterPort:
     return RulesInterpreter()
 
 
-def build(settings: Settings, now: Callable[[], datetime] | None = None) -> Container:
+def build(
+    settings: Settings,
+    now: Callable[[], datetime] | None = None,
+    bank_factory: Callable[[SqliteState], DemoBank | MockBank] | None = None,
+) -> Container:
+    """The application; bank_factory replaces the configured adapter, as the evaluation does to make a tool fail."""
     now = now or simulated_clock()
     policy = load_policy()
     state = SqliteState(settings.state_db)
-    bank = DemoBank(settings.demo_db, state) if settings.adapter == "dataset" else MockBank(state)
+    if bank_factory:
+        bank = bank_factory(state)
+    elif settings.adapter == "dataset":
+        bank = DemoBank(settings.demo_db, state)
+    else:
+        bank = MockBank(state)
     toolbox = Toolbox(bank, bank, state, state, policy.parameters.usd_rates, now=now)
     gate = ActionGate(toolbox, secret=settings.session_secret.encode(), now=now)
     tools = ToolService(toolbox, gate, bank, bank, now=now)
