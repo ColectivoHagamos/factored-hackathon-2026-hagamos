@@ -1,5 +1,6 @@
 """Tests of the conversation flow (P15) on the mock bank with the rules interpreter, end to end in memory."""
 
+from datetime import timedelta
 from itertools import count
 
 import pytest
@@ -32,7 +33,8 @@ class World:
     def __init__(self) -> None:
         self.state = SqliteState()
         bank = MockBank(self.state)
-        now = lambda: CLOCK  # noqa: E731
+        self.clock = CLOCK
+        now = lambda: self.clock  # noqa: E731
         toolbox = Toolbox(bank, bank, self.state, self.state, POLICY.parameters.usd_rates, now=now)
         tools = ToolService(toolbox, ActionGate(toolbox, b"secret", now=now), bank, bank, now=now)
         ids = count(1)
@@ -235,3 +237,13 @@ def test_an_unclear_answer_to_a_confirmation_keeps_the_pending_action(world: Wor
         CO_01, "No reconozco un cargo de Libreria Andina", "no", "sí", "sí, la tengo", "todos", "mmm"
     )
     assert unclear.pending_confirmation == confirm.pending_confirmation and unclear.options == confirm.options
+
+
+def test_a_charge_already_in_a_case_gets_that_case_and_its_original_deadline(world: World):
+    a1 = ("No reconozco un cargo de Libreria Andina", "no", "sí", "sí, la tengo", "todos", "sí")
+    *_, first = world.chat(CO_01, *a1)
+    world.clock = CLOCK + timedelta(days=10)
+    *_, again = world.chat(CO_01, *a1, conversation_id="conv-2")
+    assert "ya está en el reclamo DSP-000001" in again.reply and "3 de julio de 2026" in again.reply
+    assert any(entry.rule_id == "CO-R15" and entry.deadline.isoformat() == "2026-07-03" for entry in again.glass_box)
+    assert len(world.state.cases_of(CO_01)) == 1 and world.state_of("conv-2").step is Step.DONE

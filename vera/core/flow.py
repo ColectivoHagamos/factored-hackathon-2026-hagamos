@@ -490,30 +490,42 @@ class Conversation:
         result = self._tools.register_dispute(turn.session, self._offers(turn), args, claim)
         self._record_write(turn, "register_dispute", args, result.output, result.read_back_matches)
         if isinstance(result.output, ToolError) and result.output.case_id:
-            turn.lines.append(self._text(turn, "repeat_case", case_id=result.output.case_id))
-            turn.state = turn.state.advance(step=Step.DONE, case_id=result.output.case_id)
+            self._repeat_case(turn, result.output.case_id)
             return
         if not (result.read_back_matches and isinstance(result.output, RegisterDisputeOutput)):
             self._fail(turn)
             return
         case = self._tools.read_case(turn.session, ReadCaseInput(case_id=result.output.case_id))
+        if isinstance(case, ToolError):
+            self._fail(turn)
+            return
         turn.lines.append(self._text(turn, "case_registered", case_id=result.output.case_id))
         turn.state = turn.state.advance(case_id=result.output.case_id, pending_tool=None, pending_arguments=None)
         legal = self._legal_lines(turn, case)
         self._close_case(turn, case, legal)
 
+    def _repeat_case(self, turn: Turn, case_id: str) -> None:
+        """A charge already in a case gets that case and its deadlines, never a second case."""
+        turn.lines.append(self._text(turn, "repeat_case", case_id=case_id))
+        case = self._tools.read_case(turn.session, ReadCaseInput(case_id=case_id))
+        if isinstance(case, Case):
+            self._legal_lines(turn, case)
+        turn.lines.append(self._text(turn, "closing"))
+        turn.state = turn.state.advance(step=Step.DONE, case_id=case_id, pending_tool=None, pending_arguments=None)
+
     # Closing a registered case
 
     def _legal_lines(self, turn: Turn, case: Case) -> LegalAssessment:
+        """Deadlines of the case, counted from the day it was filed and with the channel it was filed with."""
         first = min(case.charges, key=lambda charge: charge.occurred_at)
         legal = assess(
             self._legal,
             self._country(turn),
-            turn.state.declared_channel,
+            case.declared_channel,
             first.country,
             first.card_type,
             event_day=first.occurred_at.date(),
-            filing_day=self._now().date(),
+            filing_day=case.created_at.date(),
         )
         language = language_of(turn.state.variant)
         for due in legal.dues:
