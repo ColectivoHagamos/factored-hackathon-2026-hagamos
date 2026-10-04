@@ -1,13 +1,15 @@
 [project]
 name = "vera"
 version = "0.1.0"
-description = "VERA: asistente de disputas transaccionales de LATAM Bank (Factored AI & Data Hackathon 2026, equipo HAGAMOS)"
+description = "VERA: transaction dispute assistant for LATAM Bank (Factored AI & Data Hackathon 2026, team HAGAMOS)"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }
-authors = [{ name = "Equipo HAGAMOS" }]
-# Las dependencias de ejecución se agregan cuando un paso las usa (contratos, API, datos, ML).
-dependencies = []
+authors = [{ name = "Team HAGAMOS" }]
+# Runtime dependencies are added when a step needs them (contracts, API, data, ML).
+dependencies = [
+    "pydantic>=2.9",
+]
 
 [dependency-groups]
 dev = ["pytest>=8.3", "ruff>=0.7"]
