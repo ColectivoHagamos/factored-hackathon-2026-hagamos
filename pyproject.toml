@@ -10,6 +10,7 @@ authors = [{ name = "Team HAGAMOS" }]
 dependencies = [
     "fastapi>=0.115",
     "pydantic>=2.9",
+    "pyyaml>=6.0",
     "uvicorn>=0.32",
 ]
 
