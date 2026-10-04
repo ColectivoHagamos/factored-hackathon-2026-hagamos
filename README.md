@@ -22,6 +22,7 @@ Hexagonal architecture (ports and adapters): the domain does not depend on infra
 | `pipeline/` · `ml/` · `evaluation/` | Data preparation, learned component and evaluation |
 | `docker/` · `deploy/` | Images and deployment |
 | `docs/adr/` | Architecture decision records |
+| `docs/schemas/` | JSON Schema of every boundary model, generated with `python -m scripts.export_schemas` |
 | `tests/` | Unit, contract, property, architecture and end-to-end tests |
 
 ## Tests

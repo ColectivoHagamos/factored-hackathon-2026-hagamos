@@ -1,0 +1,16 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "candidate_n": {
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Candidate N",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "candidate_n"
+  ],
+  "title": "ViewChargeInput",
+  "type": "object"
+}

@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "Answer": {
+      "description": "Answer to a yes-or-no question that keeps the case in which the customer did not say.",
+      "enum": [
+        "yes",
+        "no",
+        "not_said"
+      ],
+      "title": "Answer",
+      "type": "string"
+    },
+    "ClaimType": {
+      "enum": [
+        "unrecognized_charge",
+        "improper_charge",
+        "scam_transfer",
+        "human_request",
+        "out_of_scope"
+      ],
+      "title": "ClaimType",
+      "type": "string"
+    },
+    "Currency": {
+      "description": "Currencies present in the dataset; Mexico operates in USD only.",
+      "enum": [
+        "USD",
+        "COP",
+        "ARS"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "DeclaredChannel": {
+      "description": "Purchase channel as stated by the customer; the dataset channel is random and never used.",
+      "enum": [
+        "online",
+        "in_person",
+        "unknown"
+      ],
+      "title": "DeclaredChannel",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "es",
+        "pt"
+      ],
+      "title": "Language",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Fields extracted from one masked message; anything outside this schema is discarded.",
+  "properties": {
+    "claim_type": {
+      "$ref": "#/$defs/ClaimType"
+    },
+    "amount": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Amount"
+    },
+    "currency": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Currency"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "date_text": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Date Text"
+    },
+    "merchant_text": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Merchant Text"
+    },
+    "declared_channel": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeclaredChannel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "has_card": {
+      "$ref": "#/$defs/Answer",
+      "default": "not_said"
+    },
+    "authorized_payment": {
+      "$ref": "#/$defs/Answer",
+      "default": "not_said"
+    },
+    "coercion": {
+      "default": false,
+      "title": "Coercion",
+      "type": "boolean"
+    },
+    "language": {
+      "$ref": "#/$defs/Language"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    }
+  },
+  "required": [
+    "claim_type",
+    "language",
+    "confidence"
+  ],
+  "title": "Interpretation",
+  "type": "object"
+}

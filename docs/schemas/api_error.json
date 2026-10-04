@@ -1,0 +1,33 @@
+{
+  "$defs": {
+    "ApiErrorCode": {
+      "enum": [
+        "unauthorized",
+        "not_found",
+        "confirmation_expired",
+        "rate_limited",
+        "provider_unavailable"
+      ],
+      "title": "ApiErrorCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "$ref": "#/$defs/ApiErrorCode"
+    },
+    "message": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "message"
+  ],
+  "title": "ApiError",
+  "type": "object"
+}

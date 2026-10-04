@@ -1,0 +1,207 @@
+{
+  "$defs": {
+    "Jurisdiction": {
+      "enum": [
+        "MX",
+        "CO",
+        "AR",
+        "BR"
+      ],
+      "title": "Jurisdiction",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "es",
+        "pt"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "Layer": {
+      "description": "Origin of a rule; contractual network rules are never presented as law.",
+      "enum": [
+        "law",
+        "network",
+        "bank"
+      ],
+      "title": "Layer",
+      "type": "string"
+    },
+    "Level": {
+      "description": "Verification level: N1 read in the official source, N2 official reference, N3 pending.",
+      "enum": [
+        "N1",
+        "N2",
+        "N3"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "Party": {
+      "enum": [
+        "bank",
+        "customer"
+      ],
+      "title": "Party",
+      "type": "string"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "url"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "TermUnit": {
+      "enum": [
+        "hours",
+        "days",
+        "calendar_days",
+        "business_days",
+        "immediate"
+      ],
+      "title": "TermUnit",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^(CO|MX|AR|BR)-R\\d{2}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "country": {
+      "$ref": "#/$defs/Jurisdiction"
+    },
+    "route": {
+      "pattern": "^(CO|MX|AR|BR)-[a-z0-9]+(-[a-z0-9]+)*$",
+      "title": "Route",
+      "type": "string"
+    },
+    "literal_text": {
+      "minLength": 1,
+      "title": "Literal Text",
+      "type": "string"
+    },
+    "text_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Text Sha256",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "effective_from": {
+      "format": "date",
+      "title": "Effective From",
+      "type": "string"
+    },
+    "effective_to": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effective To"
+    },
+    "early_adoption": {
+      "default": false,
+      "title": "Early Adoption",
+      "type": "boolean"
+    },
+    "level": {
+      "$ref": "#/$defs/Level"
+    },
+    "executable": {
+      "title": "Executable",
+      "type": "boolean"
+    },
+    "layer": {
+      "$ref": "#/$defs/Layer"
+    },
+    "party": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Party"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "term_value": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Term Value"
+    },
+    "term_unit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TermUnit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "response_languages": {
+      "default": [
+        "es",
+        "pt"
+      ],
+      "items": {
+        "$ref": "#/$defs/Language"
+      },
+      "title": "Response Languages",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "country",
+    "route",
+    "literal_text",
+    "text_sha256",
+    "source",
+    "effective_from",
+    "level",
+    "executable",
+    "layer"
+  ],
+  "title": "LegalRule",
+  "type": "object"
+}
