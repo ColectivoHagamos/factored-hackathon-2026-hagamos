@@ -106,18 +106,93 @@ function render(h) {
   if (h.open_questions.length) target.appendChild(section("Open questions", tags(h.open_questions)));
 }
 
-$("lookup").onsubmit = async (event) => {
-  event.preventDefault();
-  const caseId = $("case").value.trim().toUpperCase();
+function renderTransfer(t) {
+  const target = $("handoff");
+  target.innerHTML = "";
+  target.appendChild(
+    section(
+      `Transfer ${t.transfer_id}`,
+      pairs([
+        ["Summary", t.summary],
+        ["Reason", `${t.reason} · ${t.rules_applied.join(", ") || "no rule recorded"}`],
+        ["Queue", t.suggested_queue + (t.requires_pt_analyst ? " · Portuguese-speaking analyst" : "")],
+        ["Customer", `${t.account_country} · ${t.segment} · ${t.variant}`],
+        ["Claim", t.claim_type || "not stated"],
+        ["Case", t.case_id || "none registered"],
+        ["Pending action, never run", t.pending_action_not_run || "none"],
+        ["Fraud alert", t.fraud_alert ? "due (POL-16)" : "no"],
+        ["Trace", t.trace_id],
+        ["Policy", `master policy v${t.policy_version}`],
+      ]),
+    ),
+  );
+  target.appendChild(
+    section(
+      "Charges known (from tools only)",
+      table(
+        ["#", "When", "Merchant", "Place", "Amount", "Status", "Card", "Fraud score"],
+        t.charges.map((c) => [c.n, c.occurred_at.replace("T", " "), c.merchant, [c.city, c.country].filter(Boolean).join(", "), `${c.currency} ${c.amount}`, c.status, c.card, c.fraud_score_band]),
+      ),
+    ),
+  );
+  const declared = t.declared_by_customer;
+  target.appendChild(
+    section("Declared by the customer (not verified)", pairs([["Channel", declared.channel], ["Has the card", declared.has_card], ["Made the payment", declared.authorized_payment]])),
+  );
+  target.appendChild(section("Risk signals", tags(t.risk_signals, "warn")));
+  target.appendChild(section("Actions read back", table(["Action", "Result", "Read back"], t.actions.map((a) => [a.action, a.result, a.read_back ? "yes" : "no"]))));
+  if (t.open_questions.length) target.appendChild(section("Open questions", tags(t.open_questions)));
+}
+
+async function analystGet(path) {
+  const response = await fetch(path, { headers: { Authorization: `Bearer ${await analystToken()}` } });
+  if (!response.ok) throw new Error(response.status === 404 ? "Nothing with that id yet" : response.statusText);
+  return response.json();
+}
+
+async function open(reference) {
   $("handoff").innerHTML = "";
   try {
-    const response = await fetch(`/v1/cases/${encodeURIComponent(caseId)}/handoff`, { headers: { Authorization: `Bearer ${await analystToken()}` } });
-    if (!response.ok) throw new Error(response.status === 404 ? "No handoff for that case yet" : response.statusText);
-    render(await response.json());
+    if (reference.startsWith("TRF-")) renderTransfer(await analystGet(`/v1/transfers/${encodeURIComponent(reference)}`));
+    else render(await analystGet(`/v1/cases/${encodeURIComponent(reference)}/handoff`));
   } catch (error) {
     $("handoff").appendChild(el("p", error.message, "error"));
   }
+}
+
+async function loadQueue() {
+  const target = $("queue");
+  try {
+    const items = await analystGet("/v1/queue");
+    target.innerHTML = "";
+    if (!items.length) {
+      target.appendChild(el("p", "Nothing is waiting.", "note"));
+      return;
+    }
+    const rows = items.map((item) => [item.created_at.replace("T", " ").slice(0, 16), item.reference, item.queue + (item.requires_pt_analyst ? " · PT" : ""), item.summary]);
+    const node = table(["When", "Reference", "Queue", "Summary", ""], rows);
+    node.querySelectorAll("tbody tr").forEach((tr, index) => {
+      const button = el("button", "Open", "secondary");
+      button.type = "button";
+      button.onclick = () => {
+        $("case").value = items[index].reference;
+        open(items[index].reference);
+      };
+      tr.appendChild(el("td")).appendChild(button);
+    });
+    target.appendChild(node);
+  } catch (error) {
+    target.innerHTML = "";
+    target.appendChild(el("p", error.message, "error"));
+  }
+}
+
+$("lookup").onsubmit = (event) => {
+  event.preventDefault();
+  open($("case").value.trim().toUpperCase());
 };
+$("refresh").onclick = loadQueue;
+loadQueue();
 
 const fromUrl = new URLSearchParams(location.search).get("case");
 if (fromUrl) {

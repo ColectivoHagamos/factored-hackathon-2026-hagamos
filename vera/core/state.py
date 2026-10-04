@@ -40,6 +40,8 @@ class FlowState(BaseModel):
     disputed: list[int] = []
     declared_channel: DeclaredChannel | None = None
     has_card: Answer = Answer.NOT_SAID
+    # POL-10: the customer made the payment, deceived by a third party.
+    authorized_payment: Answer = Answer.NOT_SAID
     signals: list[Signal] = []
     # POL-16: the charges of a fraud alert that is due, and the alert once it was sent.
     fraud_alert_charges: list[int] = []

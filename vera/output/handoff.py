@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from vera.contracts.cases import Case
-from vera.contracts.charges import FraudScoreBand
+from vera.contracts.charges import ChargeDetail, FraudScoreBand
 from vera.contracts.common import Language
 from vera.contracts.handoff import (
     Action,
@@ -19,13 +19,32 @@ from vera.contracts.handoff import (
     RuleResult,
     Segment,
     Sweep,
+    Transfer,
+    TransferReason,
     VerifiedFacts,
 )
+from vera.contracts.interpretation import ClaimType
 from vera.contracts.legal import Level
 from vera.core.legal_route import LegalAssessment, network_code, network_due
 from vera.ports.bank import CustomerRecord
 
 UNVERIFIED = "literal text pending verification: informed without a date"
+# The store assigns the transfer id when it keeps the note, as it does with case ids.
+PENDING_TRANSFER_ID = "TRF-000000"
+CARD_LAST_SEEN = "When did the customer last see the card?"
+# What the analyst still has to find out, by the reason of the transfer.
+OPEN_QUESTIONS: dict[TransferReason, tuple[str, ...]] = {
+    TransferReason.PERSON_REQUESTED: (),
+    TransferReason.COERCION: ("Is the customer safe to talk now, and through which channel?",),
+    TransferReason.NOT_UNDERSTOOD: ("What happened, and which charge or account does the customer mean?",),
+    TransferReason.REGULATOR: ("What has the customer filed, or wants to file, with the regulator?",),
+    TransferReason.SCAM_TRANSFER: (
+        "When was the transfer made, for how much and to which account?",
+        "How did the third party contact the customer?",
+    ),
+    TransferReason.TOOL_FAILURE: ("The bank records could not be read: which charge does the customer mean?",),
+    TransferReason.TURN_LIMIT: ("What does the customer still need? The conversation did not converge.",),
+}
 
 
 def build_handoff(
@@ -86,6 +105,62 @@ def build_handoff(
         open_questions=open_questions,
         policy_version=policy_version,
         trace_id=f"trace-{case.conversation_id}"[:64],
+    )
+
+
+def build_transfer(
+    *,
+    reason: TransferReason,
+    customer: CustomerRecord,
+    variant: LanguageVariant,
+    claim_type: ClaimType | None,
+    charges: tuple[ChargeDetail, ...],
+    declared: DeclaredFacts,
+    actions: tuple[Action, ...],
+    pending_action: str | None,
+    case_id: str | None,
+    risk_signals: tuple[str, ...],
+    fraud_alert: bool,
+    rules_applied: tuple[str, ...],
+    queue: Queue,
+    policy_version: str,
+    conversation_id: str,
+    created_at: datetime,
+) -> Transfer:
+    """What is known when a conversation goes to a person without a case handoff, so nobody asks it again."""
+    language = Language.PT if variant is LanguageVariant.PT else Language.ES
+    summary = reason.value.replace("_", " ")
+    if claim_type and claim_type.value != reason.value:
+        summary += f": {claim_type.value.replace('_', ' ')}"
+    summary += f", {len(charges)} charge(s) known"
+    if pending_action:
+        summary += f", {pending_action.replace('_', ' ')} pending and not run"
+    open_questions = OPEN_QUESTIONS[reason]
+    if "card_not_in_possession" in risk_signals:
+        open_questions += (CARD_LAST_SEEN,)
+    return Transfer(
+        transfer_id=PENDING_TRANSFER_ID,
+        created_at=created_at,
+        reason=reason,
+        summary=summary,
+        language=language,
+        variant=variant,
+        requires_pt_analyst=language is Language.PT,
+        account_country=customer.country,
+        segment=Segment(customer.segment),
+        claim_type=claim_type,
+        charges=charges,
+        declared_by_customer=declared,
+        actions=actions,
+        pending_action_not_run=pending_action,
+        case_id=case_id,
+        risk_signals=risk_signals,
+        fraud_alert=fraud_alert,
+        rules_applied=rules_applied,
+        suggested_queue=queue,
+        open_questions=open_questions,
+        policy_version=policy_version,
+        trace_id=f"trace-{conversation_id}"[:64],
     )
 
 

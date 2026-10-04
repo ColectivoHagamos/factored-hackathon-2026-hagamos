@@ -168,6 +168,72 @@ def test_a8_yes_register_it_but_i_want_someone_runs_nothing_until_a_new_yes(worl
     assert "DSP-000001" in done.reply and len(world.state.cases_of(CO_01)) == 1
 
 
+def transfer_note(world: World):
+    """The note the analyst gets, found through the handoff event of the conversation."""
+    handoff = next(e.data for e in world.log.read("conv-1") if e.type is EventType.HANDOFF)
+    return world.state.transfer_of(handoff["transfer_id"])
+
+
+def test_a8_the_analyst_gets_what_is_known_and_the_registration_that_never_ran(world: World):
+    world.chat(
+        CO_01,
+        "No reconozco un cargo de Libreria Andina",
+        "no",
+        "sí",
+        "sí, la tengo",
+        "todos",
+        "Sí, regístrala, pero quiero hablar con alguien",
+        "no",
+    )
+    note = transfer_note(world)
+    assert world.state.cases_of(CO_01) == () and note.case_id is None
+    assert note.reason == "person_requested" and note.pending_action_not_run == "register_dispute"
+    assert [c.merchant for c in note.charges] == ["Libreria Andina"] and note.charges[0].status == "approved"
+    assert (note.declared_by_customer.channel, note.declared_by_customer.has_card) == ("online", "yes")
+    assert note.claim_type == "unrecognized_charge" and "POL-01" in note.rules_applied
+    assert note.trace_id == "trace-conv-1" and note.suggested_queue == "complaints"
+
+
+@pytest.mark.parametrize(
+    ("messages", "reason", "queue", "rule"),
+    [
+        (("Quiero hablar con una persona", "no"), "person_requested", "complaints", "POL-01"),
+        (("Me están obligando a hacer esto, pásame con una persona",), "coercion", "fraud", "POL-02"),
+        (("Voy a poner una queja en la Superintendencia Financiera",), "regulator", "complaints", "POL-09"),
+        (("Me llamaron del banco y les transferí dinero, me engañaron",), "scam_transfer", "fraud", "POL-10"),
+        (("hola", "mmm", "no sé"), "not_understood", "complaints", "POL-05"),
+    ],
+)
+def test_every_transfer_without_a_case_leaves_the_analyst_a_note(world: World, messages, reason, queue, rule):
+    world.chat(CO_01, *messages)
+    note = transfer_note(world)
+    assert world.state_of().step is Step.HANDED_OFF and note.transfer_id == "TRF-000001"
+    assert (note.reason, note.suggested_queue) == (reason, queue) and rule in note.rules_applied
+
+
+def test_pol10_the_scam_note_says_the_customer_made_the_payment_and_what_is_still_open(world: World):
+    world.chat(CO_01, "Me llamaron del banco y les transferí dinero, me engañaron")
+    note = transfer_note(world)
+    assert note.claim_type == "scam_transfer" and note.declared_by_customer.authorized_payment == "yes"
+    assert len(note.open_questions) == 2 and note.charges == ()
+
+
+@pytest.mark.parametrize("broken", ["store", "note"])
+def test_a_note_that_cannot_be_kept_never_blocks_the_way_to_a_person(world: World, monkeypatch, broken: str):
+    def fails(*args, **kwargs):
+        raise OSError("disk full") if broken == "store" else ValueError("the note does not validate")
+
+    monkeypatch.setattr(*((world.state, "transfer") if broken == "store" else (flow, "build_transfer")), fails)
+    *_, last = world.chat(CO_01, "Quiero hablar con una persona", "no")
+    assert world.state_of().step is Step.HANDED_OFF and "una persona" in last.reply
+    events = world.log.read("conv-1")
+    assert next(e.data for e in events if e.type is EventType.HANDOFF)["transfer_id"] is None
+    results = [
+        e.data["result"] for e in events if e.type is EventType.TOOL_RESULT and e.data["tool"] == "create_transfer"
+    ]
+    assert results == ["failure" if broken == "store" else "invalid_schema"]
+
+
 def test_coercion_with_a_request_for_a_person_transfers_at_once(world: World):
     _, reply = world.chat(CO_01, "Me están obligando a hacer esto, pásame con una persona")
     assert world.state_of().step is Step.HANDED_OFF and world.state_of().queue == "fraud"
@@ -362,7 +428,7 @@ def test_pol13_a_tool_that_fails_hands_off_without_inventing_anything():
     assert "No pude completar la verificación" in reply.reply and "Libreria Andina" not in reply.reply
     assert world.state_of().step is Step.HANDED_OFF and "POL-13" in {e.rule_id for e in reply.glass_box}
     results = [e.data for e in world.log.read("conv-1") if e.type is EventType.TOOL_RESULT]
-    assert results == [{"tool": "search_charges", "result": "failure"}]
+    assert results == [{"tool": "search_charges", "result": "failure"}, {"tool": "create_transfer", "result": "ok"}]
 
 
 def test_ac2_a_charge_other_than_the_one_named_is_listed_never_presented_as_it(world: World):

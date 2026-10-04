@@ -7,10 +7,11 @@ import pytest
 
 from vera.adapters.mock_bank import CLOCK, MockBank
 from vera.adapters.sqlite_state import SqliteState
-from vera.contracts.handoff import Handoff
+from vera.contracts.handoff import Handoff, Transfer
 from vera.contracts.tools import (
     BlockCardInput,
     CreateHandoffInput,
+    CreateTransferInput,
     ReadCaseInput,
     RegisterDisputeInput,
     SearchChargesInput,
@@ -112,6 +113,32 @@ def test_handoff_is_created_only_for_a_case_of_the_session(tools: Toolbox, hando
     assert (
         tools.create_handoff(stranger, CreateHandoffInput(case_id=case_id, queue="fraud"), handoff).code == "not_found"
     )
+
+
+def test_a_transfer_note_is_kept_once_per_conversation_and_never_about_another_customers_case(
+    tools: Toolbox, transfer_example: Transfer
+):
+    args = CreateTransferInput(queue="complaints", reason="person_requested")
+    first = tools.create_transfer(CO_02, args, transfer_example)
+    again = tools.create_transfer(CO_02, args, transfer_example)
+    assert first.transfer_id == again.transfer_id == "TRF-000001"
+    other_queue = CreateTransferInput(queue="fraud", reason="person_requested")
+    assert tools.create_transfer(CO_02, other_queue, transfer_example).code == "not_found"
+    _, offers = search(tools, merchant="uber")
+    dispute = RegisterDisputeInput(charges_n=[1], reason="fraud", declared_channel="online", confirmation_token=TOKEN)
+    case_id = tools.register_dispute(CO_02, offers, dispute, claim_type="unrecognized_charge").case_id
+    stranger = Session("CUS-MOCK00000000001", "conv-9")
+    foreign = transfer_example.model_copy(update={"case_id": case_id})
+    assert tools.create_transfer(stranger, args, foreign).code == "not_found"
+
+
+@pytest.fixture
+def transfer_example() -> Transfer:
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).parents[1] / "contract" / "examples" / "transfer.json"
+    return Transfer.model_validate(json.loads(path.read_text(encoding="utf-8")))
 
 
 @pytest.fixture

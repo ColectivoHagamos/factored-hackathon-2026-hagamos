@@ -24,11 +24,14 @@ from vera.contracts.handoff import (
     LanguageVariant,
     Queue,
     Sweep,
+    Transfer,
+    TransferReason,
 )
 from vera.contracts.interpretation import Answer, ClaimType, DeclaredChannel, Interpretation
 from vera.contracts.tools import (
     BlockCardInput,
     CreateHandoffInput,
+    CreateTransferInput,
     ReadCaseInput,
     RegisterDisputeInput,
     RegisterDisputeOutput,
@@ -42,7 +45,7 @@ from vera.contracts.tools import (
 from vera.core.events import new_event
 from vera.core.legal_route import LegalAssessment, assess
 from vera.core.state import FlowState, Step
-from vera.output.handoff import build_handoff
+from vera.output.handoff import CARD_LAST_SEEN, build_handoff, build_transfer
 from vera.output.render import Renderer, day, language_of, money, status_word
 from vera.output.validator import UnsafeReplyError, check
 from vera.policy.engine import Evaluation, Facts, Outcome, PolicyEngine, Signal, exposure_usd
@@ -52,6 +55,7 @@ from vera.ports.interpreter import InterpreterPort
 from vera.ports.tools import Offers, Session, ToolsPort
 
 PENDING_TOKEN = "tok_pending_confirmation"
+INVALID_NOTE = ToolError(code=ToolErrorCode.INVALID_SCHEMA)
 MAX_TURNS = 40
 SEARCH_DAYS = {ChargeKind.PURCHASE: 30, ChargeKind.BANK_ADJUSTMENT: 90}
 # With a merchant, a place or an amount to match, older charges are searched too, up to the longest legal window
@@ -224,11 +228,14 @@ class Conversation:
             return False
         if reading.coercion:
             turn.lines.append(self._text(turn, "safety"))
+            reason = TransferReason.COERCION
         elif Outcome.INFORM_VENUE in evaluation.outcomes:
             turn.lines.append(self._text(turn, "regulator", venue=_venue(customer.country)))
+            reason = TransferReason.REGULATOR
         else:
             turn.lines.append(self._text(turn, "handoff_now"))
-        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
+            reason = TransferReason.PERSON_REQUESTED
+        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, reason)
         return True
 
     def _security_event(self, turn: Turn, signals: tuple[str, ...]) -> None:
@@ -246,7 +253,7 @@ class Conversation:
         """LLM10: past the limit nothing more is interpreted and the conversation goes to a person once."""
         if turn.state.step is not Step.HANDED_OFF:
             self._record(turn, EventType.RULE_DECISION, {"rule": "turn_limit", "turns": MAX_TURNS})
-            self._hand_off(turn, turn.state.queue or Queue.COMPLAINTS)
+            self._hand_off(turn, turn.state.queue or Queue.COMPLAINTS, TransferReason.TURN_LIMIT)
         turn.lines.append(self._text(turn, "turn_limit"))
 
     # State machine
@@ -295,7 +302,7 @@ class Conversation:
             self._offer_before_transfer(turn)
             return
         turn.lines.append(self._text(turn, "handoff_now"))
-        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
+        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, TransferReason.PERSON_REQUESTED)
 
     def _offer_before_transfer(self, turn: Turn) -> None:
         """POL-01 (v1.5): VERA offers to review the case first; nothing runs while the offer is open."""
@@ -366,7 +373,10 @@ class Conversation:
             return
         if reading.claim_type is ClaimType.SCAM_TRANSFER:
             turn.lines.append(self._text(turn, "scam"))
-            self._hand_off(turn, Queue.FRAUD)
+            turn.state = turn.state.advance(
+                claim_type=reading.claim_type, authorized_payment=reading.authorized_payment
+            )
+            self._hand_off(turn, Queue.FRAUD, TransferReason.SCAM_TRANSFER)
             return
         kind = ChargeKind.BANK_ADJUSTMENT if reading.claim_type is ClaimType.IMPROPER_CHARGE else ChargeKind.PURCHASE
         turn.state = turn.state.advance(claim_type=reading.claim_type, declared_channel=reading.declared_channel)
@@ -696,9 +706,7 @@ class Conversation:
                     reason="policy section 11.1 criteria met" if goodwill else None,
                 ),
                 queue=queue,
-                open_questions=("When did the customer last see the card?",)
-                if Signal.CARD_NOT_IN_POSSESSION in signals
-                else (),
+                open_questions=(CARD_LAST_SEEN,) if Signal.CARD_NOT_IN_POSSESSION in signals else (),
                 policy_version=self._engine.version,
                 created_at=_aware(self._now()),
             )
@@ -817,7 +825,7 @@ class Conversation:
         )
         if evaluation.escalate:
             turn.lines.append(self._text(turn, "handoff_unclear"))
-            self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
+            self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, TransferReason.NOT_UNDERSTOOD)
             return
         turn.lines.append(self._text(turn, template))
         if step in (None, turn.state.step):
@@ -868,11 +876,51 @@ class Conversation:
             turn, Facts(account_country=self._country(turn), tool_failed=True, already_escalated=turn.state.escalated)
         )
         turn.lines.append(self._text(turn, "tool_failure"))
-        self._hand_off(turn, Queue.COMPLAINTS)
+        self._hand_off(turn, Queue.COMPLAINTS, TransferReason.TOOL_FAILURE)
 
-    def _hand_off(self, turn: Turn, queue: Queue) -> None:
-        self._record(turn, EventType.HANDOFF, {"case_id": turn.state.case_id, "queue": queue.value})
+    def _hand_off(self, turn: Turn, queue: Queue, reason: TransferReason) -> None:
+        """A person takes over, and the analyst gets a note with what is already known (POL-01)."""
+        transfer_id = self._leave_note(turn, queue, reason)
+        data = {"case_id": turn.state.case_id, "queue": queue.value, "transfer_id": transfer_id}
+        self._record(turn, EventType.HANDOFF, data)
         turn.state = turn.state.advance(step=Step.HANDED_OFF, escalated=True, queue=queue)
+
+    def _leave_note(self, turn: Turn, queue: Queue, reason: TransferReason) -> str | None:
+        """The transfer note; when it cannot be built or kept, the conversation still goes to the person."""
+        args = CreateTransferInput(queue=queue, reason=reason)
+        try:
+            note = self._transfer_note(turn, queue, reason)
+        except ValueError:
+            self._record_tool(turn, "create_transfer", args.model_dump(mode="json"), INVALID_NOTE)
+            return None
+        result = self._tools.create_transfer(turn.session, args, note)
+        self._record_tool(turn, "create_transfer", args.model_dump(mode="json"), result.output)
+        return None if isinstance(result.output, ToolError) else result.output.transfer_id
+
+    def _transfer_note(self, turn: Turn, queue: Queue, reason: TransferReason) -> Transfer:
+        state = turn.state
+        known = state.disputed or ([state.chosen] if state.chosen is not None else sorted(state.charges_offered))
+        signals = tuple(sorted(s.value for s in state.signals if s is not Signal.NEW_MERCHANT))
+        return build_transfer(
+            reason=reason,
+            customer=self._tools.customer(turn.session),
+            variant=state.variant,
+            claim_type=state.claim_type,
+            charges=tuple(d for d in (self._detail(turn, n) for n in known) if d is not None),
+            declared=DeclaredFacts(
+                channel=state.declared_channel, has_card=state.has_card, authorized_payment=state.authorized_payment
+            ),
+            actions=self._actions(turn),
+            pending_action=state.pending_tool,
+            case_id=state.case_id,
+            risk_signals=signals,
+            fraud_alert=bool(state.fraud_alert_charges),
+            rules_applied=tuple(dict.fromkeys(state.rules_applied)),
+            queue=queue,
+            policy_version=self._engine.version,
+            conversation_id=turn.session.conversation_id,
+            created_at=_aware(self._now()),
+        )
 
     def _record(
         self, turn: Turn, event_type: EventType, data: dict[str, JsonValue], provider: str | None = None

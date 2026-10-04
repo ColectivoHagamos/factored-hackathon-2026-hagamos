@@ -12,7 +12,7 @@ from typing import Protocol
 from vera.contracts.cases import Case
 from vera.contracts.charges import ChargeKind, ChargeStatus, FraudScoreBand
 from vera.contracts.common import Country, Currency
-from vera.contracts.handoff import Handoff, Queue
+from vera.contracts.handoff import Handoff, Queue, Transfer
 
 
 @dataclass(frozen=True)
@@ -113,3 +113,7 @@ class RoutingPort(Protocol):
         ...
 
     def fraud_alerts_of(self, customer_ref: str) -> tuple[FraudAlertRecord, ...]: ...
+
+    def transfer(self, note: Transfer, conversation_id: str) -> Transfer:
+        """Deliver the note to an analyst queue once per conversation; the store assigns the transfer id."""
+        ...

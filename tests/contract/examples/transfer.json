@@ -1,0 +1,50 @@
+{
+  "schema_version": "transfer/1.0",
+  "transfer_id": "TRF-000001",
+  "created_at": "2026-06-18T09:00:00-05:00",
+  "reason": "person_requested",
+  "summary": "person requested: unrecognized charge, 1 charge(s) known, register dispute pending and not run",
+  "language": "es",
+  "variant": "es-CO",
+  "requires_pt_analyst": false,
+  "account_country": "CO",
+  "segment": "plus",
+  "claim_type": "unrecognized_charge",
+  "charges": [
+    {
+      "n": 1,
+      "kind": "purchase",
+      "occurred_at": "2026-06-15T04:12:00",
+      "amount": "185000",
+      "currency": "COP",
+      "merchant": "Libreria Andina",
+      "merchant_category": "Services",
+      "city": "Bogota",
+      "country": "CO",
+      "status": "approved",
+      "card": "•••• 4821",
+      "card_type": "credit",
+      "card_n": 1,
+      "is_known_merchant": false,
+      "fraud_score_band": "<=30"
+    }
+  ],
+  "declared_by_customer": {
+    "channel": "online",
+    "has_card": "yes",
+    "was_in_country": "not_said",
+    "authorized_payment": "not_said"
+  },
+  "actions": [],
+  "pending_action_not_run": "register_dispute",
+  "case_id": null,
+  "risk_signals": [],
+  "fraud_alert": false,
+  "rules_applied": [
+    "POL-01"
+  ],
+  "suggested_queue": "complaints",
+  "open_questions": [],
+  "policy_version": "1.5",
+  "trace_id": "trace-conv-1"
+}

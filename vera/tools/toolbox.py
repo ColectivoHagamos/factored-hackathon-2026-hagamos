@@ -13,13 +13,15 @@ from decimal import Decimal
 from vera.contracts.cases import Case, CaseStatus
 from vera.contracts.charges import Candidate, ChargeDetail, ChargeStatus
 from vera.contracts.common import Money
-from vera.contracts.handoff import Handoff
+from vera.contracts.handoff import Handoff, Transfer
 from vera.contracts.interpretation import ClaimType
 from vera.contracts.tools import (
     BlockCardInput,
     BlockCardOutput,
     CreateHandoffInput,
     CreateHandoffOutput,
+    CreateTransferInput,
+    CreateTransferOutput,
     ReadCaseInput,
     RegisterDisputeInput,
     RegisterDisputeOutput,
@@ -154,6 +156,14 @@ class Toolbox:
         if self._cases.read(args.case_id, session.customer_ref) is None or handoff.case_id != args.case_id:
             return ToolError(code=ToolErrorCode.NOT_FOUND)
         return CreateHandoffOutput(handoff_id=self._routing.hand_off(handoff, args.queue))
+
+    def create_transfer(
+        self, session: Session, args: CreateTransferInput, note: Transfer
+    ) -> CreateTransferOutput | ToolError:
+        foreign_case = note.case_id is not None and self._cases.read(note.case_id, session.customer_ref) is None
+        if foreign_case or (note.suggested_queue, note.reason) != (args.queue, args.reason):
+            return ToolError(code=ToolErrorCode.NOT_FOUND)
+        return CreateTransferOutput(transfer_id=self._routing.transfer(note, session.conversation_id).transfer_id)
 
     def send_fraud_alert(
         self, session: Session, offers: Offers, args: SendFraudAlertInput

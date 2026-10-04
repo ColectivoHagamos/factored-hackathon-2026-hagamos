@@ -18,9 +18,9 @@ Every response carries `X-Request-ID`. A caller can send its own id, and it is k
 
 ## Following one conversation
 
-The trace id of a conversation is `trace-<conversation_id>`. It appears in every `turn` line and in the analyst's handoff (`trace_id`). To follow a conversation end to end:
+The trace id of a conversation is `trace-<conversation_id>`. It appears in every `turn` line, in the analyst's handoff and in the transfer note (`trace_id`). To follow a conversation end to end:
 
-1. Take the trace id from the handoff in the analyst console, or the conversation id from the request path.
+1. Take the trace id from the queue of the analyst console (a case handoff or a transfer note), or the conversation id from the request path.
 2. Filter the log lines by it: every turn, with its rules, tools and transfer.
 3. For the full record, read the conversation's events. Each turn is a chain of events linked by hash (customer message, interpretation, rule decisions, tool calls and results, confirmation, read-back, reply), and the chain can be verified and replayed (`vera/core/events.py`).
 

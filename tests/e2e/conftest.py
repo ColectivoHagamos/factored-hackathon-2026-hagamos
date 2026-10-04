@@ -105,15 +105,19 @@ class Customer:
         return self.dispute(reply)
 
 
-def analyst_view(client, case_id: str) -> dict:
-    """The handoff of a case as the analyst console reads it; VERA_E2E_ANALYST_KEY opens a closed deployment."""
+def analyst_get(client, path: str):
+    """What the analyst console reads; VERA_E2E_ANALYST_KEY opens a closed deployment."""
     key = os.environ.get("VERA_E2E_ANALYST_KEY")
     session = client.post("/v1/demo-analyst-session", headers={"X-Analyst-Key": key} if key else {})
     assert session.status_code == 200, session.text
-    headers = {"Authorization": f"Bearer {session.json()['token']}"}
-    response = client.get(f"/v1/cases/{case_id}/handoff", headers=headers)
+    response = client.get(path, headers={"Authorization": f"Bearer {session.json()['token']}"})
     assert response.status_code == 200, response.text
     return response.json()
+
+
+def analyst_view(client, case_id: str) -> dict:
+    """The handoff of a case as the analyst console reads it."""
+    return analyst_get(client, f"/v1/cases/{case_id}/handoff")
 
 
 def now() -> datetime:
