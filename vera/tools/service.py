@@ -16,6 +16,7 @@ from vera.contracts.tools import (
     RegisterDisputeInput,
     SearchChargesInput,
     SearchChargesOutput,
+    SendFraudAlertInput,
     SweepChargesInput,
     SweepChargesOutput,
     ToolError,
@@ -77,3 +78,6 @@ class ToolService:
 
     def create_handoff(self, session: Session, args: CreateHandoffInput, handoff: Handoff) -> GateResult:
         return self._gate.create_handoff(session, args, handoff)
+
+    def send_fraud_alert(self, session: Session, offers: Offers, args: SendFraudAlertInput) -> GateResult:
+        return self._gate.send_fraud_alert(session, offers, args)

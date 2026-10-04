@@ -33,6 +33,7 @@ from vera.contracts.tools import (
     RegisterDisputeInput,
     RegisterDisputeOutput,
     SearchChargesInput,
+    SendFraudAlertInput,
     SweepChargesInput,
     ToolError,
     ViewChargeInput,
@@ -125,23 +126,27 @@ class Conversation:
         self._record(turn, EventType.CUSTOMER_MESSAGE, {"text": message.text, "option": message.selected_option})
         if turns > MAX_TURNS:
             self._turn_limit(turn)
-            return self._finish(turn)
+        else:
+            self._take_turn(turn, message, security_signals)
+        self._alert_fraud_if_due(turn)
+        return self._finish(turn)
+
+    def history(self, conversation_id: str) -> tuple[Event, ...]:
+        """Events of a conversation, for audit and replay."""
+        return self._log.read(conversation_id)
+
+    def _take_turn(self, turn: Turn, message: MessageRequest, security_signals: tuple[str, ...]) -> None:
         reading = self._interpret(turn, message)
         if security_signals:
             self._security_event(turn, security_signals)
         if self._safety_first(turn, reading):
-            return self._finish(turn)
+            return
         if security_signals:
             # POL-03: the message is data; nothing is searched or changed.
             turn.lines.append(self._text(turn, "not_found"))
             self._repeat_question(turn)
         else:
             self._advance(turn, reading)
-        return self._finish(turn)
-
-    def history(self, conversation_id: str) -> tuple[Event, ...]:
-        """Events of a conversation, for audit and replay."""
-        return self._log.read(conversation_id)
 
     # Interpretation and safety
 
@@ -411,6 +416,8 @@ class Conversation:
         disputed = [d.n for d in details if d.status in (ChargeStatus.APPROVED, ChargeStatus.PENDING)]
         turn.state = turn.state.advance(signals=sorted(signals), disputed=disputed)
         evaluation = self._evaluate(turn, self._dispute_facts(turn, details))
+        if Outcome.FRAUD_ALERT in evaluation.outcomes:
+            turn.state = turn.state.advance(fraud_alert_charges=[d.n for d in details])
         card_n = details[0].card_n if details else None
         if Outcome.OFFER_BLOCK in evaluation.outcomes and card_n:
             self._propose_block(turn, card_n, details[0].card, "offer_block")
@@ -592,10 +599,8 @@ class Conversation:
             )
             turn.lines.append(self._text(turn, "handoff_pt" if turn.state.variant is LanguageVariant.PT else "handoff"))
             turn.state = turn.state.advance(escalated=True, queue=queue)
-        if Outcome.FRAUD_ALERT in evaluation.outcomes:
-            self._record(
-                turn, EventType.FRAUD_ALERT, {"case_id": case.case_id, "signals": sorted(s.value for s in signals)}
-            )
+        if Outcome.FRAUD_ALERT in evaluation.outcomes and not turn.state.fraud_alert_charges:
+            turn.state = turn.state.advance(fraud_alert_charges=[charge.n for charge in case.charges])
         turn.lines.append(self._text(turn, "closing"))
         turn.state = turn.state.advance(step=Step.HANDED_OFF if escalate else Step.DONE)
 
@@ -721,6 +726,28 @@ class Conversation:
         turn.multiple_choice = turn.state.step is Step.SWEEP and bool(turn.options)
         if shown.get("pending"):
             turn.pending = PendingConfirmation.model_validate(shown["pending"])
+
+    def _alert_fraud_if_due(self, turn: Turn) -> None:
+        """POL-16: when the dispute part ends, with or without a case, the Fraud team gets one alert."""
+        state = turn.state
+        if not state.fraud_alert_charges or state.fraud_alert_id or state.step not in (Step.DONE, Step.HANDED_OFF):
+            return
+        args = SendFraudAlertInput(
+            charges_n=tuple(state.fraud_alert_charges),
+            signals=tuple(signal.value for signal in state.signals),
+            card_blocked=any(a.action == "block_card" and a.result == "ok" for a in self._actions(turn)),
+            case_id=state.case_id,
+        )
+        result = self._tools.send_fraud_alert(turn.session, self._offers(turn), args)
+        self._record_tool(turn, "send_fraud_alert", args.model_dump(mode="json"), result.output)
+        if isinstance(result.output, ToolError):
+            # POL-13: a person follows up; the next turn tries the alert again.
+            if state.step is not Step.HANDED_OFF:
+                self._fail(turn)
+            return
+        alert_id = result.output.alert_id
+        self._record(turn, EventType.FRAUD_ALERT, {"alert_id": alert_id, **args.model_dump(mode="json")})
+        turn.state = turn.state.advance(fraud_alert_id=alert_id)
 
     def _fail(self, turn: Turn) -> None:
         """POL-13: a failed tool or a read-back that does not match goes to a person; nothing is filled in."""

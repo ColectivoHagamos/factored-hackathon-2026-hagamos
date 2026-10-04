@@ -115,7 +115,23 @@ class CreateHandoffOutput(Contract):
     handoff_id: Identifier
 
 
-# The seven tools of the design. Moving or promising money is not a tool (PROH-03).
+class SendFraudAlertInput(Contract):
+    """POL-16: an alert to the Fraud team with the signals, the charges and the block status, with or without a case.
+
+    It is not the dispute handoff and decides nothing about money.
+    """
+
+    charges_n: tuple[CandidateNumber, ...] = Field(min_length=1)
+    signals: tuple[ShortText, ...] = Field(min_length=1)
+    card_blocked: bool
+    case_id: CaseId | None = None
+
+
+class SendFraudAlertOutput(Contract):
+    alert_id: Identifier
+
+
+# The seven tools of the design and the POL-16 alert. Moving or promising money is not a tool (PROH-03).
 TOOL_INPUTS: dict[str, type[Contract]] = {
     "search_charges": SearchChargesInput,
     "view_charge": ViewChargeInput,
@@ -124,6 +140,7 @@ TOOL_INPUTS: dict[str, type[Contract]] = {
     "register_dispute": RegisterDisputeInput,
     "read_case": ReadCaseInput,
     "create_handoff": CreateHandoffInput,
+    "send_fraud_alert": SendFraudAlertInput,
 }
 
 TOOL_OUTPUTS: dict[str, type[Contract]] = {
@@ -134,4 +151,5 @@ TOOL_OUTPUTS: dict[str, type[Contract]] = {
     "register_dispute": RegisterDisputeOutput,
     "read_case": Case,
     "create_handoff": CreateHandoffOutput,
+    "send_fraud_alert": SendFraudAlertOutput,
 }

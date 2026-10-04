@@ -90,9 +90,22 @@ class CasesPort(Protocol):
     def next_case_id(self) -> str: ...
 
 
+@dataclass(frozen=True)
+class FraudAlertRecord:
+    customer_ref: str
+    case_id: str | None
+    signals: tuple[str, ...]
+    charge_refs: tuple[str, ...]
+    card_blocked: bool
+
+
 class RoutingPort(Protocol):
     def hand_off(self, handoff: Handoff, queue: Queue) -> str:
         """Deliver the handoff to an analyst queue and return its reference."""
         ...
 
-    def fraud_alert(self, case_id: str | None, customer_ref: str, signals: tuple[str, ...]) -> str: ...
+    def fraud_alert(self, alert: FraudAlertRecord) -> str:
+        """Deliver the alert to the Fraud team and return its reference."""
+        ...
+
+    def fraud_alerts_of(self, customer_ref: str) -> tuple[FraudAlertRecord, ...]: ...

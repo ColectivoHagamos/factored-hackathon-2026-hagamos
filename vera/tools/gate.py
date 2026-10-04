@@ -23,6 +23,7 @@ from vera.contracts.tools import (
     ReadCaseInput,
     RegisterDisputeInput,
     RegisterDisputeOutput,
+    SendFraudAlertInput,
     ToolError,
     ToolErrorCode,
 )
@@ -44,6 +45,8 @@ RISK_TABLE: dict[str, Risk] = {
     "block_card": Risk.MEDIUM,
     "register_dispute": Risk.MEDIUM,
     "create_handoff": Risk.MEDIUM,
+    # An internal notice required by POL-16: it acts on nothing of the customer's, so it needs no confirmation.
+    "send_fraud_alert": Risk.MEDIUM,
 }
 CONFIRMED_WRITES = ("block_card", "register_dispute")
 
@@ -96,6 +99,10 @@ class ActionGate:
 
     def create_handoff(self, session: Session, args: CreateHandoffInput, handoff: Handoff) -> GateResult:
         output = self._toolbox.create_handoff(session, args, handoff)
+        return GateResult(output, read_back_matches=not isinstance(output, ToolError))
+
+    def send_fraud_alert(self, session: Session, offers: Offers, args: SendFraudAlertInput) -> GateResult:
+        output = self._toolbox.send_fraud_alert(session, offers, args)
         return GateResult(output, read_back_matches=not isinstance(output, ToolError))
 
     def _check(self, session: Session, tool: str, args: BlockCardInput | RegisterDisputeInput) -> ToolError | None:
