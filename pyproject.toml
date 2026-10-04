@@ -7,7 +7,9 @@ requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }
 authors = [{ name = "Team HAGAMOS" }]
 # Runtime dependencies are added when a step needs them (contracts, API, data, ML).
-dependencies = []
+dependencies = [
+    "pydantic>=2.9",
+]
 
 [dependency-groups]
 dev = ["pytest>=8.3", "ruff>=0.7"]
