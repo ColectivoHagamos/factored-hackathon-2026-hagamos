@@ -203,3 +203,35 @@ def test_an_attack_that_also_asks_for_a_person_is_recorded_and_a_person_wins(wor
     assert [e.data["signals"] for e in world.log.read("conv-1") if e.type is EventType.SECURITY_EVENT] == [
         ["instruction_override"]
     ]
+
+
+def test_a9_two_charges_of_the_same_merchant_are_listed_and_the_customer_chooses(world: World):
+    _, listed, aside, unclear, chosen = world.chat(CO_02, "No reconozco el cargo de Uber", "¿y mi saldo?", "no sé", 2)
+    assert len(listed.options) == 2 and all("Uber" in option.label for option in listed.options)
+    assert any(entry.rule_id == "POL-05" for entry in listed.glass_box) and "¿Reconoce" not in listed.reply
+    assert "saldo" in aside.reply and "pregunta anterior" in aside.reply and aside.options == listed.options
+    assert unclear.options == listed.options
+    assert listed.options[1].label in chosen.reply and "¿Reconoce el cargo" in chosen.reply
+
+
+def test_an_aside_costs_no_attempt_and_each_question_counts_its_own(world: World):
+    world.chat(CO_02, "No reconozco el cargo de Uber", "no sé", "mmm", 1)
+    assert world.state_of().step is Step.CLARIFY and world.state_of().attempts == 0
+    asides = world.send(CO_02, "¿cuánto debo de la tarjeta?", "¿y mi saldo?", "¿cuál es el pago mínimo?")
+    assert all("pregunta anterior" in reply.reply for reply in asides)
+    *_, last = world.send(CO_02, "mmm", "eh", "pues")
+    assert "Para no hacerle repetir más" in last.reply and world.state_of().step is Step.HANDED_OFF
+
+
+def test_pix_in_the_middle_of_the_flow_is_oriented_without_leaving_the_question(world: World):
+    *_, pix = world.chat(CO_01, "No reconozco un cargo de Libreria Andina", "¿y si fue un pix?")
+    assert "Mecanismo Especial de Devolución" in pix.reply and [o.answer for o in pix.options] == ["yes", "no"]
+    assert any(entry.rule_id == "POL-15" for entry in pix.glass_box)
+    assert world.state_of().step is Step.CLARIFY
+
+
+def test_an_unclear_answer_to_a_confirmation_keeps_the_pending_action(world: World):
+    *_, confirm, unclear = world.chat(
+        CO_01, "No reconozco un cargo de Libreria Andina", "no", "sí", "sí, la tengo", "todos", "mmm"
+    )
+    assert unclear.pending_confirmation == confirm.pending_confirmation and unclear.options == confirm.options
