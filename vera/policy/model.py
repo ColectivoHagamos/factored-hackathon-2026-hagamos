@@ -24,6 +24,7 @@ class Parameters(Contract):
     repeat_window_days: int = Field(ge=1)
     interpreter_min_confidence: float = Field(gt=0, lt=1)
     max_question_attempts: int = Field(ge=1)
+    offers_before_transfer: int = Field(ge=0)
     system_clock: date
     network_term_days: int = Field(ge=1)
     goodwill_max_usd: Decimal = Field(gt=0)

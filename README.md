@@ -5,7 +5,7 @@
 - it **V**erifies the charge against the records before it acts;
 - it **E**xplains each decision with the rule and its source;
 - it **R**ecords the case and reads it back before it says it is done;
-- it **A**ccompanies the customer, with a person always one message away.
+- it **A**ccompanies the customer, with a person always available.
 
 **Demo:** https://vera.colectivohagamos.com, published with the first deployment. The customer chat is at `/`, the analyst console at `/console.html`. The demo customers are pseudonymized: nothing there is a real person.
 
@@ -18,7 +18,8 @@
 | Signs of fraud (no card, several charges) | Offers to block the card, which needs the customer's confirmation. Registers one case, hands off to the Fraud team with the network reason code, and sends a fraud alert. In Argentina the block is offered only at the customer's request |
 | An improper bank charge | Identifies the adjustment from the records, registers the customer's reason, and hands off to Complaints, which decides |
 | Two charges at the same merchant | Lists both and lets the customer choose; VERA never chooses |
-| "I want a person", a threat, the regulator | A person first, before any action; the venue of the country when the regulator comes up |
+| "I want a person" | No action runs. VERA offers once to review the case first; if the customer insists or does not take the offer, a person takes over with what is known (POL-01) |
+| A threat, the regulator | A person at once, before any action; the venue of the country when the regulator comes up |
 | A question VERA does not cover ("¿y mi saldo?") | Says so, points to the right channel, and goes back to the open question |
 | Prompt injection, or another customer's data | Treated as data: "not found", a security event, no action |
 

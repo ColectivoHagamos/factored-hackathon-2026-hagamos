@@ -20,6 +20,8 @@ class Step(StrEnum):
     CONFIRM_REGISTER = "confirm_register"
     # The reading of a request for a person was unsure, so VERA asked before transferring.
     CONFIRM_PERSON = "confirm_person"
+    # POL-01: the customer asked for a person and VERA offered once to go on first.
+    PERSON_OFFERED = "person_offered"
     DONE = "done"
     HANDED_OFF = "handed_off"
 
@@ -49,6 +51,10 @@ class FlowState(BaseModel):
     escalated: bool = False
     queue: Queue | None = None
     rules_applied: list[str] = []
+    # POL-01: offers made to go on before a transfer.
+    person_offers: int = 0
+    # The open question during a detour about a person (POL-01 offer, POL-14 check), to go back to it.
+    resume_step: Step | None = None
 
     def advance(self, **changes: object) -> "FlowState":
         """A new state with the given changes; a new question starts its own count of attempts (POL-05)."""

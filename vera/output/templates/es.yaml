@@ -38,6 +38,7 @@ templates:
   deadline_AR-R05_answer: "Y debe corregir el resumen o explicarlo con comprobantes a más tardar el {date} (Ley 25.065, art. 27)."
   route_without_date: "{route}: la vía queda registrada; esa fecha la confirma un analista."
   handoff: "Un analista revisará el caso y {te} contactará. No {tienes} que repetir lo que ya me {dijiste}."
+  offer_before_transfer: "{Te} puedo conectar con un analista ahora mismo. Si {quieres}, antes reviso {tu} caso: toma un par de minutos. ¿Lo reviso primero?"
   handoff_now: "Con gusto. Paso la conversación a una persona ahora mismo."
   turn_limit: "Para no alargar más esta conversación, paso el caso a una persona ahora mismo. No {tienes} que repetir lo que ya me {dijiste}."
   handoff_unclear: "Para no hacer{te} repetir más, paso la conversación a una persona ahora mismo."
