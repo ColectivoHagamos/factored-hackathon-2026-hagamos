@@ -4,9 +4,11 @@ import secrets
 from collections import defaultdict, deque
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 from api.dependencies import Container, build
@@ -31,6 +33,7 @@ from vera.gateway.masking import mask
 from vera.ports.tools import Session
 
 PREFIX = "/v1"
+WEB = Path(__file__).resolve().parents[1] / "web"
 STATUS = {
     ApiErrorCode.UNAUTHORIZED: 401,
     ApiErrorCode.NOT_FOUND: 404,
@@ -160,6 +163,9 @@ def create_app(settings: Settings | None = None, container: Container | None = N
             raise ApiFailure(ApiErrorCode.NOT_FOUND)
         return found
 
+    # ADR 0002: the API also serves the web, so the demo is one URL and one deployment.
+    if WEB.is_dir():
+        app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
     return app
 
 

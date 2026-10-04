@@ -71,6 +71,8 @@ class GlassBoxEntry(Contract):
 class MessageResponse(Contract):
     reply: str
     options: tuple[Option, ...] = ()
+    # True when the customer may pick several options at once, as in the sweep.
+    multiple_choice: bool = False
     pending_confirmation: PendingConfirmation | None = None
     glass_box: tuple[GlassBoxEntry, ...] = ()
 
