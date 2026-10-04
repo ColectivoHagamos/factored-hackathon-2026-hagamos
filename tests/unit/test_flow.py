@@ -31,9 +31,9 @@ MX_01, MX_02 = "CUS-MOCK00000000003", "CUS-MOCK00000000005"
 
 
 class World:
-    def __init__(self) -> None:
+    def __init__(self, bank_type: type[MockBank] = MockBank) -> None:
         self.state = SqliteState()
-        bank = MockBank(self.state)
+        bank = bank_type(self.state)
         self.clock = CLOCK
         now = lambda: self.clock  # noqa: E731
         toolbox = Toolbox(bank, bank, self.state, self.state, POLICY.parameters.usd_rates, now=now)
@@ -301,3 +301,17 @@ def test_a_named_place_finds_a_charge_older_than_the_recent_window(world: World)
     assert "No encontré ese cargo" in unnamed.reply
     _, named = world.chat(MX_01, "No reconozco un cargo en Madrid", conversation_id="conv-2")
     assert "Hotel Prado, Madrid, USD 240" in named.reply and "¿Reconoces el cargo" in named.reply
+
+
+class BrokenTransactions(MockBank):
+    def charges(self, customer_ref, since, until):
+        raise TimeoutError("the transactions store did not answer")
+
+
+def test_pol13_a_tool_that_fails_hands_off_without_inventing_anything():
+    world = World(bank_type=BrokenTransactions)
+    _, reply = world.chat(CO_01, "No reconozco un cargo de Libreria Andina")
+    assert "No pude completar la verificación" in reply.reply and "Libreria Andina" not in reply.reply
+    assert world.state_of().step is Step.HANDED_OFF and "POL-13" in {e.rule_id for e in reply.glass_box}
+    results = [e.data for e in world.log.read("conv-1") if e.type is EventType.TOOL_RESULT]
+    assert results == [{"tool": "search_charges", "result": "failure"}]
