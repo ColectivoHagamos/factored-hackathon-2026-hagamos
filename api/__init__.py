@@ -1,1 +1,1 @@
-"""API HTTP /v1 (FastAPI): adaptador de entrada. Aquí se cablean los adaptadores según la configuración."""
+"""HTTP API /v1 (FastAPI), the inbound adapter. Adapters are wired here according to configuration."""

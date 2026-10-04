@@ -1,1 +1,1 @@
-"""Herramientas del repositorio: verificaciones de publicación y utilidades de desarrollo."""
+"""Repository tooling: publication checks and development utilities."""
