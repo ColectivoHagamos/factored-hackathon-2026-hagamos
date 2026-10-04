@@ -67,7 +67,14 @@ jobs:
       - name: Deploy with rollback
         env:
           TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
-        run: ssh -i ~/.ssh/deploy_key "$TARGET" "cd /opt/vera && chmod +x deploy.sh && DOMAIN=$DOMAIN ./deploy.sh ${{ github.sha }}"
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The image is private: the job's short-lived token pulls it, from a Docker config apart from the other
+          # stacks on the host, whose own registry login stays untouched.
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/deploy_key "$TARGET" \
+            "mkdir -p /opt/vera/.docker && DOCKER_CONFIG=/opt/vera/.docker docker login ghcr.io -u ${{ github.actor }} --password-stdin"
+          ssh -i ~/.ssh/deploy_key "$TARGET" \
+            "cd /opt/vera && chmod +x deploy.sh && DOCKER_CONFIG=/opt/vera/.docker DOMAIN=$DOMAIN ./deploy.sh ${{ github.sha }}"
 
       - name: Public health check
         run: |
