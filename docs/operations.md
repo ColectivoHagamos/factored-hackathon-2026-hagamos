@@ -32,11 +32,12 @@ The trace id of a conversation is `trace-<conversation_id>`. It appears in every
 - `conversations`, `turns`, `handoffs_fraud`, `handoffs_complaints`, `security_events`, `fraud_alerts`, `tool_failures` and `validator_blocks`;
 - the way out to a person, which the policy asks to measure from the first day (POL-01, section 16): `person_offered`, `person_offer_taken`, `person_transferred`, and how the conversations that took the offer ended, `ended_after_offer_done` and `ended_after_offer_handed_off`;
 - `request_ms` and `turn_ms`: p50 and p95 over the last 2,000 values;
-- `interpreter` and `degraded`.
+- `interpreter` and `degraded`;
+- `llm`, when Claude reads the messages (`VERA_LLM=anthropic`): `calls`, `fallbacks`, `input_tokens`, `output_tokens`, `spent_usd` and `cap_usd`.
 
 With one offer per conversation, the share of customers who ask for a person is `person_offered` over `conversations`, and the share who go on with VERA is `person_offer_taken` over `person_offered`. Compliance reads these against how those conversations end to decide whether to change the number of offers; the way out to a person is never removed.
 
-Spending is not tracked, because no paid model is called (the cost per case is US$ 0); the counter arrives with a language model adapter.
+With the classifier or the rules, no paid model is called and the cost per case is US$ 0. With Claude, each message read costs about US$ 0.0025 at the prices of Haiku 4.5; past `LLM_MAX_SPEND_USD` every message goes to the classifier. That cap lives in the process and restarts with it, so the same cap is set in the provider's console.
 
 ## Alerts
 
@@ -49,13 +50,15 @@ These thresholds are defined for whoever watches the metrics; the demo has no pa
 | `security_events` | More than 10 in 5 minutes, or from one customer | Look for an attack pattern; the rate limit already caps one customer at 30 messages per minute |
 | `validator_blocks` | Any | A reply was blocked before it reached a customer: read its turn and fix the template or the flow |
 | `turn_ms` p95 | Above 1,000 ms | Check the server load; see the load test below |
-| `degraded` in `/v1/health` | True | The classifier did not start and the rules are answering; read the `interpreter_fallback` line |
+| `degraded` in `/v1/health` | True | The configured interpreter did not start (no key, no model) and the rules are answering; read the `interpreter_fallback` line |
+| `llm.fallbacks` | More than 5 % of `llm.calls` in 5 minutes, or `spent_usd` near `cap_usd` | Check the provider's status and the key; the classifier is answering meanwhile |
 
 ## When a part fails
 
 | Failure | What VERA does |
 |---|---|
 | The learned classifier cannot start | The rules interpreter answers; `/v1/health` reports `degraded` and the interpreter in use |
+| The language model fails, takes more than 3 s (two retries) or reaches the spending cap | The classifier answers that message; `llm.fallbacks` counts it. Without a key at start, the rules answer and health says `degraded` |
 | A bank read fails or times out | It is tried once more; then the conversation goes to a person and nothing is filled in (POL-13) |
 | A write fails | The write is not retried, because its confirmation token was spent; the read-back does not match, so the conversation goes to a person |
 | Any other error in a request | 503 with a plain message (`provider_unavailable`); the trace stays in the log, never in the response |

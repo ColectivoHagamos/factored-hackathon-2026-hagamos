@@ -8,7 +8,8 @@ services:
     environment:
       VERA_ADAPTER: dataset
       # The learned classifier reads the opening claim; docs/evaluation compares it with the keyword baseline.
-      VERA_LLM: classifier
+      # The server's .env may choose anthropic once its LLM_API_KEY is set (P41).
+      VERA_LLM: ${VERA_LLM:-classifier}
       VERA_DEMO_DB: /data/demo.duckdb
       VERA_STATE_DB: /state/state.sqlite
       VERA_VERSION: ${VERA_IMAGE_TAG}

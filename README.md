@@ -27,14 +27,15 @@
 
 ```
 customer text ─▶ gateway ──────▶ interpreter ───────▶ flow (state machine) ─▶ tools ─────▶ action gate ─▶ bank
-                 masking          rules, or a           policy engine          read         confirmation
-                 injection        learned classifier    legal clock            only         token, single use,
+                 masking          rules, a learned      policy engine          read         confirmation
+                 injection        classifier, or Claude legal clock            only         token, single use,
                  signals          (closed schema)       output validator                    idempotent, read back
 ```
 
 - **Hexagonal architecture.** The domain (contracts, ports, flow, policy and output) knows no web framework, database or model provider; adapters plug in from outside ([ADR 0001](docs/adr/0001-monorepo-and-hexagonal-architecture.md)).
 - **The interpreter only reads; it never decides.**
   - It fills a closed schema.
+  - With `VERA_LLM=anthropic`, Claude Haiku 4.5 reads every message through one forced tool call and a versioned prompt. The classifier stands underneath: it answers when the model fails, is slow or reaches the spending cap, and a person request or a threat it finds always wins ([ADR 0004](docs/adr/0004-a-language-model-reads-and-the-classifier-stands-underneath.md)).
   - The flow decides with an executable policy (`vera/policy/policy_v1.yaml`, POL-01 to POL-17 and PROH-01 to PROH-04).
   - A legal clock dates deadlines only from rules whose official text and hash are loaded, with business days per country.
 - **Every write goes through one action gate.**
@@ -42,7 +43,7 @@ customer text ─▶ gateway ──────▶ interpreter ─────�
   - The write is idempotent and read back.
   - No tool can move or promise money.
 - **Prompt injection is contained by design, not by instructions** ([ADR 0003](docs/adr/0003-prompt-injection-is-contained-by-design.md)).
-  - Gateway signals turn a message into "not found" and record a security event, and flagged text never reaches the learned model.
+  - Gateway signals turn a message into "not found" and record a security event, and flagged text never reaches a learned model or the language model.
   - A message that slips through still meets the closed schema, the session isolation and the gate.
 - **Failures go to a person.** A tool that fails is retried once if it only reads; then the case goes to a person, and nothing is filled in (POL-13).
 - **Every turn is an event in a hash-chained log,** so a conversation can be audited and replayed.
@@ -93,7 +94,7 @@ make ml-report    # retrains the classifier and rewrites its report
 make evaluation   # the evaluation (SET=dev or heldout); needs the demo subset in VERA_DEMO_DB
 ```
 
-Configuration comes from environment variables, all optional; `.env.example` lists them. Without any value, VERA runs with the mock data adapter and the rules interpreter; `VERA_LLM=classifier` switches to the learned classifier.
+Configuration comes from environment variables, all optional; `.env.example` lists them. Without any value, VERA runs with the mock data adapter and the rules interpreter. `VERA_LLM=classifier` switches to the learned classifier. `VERA_LLM=anthropic` with `LLM_API_KEY` switches to Claude over the classifier, with a spending cap (`LLM_MAX_SPEND_USD`, 15 by default).
 
 ## Repository layout
 
@@ -104,7 +105,7 @@ Configuration comes from environment variables, all optional; `.env.example` lis
 | `vera/core` | The conversation as a state machine over a hash-chained event log |
 | `vera/policy` | Executable policy, rule engine and per-country legal clock |
 | `vera/tools` | The tools, scoped to the session customer, behind the action gate |
-| `vera/gateway` · `vera/llm` | Masking and injection signals; the rules and classifier interpreters |
+| `vera/gateway` · `vera/llm` | Masking and injection signals; the rules, classifier and Claude interpreters, and the versioned prompt |
 | `vera/output` | Spanish and Portuguese templates, reply validator and handoff |
 | `api/` · `web/` | HTTP API `/v1`; customer chat with its glass box; analyst console |
 | `pipeline/` | Bronze, silver and gold layers, the pseudonymized demo subset and the freshness fixture |
@@ -124,7 +125,7 @@ LATAM Bank data is synthetic and belongs to Factored. **No dataset record is ver
 
 ## Limits
 
-- **No large language model is used.** The adapters for one are planned behind the same interpreter port, but they are not built; VERA reads with rules and a small classifier.
+- **The language model is built but not measured.** The Claude adapter is tested with a fake client; it enters the evaluation, with its cost and latency per case, once the API key exists. The deployment reads with the classifier until then.
 - **Legal deadlines are dated only where an official text is loaded:** Colombia (Ley 1755) and Argentina (Ley 25.065 and BCRA). Mexican routes and the Decreto 587 are recorded without a date until their texts are loaded and reviewed.
 - **The evaluation is an offline simulation.** The team wrote all its wordings, and the human blind set, which measures real language variety, is still pending.
 - **The classifier still reads some improper bank charges as unrecognized purchases** (19 of 897 runs after the fixes). Those runs fail safely: no case is registered.

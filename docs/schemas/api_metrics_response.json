@@ -51,6 +51,28 @@
       },
       "title": "Turn Ms",
       "type": "object"
+    },
+    "llm": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Llm"
     }
   },
   "required": [
