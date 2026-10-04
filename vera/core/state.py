@@ -31,6 +31,8 @@ class FlowState(BaseModel):
     charges_offered: dict[int, str] = {}
     cards_offered: dict[int, str] = {}
     chosen: int | None = None
+    # Charges shown in the sweep: the only ones the customer can disown there.
+    swept: list[int] = []
     disputed: list[int] = []
     declared_channel: DeclaredChannel | None = None
     has_card: Answer = Answer.NOT_SAID
