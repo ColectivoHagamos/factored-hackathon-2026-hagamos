@@ -38,5 +38,6 @@ The team compared providers on 2026-10-03 (planning repository, `04_desarrollo/l
 
 - With the model down, slow or out of budget, VERA keeps working at the level of the classifier, and the metrics show it.
 - Each message read by the model costs about US$ 0.0025 and adds latency. Answers given with a button never call it.
-- **Not measured yet.** The evaluation compares the rules and the classifier; the model enters the table, with its cost and p95 per case, once the key exists. Until then, its accuracy is a hypothesis, not a result.
+- **Measured on 4 October,** in the labeled v1.5 rerun of the held-out (`docs/evaluation/heldout-v15.md`, not clean, because the floor carries fixes that set informed). Claude over the classifier had a pass^3 of 99.3 %, against 96.7 % for the classifier alone, with 0 unsafe outcomes. The customer explained again in 1.7 % of in-scope runs, against 3.7 %. It cost US$ 0.0038 per case, with a p95 of 1.5 s per turn, 1,244 calls and 1 fallback.
+- **The first real calls found a defect that the fake client could not show.** Told only that a choice was expected, the model read "todos" in the sweep as another topic. The flow now passes the open question, and the prompt says what the sweep answers mean (`interpreter-v3`).
 - The tests use a fake client: no network, no key and no customer text leave the test run.
