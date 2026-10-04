@@ -1,4 +1,4 @@
-"""Tests of the seven tools on the mock bank: numbered options, exposure, idempotency and duplicates."""
+"""Tests of the tools on the mock bank: numbered options, exposure, idempotency and duplicates."""
 
 from datetime import date
 from decimal import Decimal

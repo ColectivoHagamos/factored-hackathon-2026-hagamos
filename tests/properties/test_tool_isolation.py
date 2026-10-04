@@ -12,6 +12,7 @@ from vera.contracts.tools import (
     ReadCaseInput,
     RegisterDisputeInput,
     SearchChargesInput,
+    SendFraudAlertInput,
     SweepChargesInput,
     ToolError,
     ViewChargeInput,
@@ -60,6 +61,8 @@ def test_options_offered_to_one_customer_are_not_found_for_another(setup, owner,
         charges_n=list(offers.charges)[:1], reason="fraud", declared_channel="online", confirmation_token=TOKEN
     )
     assert tools.register_dispute(stranger, offers, args, claim_type="unrecognized_charge").code == "not_found"
+    alert = SendFraudAlertInput(charges_n=list(offers.charges)[:1], signals=["new_merchant"], card_blocked=False)
+    assert tools.send_fraud_alert(stranger, offers, alert).code == "not_found"
 
 
 def test_a_case_of_another_customer_reads_exactly_like_a_missing_one(setup):
@@ -72,3 +75,15 @@ def test_a_case_of_another_customer_reads_exactly_like_a_missing_one(setup):
     foreign = tools.read_case(stranger, ReadCaseInput(case_id=case_id))
     missing = tools.read_case(stranger, ReadCaseInput(case_id="DSP-999999"))
     assert foreign == missing == ToolError(code="not_found")
+
+
+def test_a_fraud_alert_cannot_point_to_a_case_of_another_customer(setup):
+    bank, tools = setup
+    owner = Session(CUSTOMERS[1].customer_ref, "conv-a")
+    _, offers = tools.search_charges(owner, Offers(), WINDOW)
+    args = RegisterDisputeInput(charges_n=[1], reason="fraud", declared_channel="online", confirmation_token=TOKEN)
+    case_id = tools.register_dispute(owner, offers, args, claim_type="unrecognized_charge").case_id
+    stranger = Session(CUSTOMERS[0].customer_ref, "conv-b")
+    _, own_offers = tools.search_charges(stranger, Offers(), WINDOW)
+    alert = SendFraudAlertInput(charges_n=[1], signals=["new_merchant"], card_blocked=False, case_id=case_id)
+    assert tools.send_fraud_alert(stranger, own_offers, alert) == ToolError(code="not_found")

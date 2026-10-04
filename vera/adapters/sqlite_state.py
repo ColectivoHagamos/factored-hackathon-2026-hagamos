@@ -6,6 +6,7 @@ from pathlib import Path
 
 from vera.contracts.cases import Case
 from vera.contracts.handoff import Handoff, Queue
+from vera.ports.bank import FraudAlertRecord
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS cases (
@@ -36,7 +37,9 @@ CREATE TABLE IF NOT EXISTS fraud_alerts (
     alert_id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_id TEXT,
     customer_ref TEXT NOT NULL,
-    signals TEXT NOT NULL
+    signals TEXT NOT NULL,
+    charge_refs TEXT NOT NULL,
+    card_blocked INTEGER NOT NULL
 );
 """
 
@@ -118,13 +121,31 @@ class SqliteState:
         ).fetchone()
         return Handoff.model_validate_json(row[0]) if row else None
 
-    def fraud_alert(self, case_id: str | None, customer_ref: str, signals: tuple[str, ...]) -> str:
+    def fraud_alert(self, alert: FraudAlertRecord) -> str:
         with self._lock:
             cursor = self._connection.execute(
-                "INSERT INTO fraud_alerts (case_id, customer_ref, signals) VALUES (?, ?, ?)",
-                (case_id, customer_ref, ",".join(signals)),
+                "INSERT INTO fraud_alerts (case_id, customer_ref, signals, charge_refs, card_blocked) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    alert.case_id,
+                    alert.customer_ref,
+                    ",".join(alert.signals),
+                    ",".join(alert.charge_refs),
+                    int(alert.card_blocked),
+                ),
             )
             return f"ALR-{cursor.lastrowid:06d}"
+
+    def fraud_alerts_of(self, customer_ref: str) -> tuple[FraudAlertRecord, ...]:
+        rows = self._connection.execute(
+            "SELECT case_id, signals, charge_refs, card_blocked FROM fraud_alerts WHERE customer_ref = ? "
+            "ORDER BY alert_id",
+            (customer_ref,),
+        )
+        return tuple(
+            FraudAlertRecord(customer_ref, case_id, tuple(signals.split(",")), tuple(refs.split(",")), bool(blocked))
+            for case_id, signals, refs, blocked in rows
+        )
 
     def open_conversation(self, conversation_id: str, customer_ref: str) -> None:
         with self._lock:

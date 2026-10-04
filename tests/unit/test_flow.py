@@ -258,3 +258,23 @@ def test_the_sweep_disowns_only_the_charges_it_showed(world: World):
     *_, register = world.send(CO_02, "no")
     assert register.pending_confirmation.action == "register_dispute"
     assert "2 cargos por COP 65.000" in register.reply
+
+
+def test_pol16_a_fraud_alert_goes_out_even_without_a_case(world: World):
+    # A2: the pending charge is not recognized, the block is declined and nothing approved is left to dispute.
+    *_, done = world.chat(CO_02, "No reconozco un cargo de Farmacia Salud", "no", "sí", "sí, la tengo", "no")
+    assert world.state.cases_of(CO_02) == () and world.state_of().step is Step.DONE
+    (alert,) = world.state.fraud_alerts_of(CO_02)
+    assert alert.case_id is None and not alert.card_blocked and "unrecognized_non_approved_charge" in alert.signals
+    events = world.log.read("conv-1")
+    assert sum(e.type is EventType.FRAUD_ALERT for e in events) == 1
+
+
+def test_pol16_the_fraud_alert_of_a_case_carries_it_and_the_block(world: World):
+    world.chat(
+        CO_02, "No reconozco un cargo de Uber", 2, "no", "sí", "no tengo la tarjeta", "no reconozco ninguno", "sí", "sí"
+    )
+    (alert,) = world.state.fraud_alerts_of(CO_02)
+    assert alert.case_id == "DSP-000001" and alert.card_blocked and len(alert.charge_refs) == 3
+    world.send(CO_02, "gracias")
+    assert len(world.state.fraud_alerts_of(CO_02)) == 1

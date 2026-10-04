@@ -18,7 +18,7 @@ TOKEN = "tok_" + "a1b2c3d4" * 3
 
 
 class TestTools:
-    def test_the_seven_design_tools_and_no_money_tool(self):
+    def test_the_design_tools_and_no_money_tool(self):
         expected = {
             "search_charges",
             "view_charge",
@@ -27,6 +27,7 @@ class TestTools:
             "register_dispute",
             "read_case",
             "create_handoff",
+            "send_fraud_alert",
         }
         assert set(TOOL_INPUTS) == set(TOOL_OUTPUTS) == expected
 

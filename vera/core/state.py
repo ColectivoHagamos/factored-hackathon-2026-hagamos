@@ -37,6 +37,9 @@ class FlowState(BaseModel):
     declared_channel: DeclaredChannel | None = None
     has_card: Answer = Answer.NOT_SAID
     signals: list[Signal] = []
+    # POL-16: the charges of a fraud alert that is due, and the alert once it was sent.
+    fraud_alert_charges: list[int] = []
+    fraud_alert_id: str | None = None
     attempts: int = 0
     pending_tool: str | None = None
     pending_arguments: dict | None = None
