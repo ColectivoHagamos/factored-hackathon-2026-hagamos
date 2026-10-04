@@ -32,6 +32,8 @@ Requirements: [uv](https://docs.astral.sh/uv/) and GNU Make. No credentials or d
 ```bash
 make install   # locked dependencies, Python 3.12
 make check     # lint, format, tests, schema drift and publication check
+make serve     # API at http://127.0.0.1:8000/v1/health, interactive docs at /v1/docs
+make demo      # the same API in its container (requires Docker)
 make help      # every available target
 ```
 
