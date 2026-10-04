@@ -48,6 +48,10 @@ class Grade:
     legal_clock: bool | None = None
     # Replies the output validator blocked and replaced with a handoff.
     validator_interventions: int = 0
+    # The language model, when one reads the messages: calls, fallbacks to the classifier, and what they cost.
+    llm_calls: int = 0
+    llm_fallbacks: int = 0
+    llm_cost_usd: float = 0.0
 
 
 def expected_deadlines(account_country: str, card_type: str | None, charge_country: str | None) -> frozenset[Deadline]:
@@ -105,6 +109,7 @@ def grade(case: Case, transcript: Transcript, container: Container, conversation
     responses = [reply for _, reply in transcript.turns if reply]
     replies = [reply["reply"] for reply in responses]
     legal_clock = legal_clock_check(case.country, (state.read(i, case.customer) for i in case_ids), responses)
+    usage = container.llm_usage() if container.llm_usage else {}
 
     checks = {
         "case": registered == expected_charges,
@@ -152,4 +157,7 @@ def grade(case: Case, transcript: Transcript, container: Container, conversation
         explained_again=transcript.explained_again,
         legal_clock=legal_clock,
         validator_interventions=validator_interventions(events),
+        llm_calls=usage.get("calls", 0),
+        llm_fallbacks=usage.get("fallbacks", 0),
+        llm_cost_usd=usage.get("spent_usd", 0.0),
     )

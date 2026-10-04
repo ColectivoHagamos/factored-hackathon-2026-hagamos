@@ -5,6 +5,7 @@ the card, accepts or declines the block, and confirms. Run k of a case uses word
 It never volunteers anything and never sees the policy; whether the outcome is right is up to the graders.
 """
 
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -111,6 +112,9 @@ class Customer:
             llm=interpreter,
             session_secret="evaluation",
             messages_per_minute=10_000,
+            # Only Claude uses them; the key never leaves the environment.
+            llm_api_key=os.environ.get("LLM_API_KEY", ""),
+            llm_workspace_id=os.environ.get("LLM_WORKSPACE_ID", ""),
         )
         factory = (lambda state: UnavailableTransactions(demo_db, state)) if case.script.tools_fail else None
         self.container: Container = build(settings, now=self.clock, bank_factory=factory)
