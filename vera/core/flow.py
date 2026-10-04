@@ -55,6 +55,8 @@ MAX_TURNS = 40
 SEARCH_DAYS = {ChargeKind.PURCHASE: 30, ChargeKind.BANK_ADJUSTMENT: 90}
 VARIANTS = {Country.MX: LanguageVariant.ES_MX, Country.CO: LanguageVariant.ES_CO, Country.AR: LanguageVariant.ES_AR}
 YES_NO = {Language.ES: ("Sí", "No"), Language.PT: ("Sim", "Não")}
+# POL-17: "the customer is told nothing"; the decision stays in the log and the handoff, not in the glass box.
+INTERNAL_RULES = frozenset({"POL-17"})
 POLICY_SOURCE = {
     Language.ES: "Política de disputas de LATAM Bank v{version}",
     Language.PT: "Política de disputas do LATAM Bank v{version}",
@@ -633,7 +635,7 @@ class Conversation:
             self._record(turn, EventType.RULE_DECISION, decision.as_event_data())
             source = POLICY_SOURCE[language_of(turn.state.variant)].format(version=decision.version)
             entry = GlassBoxEntry(rule_id=decision.rule, source=source)
-            if entry not in turn.glass_box:
+            if decision.rule not in INTERNAL_RULES and entry not in turn.glass_box:
                 turn.glass_box.append(entry)
             turn.state = turn.state.advance(rules_applied=[*turn.state.rules_applied, decision.rule])
         return evaluation

@@ -27,6 +27,7 @@ from vera.tools.toolbox import Toolbox
 
 POLICY = load_policy()
 CO_01, CO_02, AR_01 = "CUS-MOCK00000000001", "CUS-MOCK00000000002", "CUS-MOCK00000000004"
+MX_02 = "CUS-MOCK00000000005"
 
 
 class World:
@@ -278,3 +279,12 @@ def test_pol16_the_fraud_alert_of_a_case_carries_it_and_the_block(world: World):
     assert alert.case_id == "DSP-000001" and alert.card_blocked and len(alert.charge_refs) == 3
     world.send(CO_02, "gracias")
     assert len(world.state.fraud_alerts_of(CO_02)) == 1
+
+
+def test_pol17_a_goodwill_candidate_is_flagged_for_the_analyst_and_never_shown_to_the_customer(world: World):
+    *_, done = world.chat(MX_02, "Me cobraron un ajuste que no corresponde", "sí", "sí")
+    assert all(entry.rule_id != "POL-17" for entry in done.glass_box)
+    handoff = world.state.handoff_of(world.state_of().case_id)
+    assert handoff.goodwill_candidate.flagged and handoff.suggested_queue == "complaints"
+    decisions = [e.data["rule"] for e in world.log.read("conv-1") if e.type is EventType.RULE_DECISION]
+    assert "POL-17" in decisions
