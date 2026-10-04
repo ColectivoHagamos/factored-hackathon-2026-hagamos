@@ -15,7 +15,7 @@ The public demo runs at **https://vera.colectivohagamos.com** on one small serve
 
 **A shared server.** The demo runs on a server that also hosts other stacks, one of which owns port 80. VERA stays apart:
 - Caddy publishes only 443 and obtains the certificate on that port (TLS-ALPN-01), so `http://` addresses never reach VERA; links are shared as `https://`.
-- The compose project `vera` lives in `/opt/vera`, with memory limits of 512 MB for the API and 128 MB for Caddy.
+- The compose project `vera` lives in `/opt/vera`, with memory limits of 300 MB for the API (measured: about 155 MB idle and 170 MB after ten conversations) and 64 MB for Caddy. Both carry `oom_score_adj: 500`, so that if the server runs out of memory, the kernel stops VERA first, never the stacks it shares the server with.
 - The image is private: the job's short-lived token pulls it, with a Docker configuration of its own in `/opt/vera/.docker`.
 - Nothing prunes images or volumes of the host, and `deploy.sh` touches only the `vera` project.
 

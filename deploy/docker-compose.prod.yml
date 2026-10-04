@@ -23,7 +23,10 @@ services:
       - /tmp
     security_opt:
       - no-new-privileges:true
-    mem_limit: 512m
+    # Measured: about 155 MB idle and 170 MB after ten conversations. On a shared server with little free memory,
+    # VERA is the first process the kernel stops, never the stacks it shares the server with.
+    mem_limit: 300m
+    oom_score_adj: 500
 
   caddy:
     image: caddy:2-alpine
@@ -38,7 +41,8 @@ services:
       - caddy_config:/config
     depends_on:
       - api
-    mem_limit: 128m
+    mem_limit: 64m
+    oom_score_adj: 500
 
 volumes:
   vera_state:
