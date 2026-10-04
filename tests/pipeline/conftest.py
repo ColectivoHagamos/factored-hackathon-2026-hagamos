@@ -33,6 +33,8 @@ TRANSACTIONS_DAY_1 = [
     "T3,2026-06-14 10:00:00,2026-06-14,P1,C1,Purchase,Food,-5,COP,,POS,Store,Food,Colombia,Cali,Approved,00,False,10",
     "T4,2026-06-14 11:00:00,2026-06-14,P1,C1,Purchase,Food,10,EUR,,POS,Store,Food,Colombia,Cali,Approved,00,False,10",
     "T5,2026-06-14 12:00:00,2026-06-14,P1,C2,Purchase,Food,10,COP,,POS,Store,Food,Colombia,Cali,Approved,00,False,10",
+    "T7,2026-01-10 18:00:00,2026-01-10,P1,C1,Purchase,Transport,50000,COP,12.50,App,Uber,Transport,Colombia,Cali,Approved,00,False,3",
+    "T8,2026-05-02 08:00:00,2026-05-02,P2,C2,Adjustment,,4.00,USD,4.00,Branch,,,Mexico,CDMX,Approved,00,False,",
 ]
 TRANSACTIONS_DAY_2 = [
     "T1,2026-06-14 21:05:00,2026-06-15,P1,C1,Purchase,Transport,120000,COP,,Web,Uber,Transport,Brazil,Sao Paulo,Approved,00,True,87.5",
