@@ -40,6 +40,8 @@ QUOTAS = {
     "tool_failure": 15,
     "wrong_data": 15,
 }
+# Scams (POL-10) came after the held-out was sealed (tag heldout-v1): their cases live only in the development set.
+DEV_ONLY_QUOTAS = {"scam": 10}
 
 
 @dataclass(frozen=True)
@@ -296,11 +298,34 @@ def build_cases(subset: Subset) -> list[Case]:
     return cases
 
 
+def build_dev_only_cases(subset: Subset) -> list[Case]:
+    """Cases added after the held-out was sealed; they never enter it, so its hash does not change."""
+    customers = sorted(subset.customers, key=lambda customer: digest("scam:" + customer))
+    cases = []
+    for number, customer in enumerate(customers[: DEV_ONLY_QUOTAS["scam"]], start=1):
+        case_id = f"SCM-{number:03d}"
+        country, segment = subset.customers[customer]
+        cases.append(
+            Case(
+                id=case_id,
+                block="human",
+                language=language_of(case_id),
+                country=country,
+                segment=segment,
+                customer=customer,
+                script=Script(opening="scam"),
+                expected=Expected(queue="fraud"),
+            )
+        )
+    return cases
+
+
 def main() -> None:
     path = Path(sys.argv[1] if len(sys.argv) > 1 else os.environ["VERA_DEMO_DB"])
-    cases = build_cases(Subset(path))
+    subset = Subset(path)
+    cases = build_cases(subset)
     heldout = [c for c in cases if int(digest("split:" + c.id), 16) % 5 != 0]
-    dev = [c for c in cases if int(digest("split:" + c.id), 16) % 5 == 0]
+    dev = [c for c in cases if int(digest("split:" + c.id), 16) % 5 == 0] + build_dev_only_cases(subset)
     write(HELDOUT, heldout)
     write(DEV, dev)
     counts = defaultdict(int)

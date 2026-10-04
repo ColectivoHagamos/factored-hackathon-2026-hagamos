@@ -28,6 +28,7 @@ How VERA is measured against a baseline on the same held-out cases, and what the
 - **Separate wordings.** The two sets and the classifier phrases share no wording; a test checks it.
 - **No leakage.** The leakage audit finds no real identifier of the dataset in the cases or the wordings.
 - **Shares.** 30 % of the cases are in Portuguese; 750 of the 897 runs per system are in scope.
+- **Scams only in development.** Payments made under deception (POL-10) were added after the seal, so 10 scam cases live only in the development set, with wordings of their own; the held-out and its hash did not change, and a test checks that no held-out case uses those wordings. In development, all 30 scam runs reach Fraud with both systems.
 
 ## Held-out results, as sealed
 

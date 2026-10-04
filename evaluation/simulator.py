@@ -28,6 +28,8 @@ from vera.policy.model import load_policy
 CARD_QUESTION = re.compile(r"tarjeta con|cartão está com")
 RECOGNIZE_QUESTION = re.compile(r"[Rr]econoc|reconhece")
 IS_THIS_THE_CHARGE = re.compile(r"Es este el cobro|É esta a cobrança")
+# POL-10: the key questions of a scam, asked in free text.
+SCAM_QUESTION = re.compile(r"cuándo fue la transferencia|quando foi a transferência")
 PERSON_OFFER = re.compile(r"pase con una persona|passe a conversa para uma pessoa")
 # POL-01 (v1.5): before the transfer a customer asked for, VERA offers once to review the case first.
 REVIEW_FIRST = re.compile(r"conectar con un analista|conectar você com um analista")
@@ -115,6 +117,7 @@ class Customer:
         self.client = TestClient(create_app(settings, self.container), raise_server_exceptions=False)
         self.transcript = Transcript(case.id, variant)
         self.asked_for_a_person = False
+        self.answered_the_scam_questions = False
         self.free_text_questions = 0
         # The last question VERA asked, to answer it again when VERA comes back to it after a detour.
         self.open_question = ""
@@ -216,6 +219,10 @@ class Customer:
             return {"selected_option": "yes" if mine else "no"}
         if options:
             return {"selected_option": "yes"}
+        if SCAM_QUESTION.search(text) and "scam_answer" in self.phrases and not self.answered_the_scam_questions:
+            # The development set has the answer; a held-out run, sealed before scams, goes on as below.
+            self.answered_the_scam_questions = True
+            return {"text": phrase(self.phrases, "scam_answer", language, variant)}
         # A question in free text: the customer gives the merchant once, then tells its claim in other words twice,
         # and then leaves, as a customer who is not understood would.
         self.free_text_questions += 1
