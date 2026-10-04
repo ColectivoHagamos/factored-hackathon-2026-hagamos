@@ -146,6 +146,11 @@
       "title": "Pix Mentioned",
       "type": "boolean"
     },
+    "asks_if_human": {
+      "default": false,
+      "title": "Asks If Human",
+      "type": "boolean"
+    },
     "answer": {
       "$ref": "#/$defs/Answer",
       "default": "not_said"

@@ -127,7 +127,6 @@ LATAM Bank data is synthetic and belongs to Factored. **No dataset record is ver
 - **The evaluation is an offline simulation.** The team wrote all its wordings, and the human blind set, which measures real language variety, is still pending.
 - **The classifier still reads some improper bank charges as unrecognized purchases** (19 of 897 runs after the fixes). Those runs fail safely: no case is registered.
 - **A merchant named only as the first word of a message** ("Uber me cobró dos veces") is not taken as the merchant: the first capital of a sentence is grammar.
-- **"¿Eres una persona?" is read as a request for a person.** VERA transfers instead of answering that it is an AI and offering one.
 - **The demo runs one process** with a SQLite state, demo sessions of 15 minutes, and a limit of 30 messages per minute per customer.
 
 ## License

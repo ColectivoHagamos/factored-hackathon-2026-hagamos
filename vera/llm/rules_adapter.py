@@ -47,6 +47,13 @@ HUMAN = (
     r"\b(uma pessoa|atendente|falar com alguem|pessoa de verdade|um agente|gerente|supervisor|"
     r"atendimento humano|carne e osso|(passe|passa) (para|pra) alguem)\b",
 )
+# "¿Eres una persona?", "¿es usted un robot?", "você é uma pessoa?": whether VERA is human, asked, not requested.
+ASKS_IF_HUMAN = (
+    r"\b(eres|es usted|sos|estoy hablando con|hablo con) "
+    r"(una persona|un humano|humano|humana|real|un robot|una maquina|un bot|una ia|una inteligencia artificial)\b",
+    r"\b(voce e|e voce|estou falando com|falo com) (uma pessoa|um humano|humano|humana|real|um robo|uma maquina|um bot|"
+    r"uma ia)\b",
+)
 COERCION = (
     r"\b(me amenaz|amenazad|me obligan|me estan obligando|secuestr|extorsi|me tienen retenid|me apuntan)",
     r"\b(ameaca|me obrigam|me obrigando|sequestr|extorsao)",
@@ -126,8 +133,11 @@ class RulesInterpreter:
     def interpret(self, masked_text: str, context: dict[str, str]) -> Interpretation:
         text = _fold(masked_text)
         language = Language.PT if _any(PORTUGUESE, text) else Language(context.get("language", "es"))
-        human = _any(HUMAN, text)
-        claim, confident = self._claim(text, human)
+        asks_if_human = _any(ASKS_IF_HUMAN, text)
+        # The question names a person without asking for one; a request in the same message still counts.
+        rest = re.sub("|".join(ASKS_IF_HUMAN), " ", text)
+        human = _any(HUMAN, rest)
+        claim, confident = self._claim(rest, human)
         amount, currency = _amount(text)
         return Interpretation(
             claim_type=claim,
@@ -141,6 +151,7 @@ class RulesInterpreter:
             coercion=_any(COERCION, text),
             regulator_mentioned=_any(REGULATOR, text),
             pix_mentioned=_any(PIX, text),
+            asks_if_human=asks_if_human,
             answer=Answer.YES if _any(YES, text) else Answer.NO if _any(NO, text) else Answer.NOT_SAID,
             selected_numbers=_numbers(text, context),
             language=language,

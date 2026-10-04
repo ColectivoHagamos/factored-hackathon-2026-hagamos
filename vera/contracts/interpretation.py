@@ -47,6 +47,8 @@ class Interpretation(Contract):
     coercion: bool = False
     regulator_mentioned: bool = False
     pix_mentioned: bool = False
+    # "¿Eres una persona?": a question about VERA, not a request for a person.
+    asks_if_human: bool = False
     # Answer to the yes-or-no question asked in the previous turn, and option numbers the customer referred to.
     answer: Answer = Answer.NOT_SAID
     selected_numbers: tuple[Annotated[int, Field(ge=1, le=50)], ...] = ()
