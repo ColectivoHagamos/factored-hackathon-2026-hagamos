@@ -82,6 +82,8 @@ class Turn:
     multiple_choice: bool = False
     # The previous reply: what the customer was asked and with which options.
     asked: Event | None = None
+    # Rule decisions already recorded in the conversation, as (rule, outcome): each one is recorded once.
+    decided: set[tuple[str, str | None]] = field(default_factory=set)
 
 
 class Conversation:
@@ -128,6 +130,7 @@ class Conversation:
             raise LookupError("unknown conversation")
         asked = next(e for e in reversed(events) if e.type is EventType.REPLY)
         turn = Turn(session, FlowState.model_validate(asked.data["state"]), events[-1], asked=asked)
+        turn.decided = {(e.data["rule"], e.data.get("outcome")) for e in events if e.type is EventType.RULE_DECISION}
         turns = 1 + sum(1 for event in events if event.type is EventType.CUSTOMER_MESSAGE)
         self._record(turn, EventType.CUSTOMER_MESSAGE, {"text": message.text, "option": message.selected_option})
         if turns > MAX_TURNS:
@@ -196,21 +199,28 @@ class Conversation:
         customer = self._tools.customer(turn.session)
         person = reading.claim_type is ClaimType.HUMAN_REQUEST
         sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
-        if person and not sure and turn.state.step is not Step.HANDED_OFF:
-            # POL-14 before POL-01: when the reading is unsure, a person is offered, not imposed.
+        if person and not sure and turn.state.step not in (Step.HANDED_OFF, Step.PERSON_OFFERED):
+            # POL-14 before POL-01: when the reading is unsure, VERA asks before treating it as a request.
             turn.lines.append(self._text(turn, "offer_person"))
             self._yes_no(turn)
-            turn.state = turn.state.advance(step=Step.CONFIRM_PERSON)
+            turn.state = turn.state.advance(step=Step.CONFIRM_PERSON, resume_step=self._open_question(turn))
             return True
         facts = Facts(
             account_country=customer.country,
             human_requested=person,
+            person_offers_made=turn.state.person_offers,
             coercion=reading.coercion,
             regulator_mentioned=reading.regulator_mentioned,
             already_escalated=turn.state.escalated,
         )
         evaluation = self._evaluate(turn, facts)
-        if not ({Outcome.HANDOFF, Outcome.INFORM_VENUE} & evaluation.outcomes) or turn.state.step is Step.HANDED_OFF:
+        if turn.state.step is Step.HANDED_OFF:
+            return False
+        if not ({Outcome.HANDOFF, Outcome.INFORM_VENUE} & evaluation.outcomes):
+            # POL-01 alone: one offer to go on first. Coercion and the regulator never wait for an offer.
+            if Outcome.OFFER_BEFORE_TRANSFER in evaluation.outcomes:
+                self._offer_before_transfer(turn)
+                return True
             return False
         if reading.coercion:
             turn.lines.append(self._text(turn, "safety"))
@@ -242,7 +252,8 @@ class Conversation:
     # State machine
 
     def _advance(self, turn: Turn, reading: Interpretation) -> None:
-        if turn.state.step is not Step.ASK_CLAIM and _aside(reading):
+        # At the POL-01 offer, a message on the side does not take it, so it leads to the person.
+        if turn.state.step not in (Step.ASK_CLAIM, Step.PERSON_OFFERED) and _aside(reading):
             self._answer_aside(turn, reading)
             return
         handlers = {
@@ -255,6 +266,7 @@ class Conversation:
             Step.CONFIRM_BLOCK: self._on_block,
             Step.CONFIRM_REGISTER: self._on_register,
             Step.CONFIRM_PERSON: self._on_person,
+            Step.PERSON_OFFERED: self._on_person_offer,
         }
         handler = handlers.get(turn.state.step)
         if handler is None:
@@ -270,17 +282,61 @@ class Conversation:
         turn.lines.append(self._text(turn, "pix" if Outcome.OUT_OF_SCOPE in evaluation.outcomes else "out_of_scope"))
         self._repeat_question(turn)
 
-    def _on_person(self, turn: Turn, reading: Interpretation) -> None:
-        if reading.answer is Answer.YES:
-            self._evaluate(turn, Facts(account_country=self._country(turn), human_requested=True))
-            turn.lines.append(self._text(turn, "handoff_now"))
-            self._hand_off(turn, Queue.COMPLAINTS)
+    def _person_requested(self, turn: Turn) -> None:
+        """POL-01 once the request is clear: an offer while one is due, then a person with what is already known."""
+        facts = Facts(
+            account_country=self._country(turn),
+            human_requested=True,
+            person_offers_made=turn.state.person_offers,
+            already_escalated=turn.state.escalated,
+        )
+        evaluation = self._evaluate(turn, facts)
+        if Outcome.OFFER_BEFORE_TRANSFER in evaluation.outcomes:
+            self._offer_before_transfer(turn)
             return
-        turn.state = turn.state.advance(step=Step.ASK_CLAIM)
-        if reading.answer is Answer.NO:
-            turn.lines.append(self._text(turn, "ask_claim_again"))
+        turn.lines.append(self._text(turn, "handoff_now"))
+        self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS)
+
+    def _offer_before_transfer(self, turn: Turn) -> None:
+        """POL-01 (v1.5): VERA offers to review the case first; nothing runs while the offer is open."""
+        turn.lines.append(self._text(turn, "offer_before_transfer"))
+        self._yes_no(turn)
+        turn.state = turn.state.advance(
+            step=Step.PERSON_OFFERED,
+            resume_step=self._open_question(turn),
+            person_offers=turn.state.person_offers + 1,
+        )
+
+    def _on_person_offer(self, turn: Turn, reading: Interpretation) -> None:
+        if reading.answer is Answer.YES:
+            self._resume(turn)
         else:
-            self._on_claim(turn, reading)
+            # The customer insists, or does not take the offer.
+            self._person_requested(turn)
+
+    def _on_person(self, turn: Turn, reading: Interpretation) -> None:
+        """POL-14: the customer says whether the unsure reading was a request for a person."""
+        if reading.answer is Answer.YES:
+            self._person_requested(turn)
+        elif reading.answer is Answer.NO:
+            self._resume(turn)
+        else:
+            # Neither yes nor no: the message answers the question that was open before.
+            turn.state = turn.state.advance(step=self._open_question(turn), resume_step=None)
+            self._advance(turn, reading)
+
+    def _open_question(self, turn: Turn) -> Step:
+        """The step of the question the customer was answering before a detour about a person."""
+        return turn.state.resume_step or turn.state.step
+
+    def _resume(self, turn: Turn) -> None:
+        """Back to the open question with its options and attempts; a pending action needs a new yes."""
+        step = self._open_question(turn)
+        replies = [e for e in self._log.read(turn.session.conversation_id) if e.type is EventType.REPLY]
+        turn.asked = next((e for e in reversed(replies) if e.data["state"]["step"] == step.value), None)
+        attempts = turn.asked.data["state"]["attempts"] if turn.asked else 0
+        turn.state = turn.state.advance(step=step, resume_step=None, attempts=attempts)
+        self._repeat_question(turn)
 
     def _on_claim(self, turn: Turn, reading: Interpretation) -> None:
         if turn.state.claim_type is not None:
@@ -683,8 +739,10 @@ class Conversation:
     def _evaluate(self, turn: Turn, facts: Facts) -> Evaluation:
         evaluation = self._engine.evaluate(facts)
         for decision in evaluation.decisions:
-            if decision.rule in turn.state.rules_applied and decision.outcome is not Outcome.FRAUD_ALERT:
+            key = (decision.rule, decision.outcome.value)
+            if key in turn.decided and decision.outcome is not Outcome.FRAUD_ALERT:
                 continue
+            turn.decided.add(key)
             self._record(turn, EventType.RULE_DECISION, decision.as_event_data())
             source = POLICY_SOURCE[language_of(turn.state.variant)].format(version=decision.version)
             entry = GlassBoxEntry(rule_id=decision.rule, source=source)

@@ -50,6 +50,8 @@ class Outcome(StrEnum):
     OUT_OF_SCOPE = "out_of_scope"
     FRAUD_ALERT = "fraud_alert"
     GOODWILL_CANDIDATE = "goodwill_candidate"
+    # POL-01 (v1.5): one offer to go on with the assistant before the transfer the customer asked for.
+    OFFER_BEFORE_TRANSFER = "offer_before_transfer"
 
 
 class Facts(Contract):
@@ -59,6 +61,8 @@ class Facts(Contract):
     claim_type: ClaimType | None = None
     interpreter_confidence: float | None = None
     human_requested: bool = False
+    # Offers already made in this conversation to go on before a transfer (POL-01).
+    person_offers_made: int = 0
     coercion: bool = False
     instruction_in_message: bool = False
     foreign_charge_requested: bool = False
@@ -127,7 +131,11 @@ Predicate = Callable[[Facts, Parameters, bool], Effect | None]
 
 
 def _human_requested(f: Facts, p: Parameters, escalating: bool) -> Effect | None:
-    return Effect(Outcome.HANDOFF, escalate=True) if f.human_requested else None
+    if not f.human_requested:
+        return None
+    if f.person_offers_made < p.offers_before_transfer:
+        return Effect(Outcome.OFFER_BEFORE_TRANSFER)
+    return Effect(Outcome.HANDOFF, escalate=True)
 
 
 def _coercion(f: Facts, p: Parameters, escalating: bool) -> Effect | None:

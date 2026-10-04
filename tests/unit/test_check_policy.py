@@ -18,7 +18,7 @@ def test_identical_ids_and_version_pass():
 
 def test_a_rule_missing_on_either_side_and_a_different_version_fail():
     ids = sorted(POLICY.ids - {"POL-16"}) + ["POL-18"]
-    problems = compare(POLICY, master_document(ids, "1.5"))
+    problems = compare(POLICY, master_document(ids, "0.9"))
     assert "only in the master policy: POL-18" in problems
     assert "only in the executable policy: POL-16" in problems
     assert any("version" in problem for problem in problems)

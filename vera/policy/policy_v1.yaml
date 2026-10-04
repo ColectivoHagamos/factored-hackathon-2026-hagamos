@@ -1,7 +1,7 @@
 # LATAM Bank dispute policy, executable version. Fictitious policy created for the challenge.
 # Source: master dispute policy (sections 7, 8, 10, 11 and 14). Rule ids and the version must match it.
-version: "1.4"
-effective_from: 2026-10-03
+version: "1.5"
+effective_from: 2026-10-04
 
 parameters:
   exposure_threshold_usd: 400
@@ -11,6 +11,8 @@ parameters:
   repeat_window_days: 90
   interpreter_min_confidence: 0.6
   max_question_attempts: 3
+  # POL-01: how many times VERA offers to go on before the transfer the customer asked for.
+  offers_before_transfer: 1
   system_clock: 2026-06-18
   network_term_days: 120
   goodwill_max_usd: 100
@@ -24,7 +26,9 @@ parameters:
 rules:
   - id: POL-01
     when: The customer asks for a human, in any form, in Spanish or Portuguese
-    then: Handoff before anything else
+    then: >-
+      One offer to go on with the assistant first; if the customer insists or does not take it, handoff with what is
+      known. No action runs meanwhile, and the way to a person is never blocked
   - id: POL-02
     when: There is coercion, a threat or a risk for the person
     then: Handoff
