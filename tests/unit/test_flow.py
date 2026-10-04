@@ -27,7 +27,7 @@ from vera.tools.toolbox import Toolbox
 
 POLICY = load_policy()
 CO_01, CO_02, AR_01 = "CUS-MOCK00000000001", "CUS-MOCK00000000002", "CUS-MOCK00000000004"
-MX_02 = "CUS-MOCK00000000005"
+MX_01, MX_02 = "CUS-MOCK00000000003", "CUS-MOCK00000000005"
 
 
 class World:
@@ -293,3 +293,11 @@ def test_pol17_a_goodwill_candidate_is_flagged_for_the_analyst_and_never_shown_t
 def test_a_bank_adjustment_is_named_in_the_receipt(world: World):
     _, receipt = world.chat(MX_02, "Me cobraron un ajuste que no corresponde")
     assert "Ajuste del banco, Puebla, USD 18" in receipt.reply
+
+
+def test_a_named_place_finds_a_charge_older_than_the_recent_window(world: World):
+    world.clock = CLOCK + timedelta(days=40)
+    _, unnamed = world.chat(MX_01, "No reconozco un cargo de mi tarjeta")
+    assert "No encontré ese cargo" in unnamed.reply
+    _, named = world.chat(MX_01, "No reconozco un cargo en Madrid", conversation_id="conv-2")
+    assert "Hotel Prado, Madrid, USD 240" in named.reply and "¿Reconoces el cargo" in named.reply

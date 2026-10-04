@@ -5,6 +5,7 @@ conversation. Anything that was not offered, or belongs to another customer, rea
 """
 
 import hashlib
+import unicodedata
 from collections.abc import Callable
 from datetime import datetime, time, timedelta
 from decimal import Decimal
@@ -221,9 +222,17 @@ def _matches(charge: ChargeRecord, args: SearchChargesInput, offers: Offers) -> 
         Decimal("0.01"), args.amount * Decimal("0.01")
     ):
         return False
-    if args.merchant and (charge.merchant is None or args.merchant.casefold() not in charge.merchant.casefold()):
+    if args.merchant and not any(
+        _fold(args.merchant) in _fold(field) for field in (charge.merchant, charge.city) if field
+    ):
         return False
     return not (args.card_n and offers.cards.get(args.card_n) != charge.card_ref)
+
+
+def _fold(text: str) -> str:
+    """Lower case without accents: «Sao Paulo» finds «São Paulo»."""
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
 
 
 def _exposure(charges: list[ChargeRecord]) -> tuple[Money, ...]:

@@ -53,6 +53,9 @@ from vera.ports.tools import Offers, Session, ToolsPort
 PENDING_TOKEN = "tok_pending_confirmation"
 MAX_TURNS = 40
 SEARCH_DAYS = {ChargeKind.PURCHASE: 30, ChargeKind.BANK_ADJUSTMENT: 90}
+# With a merchant, a place or an amount to match, older charges are searched too, up to the longest legal window
+# (180 days for a charge abroad in Mexico); the legal clock then says whether a route is still open.
+NAMED_SEARCH_DAYS = 180
 VARIANTS = {Country.MX: LanguageVariant.ES_MX, Country.CO: LanguageVariant.ES_CO, Country.AR: LanguageVariant.ES_AR}
 YES_NO = {Language.ES: ("Sí", "No"), Language.PT: ("Sim", "Não")}
 # POL-17: "the customer is told nothing"; the decision stays in the log and the handoff, not in the glass box.
@@ -277,8 +280,9 @@ class Conversation:
 
     def _search(self, turn: Turn, reading: Interpretation, kind: ChargeKind) -> None:
         today = self._now().date()
+        named = reading.amount is not None or reading.merchant_text is not None
         args = SearchChargesInput(
-            date_from=today - timedelta(days=SEARCH_DAYS[kind]),
+            date_from=today - timedelta(days=NAMED_SEARCH_DAYS if named else SEARCH_DAYS[kind]),
             date_to=today,
             amount=reading.amount,
             merchant=reading.merchant_text,
@@ -287,8 +291,8 @@ class Conversation:
         result = self._tools.search_charges(turn.session, self._offers(turn), args)
         self._record_tool(turn, "search_charges", args.model_dump(mode="json"), result)
         if isinstance(result, ToolError) and reading.merchant_text:
-            # The merchant written by the customer may not match the statement; try the window without it.
-            args = args.model_copy(update={"merchant": None})
+            # The merchant written by the customer may not match the statement; try the recent window without it.
+            args = args.model_copy(update={"merchant": None, "date_from": today - timedelta(days=SEARCH_DAYS[kind])})
             result = self._tools.search_charges(turn.session, self._offers(turn), args)
             self._record_tool(turn, "search_charges", args.model_dump(mode="json"), result)
         if isinstance(result, ToolError):
