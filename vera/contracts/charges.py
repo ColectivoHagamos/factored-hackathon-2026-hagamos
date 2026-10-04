@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import model_validator
 
@@ -44,6 +44,9 @@ class Candidate(Contract):
     country: ShortText | None = None
     status: ChargeStatus
     card: MaskedCard | None = None
+    card_type: Literal["credit", "debit"] | None = None
+    # Number of the card among the options of the conversation, for block_card.
+    card_n: CandidateNumber | None = None
     is_known_merchant: bool = False
 
     @model_validator(mode="after")

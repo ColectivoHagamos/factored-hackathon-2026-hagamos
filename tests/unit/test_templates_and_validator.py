@@ -17,7 +17,7 @@ VALUES = {
     "amount": "COP 120.000",
     "status": "aprobado",
     "card": "•••• 4821",
-    "count": 2,
+    "charges": "2 cargos",
     "exposure": "COP 185.000",
     "case_id": "DSP-000123",
     "rule": "Ley 1755 de 2015, art. 14",

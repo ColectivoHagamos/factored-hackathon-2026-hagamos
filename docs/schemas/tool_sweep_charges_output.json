@@ -105,6 +105,36 @@
           "default": null,
           "title": "Card"
         },
+        "card_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "credit",
+                "debit"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card Type"
+        },
+        "card_n": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card N"
+        },
         "is_known_merchant": {
           "default": false,
           "title": "Is Known Merchant",

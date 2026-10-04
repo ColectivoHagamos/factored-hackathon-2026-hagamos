@@ -99,6 +99,9 @@ class LegalClock:
     def rule(self, rule_id: str) -> LegalRule:
         return self._rules[rule_id]
 
+    def has(self, rule_id: str) -> bool:
+        return rule_id in self._rules
+
     def rules_for_route(self, route: str) -> tuple[LegalRule, ...]:
         return tuple(rule for rule in self._rules.values() if rule.route == route)
 

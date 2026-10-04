@@ -50,6 +50,22 @@
           "minLength": 1,
           "title": "Label",
           "type": "string"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
         }
       },
       "required": [
