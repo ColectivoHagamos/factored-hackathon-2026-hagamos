@@ -1,0 +1,32 @@
+# Legal rules of Colombia. Generated from the official sources listed in each rule; only rules with their
+# literal text loaded are executable. Fictitious bank policy aside, these texts are real law: research
+# guidance for the challenge, not legal advice. Pending legal review by the team.
+rules:
+- id: CO-R15
+  country: CO
+  route: CO-bank-complaint
+  summary: A petition to a financial institution is answered within 15 days of its receipt
+  source:
+    title: Ley 1755 de 2015
+    provision: arts. 14, 32
+    url: http://www.secretariasenado.gov.co/senado/basedoc/ley_1755_2015.html
+  literal_text: Artículo 14. Términos para resolver las distintas modalidades de peticiones. Salvo norma legal especial y
+    so pena de sanción disciplinaria, toda petición deberá resolverse dentro de los quince (15) días siguientes a su recepción.
+    Artículo 32. Derecho de petición ante organizaciones privadas para garantizar los derechos fundamentales. Toda persona
+    podrá ejercer el derecho de petición para garantizar sus derechos fundamentales ante organizaciones privadas con o sin
+    personería jurídica, tales como sociedades, corporaciones, fundaciones, asociaciones, organizaciones religiosas, cooperativas,
+    instituciones financieras o clubes. Salvo norma legal especial, el trámite y resolución de estas peticiones estarán sometidos
+    a los principios y reglas establecidos en el Capítulo I de este título.
+  text_sha256: 4d0381bb0425ee7380921ef7d86beae7fb92855d18fdf2e77611a45e8ba5cebc
+  effective_from: '2015-06-30'
+  level: N1
+  executable: true
+  layer: law
+  checked_on: '2026-10-03'
+  terms:
+  - party: bank
+    what: answer the complaint
+    value: 15
+    unit: days
+    starts_at: receipt of the petition
+    counts_from: filing

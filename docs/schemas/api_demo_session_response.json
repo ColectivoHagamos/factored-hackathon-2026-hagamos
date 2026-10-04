@@ -1,0 +1,20 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "token": {
+      "title": "Token",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "token",
+    "expires_at"
+  ],
+  "title": "DemoSessionResponse",
+  "type": "object"
+}

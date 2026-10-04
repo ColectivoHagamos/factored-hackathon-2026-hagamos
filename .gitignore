@@ -1,0 +1,72 @@
+# Local team tooling and hidden files are not versioned.
+# Only the hidden files the project needs are published.
+.*
+!.gitignore
+!.gitattributes
+!.dockerignore
+!.editorconfig
+!.env.example
+!.python-version
+!.gitkeep
+!.github/
+.github/*.md
+/SKILLS/
+/*.md
+!/README.md
+!/SECURITY.md
+
+# Data: the dataset and anything derived from it live outside the repository
+data/
+data_lake/
+demo/
+*.csv
+*.parquet
+*.duckdb
+*.duckdb.wal
+*.feather
+*.arrow
+*Data_Dictionary*
+
+# Local databases (cases and events are created in each environment)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Serialized models are trained at build time and never versioned
+*.pkl
+*.pickle
+*.joblib
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+credentials*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Web
+node_modules/
+
+# Editors and operating system
+.DS_Store
+.idea/
+.vscode/
+
+# Raw runs of the evaluation; the reports in docs/evaluation are the published result
+evaluation/results/

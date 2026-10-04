@@ -1,0 +1,159 @@
+# Legal rules of Argentina. Generated from the official sources listed in each rule; only rules with their
+# literal text loaded are executable. Fictitious bank policy aside, these texts are real law: research
+# guidance for the challenge, not legal advice. Pending legal review by the team.
+rules:
+- id: AR-R03
+  country: AR
+  route: AR-bank-complaint
+  summary: Every inquiry or complaint is resolved within 10 business days at most
+  source:
+    title: Protección de los usuarios de servicios financieros (texto ordenado al 06/05/26)
+    provision: 3.1.6
+    url: https://www.bcra.gob.ar/Pdfs/Texord/t-pusf.pdf
+  literal_text: Toda consulta o reclamo deberá ser definitivamente resuelta/o dentro del plazo máximo de diez (10) días hábiles,
+    excepto para la situación prevista en el punto 2.3.5. o cuando reglamentariamente se hayan otorgado al sujeto obligado
+    mayores plazos para adecuarse normativamente o cuando medien causas ajenas a dicho sujeto debidamente justificadas.
+  text_sha256: 9868a4c463218c2d887d399c9b150e61332518d603de4ec3843c4bcb0c975526
+  level: N1
+  executable: true
+  layer: law
+  checked_on: '2026-10-03'
+  terms:
+  - party: bank
+    what: resolve the complaint
+    value: 10
+    unit: business_days
+    starts_at: receipt of the complaint
+    counts_from: filing
+- id: AR-R05
+  country: AR
+  route: AR-statement-challenge
+  summary: Challenge of the card statement within 30 days; acknowledgment in 7 and answer in the following 15 (60 abroad)
+  source:
+    title: Ley 25.065
+    provision: arts. 26, 27
+    url: http://servicios.infoleg.gob.ar/infolegInternet/anexos/55000-59999/55556/texact.htm
+  literal_text: "ARTICULO 26. \x97 Personería. El titular puede cuestionar la liquidación dentro de los treinta (30) días\
+    \ de recibida, detallando claramente el error atribuido y aportando todo dato que sirva para esclarecerlo por nota simple\
+    \ girada al emisor. ARTICULO 27. \x97 Recepción de impugnaciones. El emisor debe acusar recibo de la impugnación dentro\
+    \ de los siete (7) días de recibida y, dentro de los quince (15) días siguientes, deberá corregir el error si lo hubiere\
+    \ o explicar claramente la exactitud de la liquidación, aportando copia de los comprobantes o fundamentos que avalen la\
+    \ situación. El plazo de corrección se ampliará a sesenta (60) días en las operaciones realizadas en el exterior."
+  text_sha256: 8e9e7344ccd2841e0ee8f4f0b14973b653882d90ca76ac13a46d485af2aede1e
+  level: N1
+  executable: true
+  layer: law
+  checked_on: '2026-10-03'
+  terms:
+  - party: customer
+    what: challenge the statement
+    value: 30
+    unit: days
+    starts_at: receipt of the statement
+    counts_from: event
+  - party: bank
+    what: acknowledge the challenge
+    value: 7
+    unit: days
+    starts_at: receipt of the challenge
+    counts_from: filing
+    key: acknowledgment
+  - party: bank
+    what: correct the error or explain the statement with evidence
+    value: 15
+    unit: days
+    starts_at: end of the acknowledgment term
+    counts_from: filing
+    follows: acknowledgment
+  - party: bank
+    what: correct the error or explain the statement with evidence
+    value: 60
+    unit: days
+    starts_at: end of the acknowledgment term
+    counts_from: filing
+    follows: acknowledgment
+    applies_when: charge_abroad
+- id: AR-R06
+  country: AR
+  route: AR-statement-challenge
+  summary: While the challenge lasts, the card cannot be blocked within its limit; only the minimum of undisputed items is
+    due
+  source:
+    title: Ley 25.065
+    provision: art. 28
+    url: http://servicios.infoleg.gob.ar/infolegInternet/anexos/55000-59999/55556/texact.htm
+  literal_text: "ARTICULO 28. \x97 Consecuencias de la impugnación. Mientras dure el procedimiento de impugnación, el emisor:\
+    \ a) No podrá impedir ni dificultar de ninguna manera el uso de la Tarjeta de Crédito o de sus adicionales mientras no\
+    \ se supere el límite de compra. b) Podrá exigir el pago del mínimo pactado por los rubros no cuestionados de la liquidación."
+  text_sha256: 3b3993f8d86599dd1a64806cca29e03d3c1e6200967ca269f32a93af05034b5a
+  level: N1
+  executable: true
+  layer: law
+  checked_on: '2026-10-03'
+- id: AR-R07
+  country: AR
+  route: AR-statement-challenge
+  summary: Seven days without an answer from the cardholder means tacit acceptance of the explanation
+  source:
+    title: Ley 25.065
+    provision: art. 29
+    url: http://servicios.infoleg.gob.ar/infolegInternet/anexos/55000-59999/55556/texact.htm
+  literal_text: "ARTICULO 29. \x97 Aceptación de explicaciones. Dadas las explicaciones por el emisor, el titular debe manifestar\
+    \ si le satisfacen o no en el plazo de siete (7) días de recibidas. Vencido el plazo, sin que el titular se expida, se\
+    \ entenderán tácitamente aceptadas las explicaciones. Si el titular observare las explicaciones otorgadas por el emisor,\
+    \ este último deberá resolver la cuestión en forma fundada en el plazo de diez (10) días hábiles, vencidos los cuales\
+    \ quedará expedita la acción judicial para ambas partes."
+  text_sha256: 2e3b9b3570b4ae46728053058229232bb6196b8a127be7d4f129e14d646005e1
+  level: N1
+  executable: true
+  layer: law
+  checked_on: '2026-10-03'
+  terms:
+  - party: customer
+    what: say whether the explanation is satisfactory
+    value: 7
+    unit: days
+    starts_at: receipt of the explanation
+    counts_from: later
+- id: AR-R08
+  country: AR
+  route: AR-statement-challenge
+  summary: If the cardholder objects to the explanation, the issuer resolves with reasons within 10 business days
+  source:
+    title: Ley 25.065
+    provision: art. 29
+    url: http://servicios.infoleg.gob.ar/infolegInternet/anexos/55000-59999/55556/texact.htm
+  literal_text: "ARTICULO 29. \x97 Aceptación de explicaciones. Dadas las explicaciones por el emisor, el titular debe manifestar\
+    \ si le satisfacen o no en el plazo de siete (7) días de recibidas. Vencido el plazo, sin que el titular se expida, se\
+    \ entenderán tácitamente aceptadas las explicaciones. Si el titular observare las explicaciones otorgadas por el emisor,\
+    \ este último deberá resolver la cuestión en forma fundada en el plazo de diez (10) días hábiles, vencidos los cuales\
+    \ quedará expedita la acción judicial para ambas partes."
+  text_sha256: 2e3b9b3570b4ae46728053058229232bb6196b8a127be7d4f129e14d646005e1
+  level: N1
+  executable: true
+  layer: law
+  checked_on: '2026-10-03'
+  terms:
+  - party: bank
+    what: resolve the objection with reasons
+    value: 10
+    unit: business_days
+    starts_at: objection of the cardholder
+    counts_from: later
+- id: AR-R01
+  country: AR
+  route: AR-bank-complaint
+  summary: 'Disowned transaction made by phone or messaging: refund immediately; investigate afterwards'
+  source:
+    title: Comunicación A 7783
+    provision: 3.1.3.d
+    url: https://www.bcra.gob.ar/archivos/Pdfs/comytexord/A7783.pdf
+  level: N1
+  executable: false
+  layer: law
+  terms:
+  - party: bank
+    what: refund the amounts
+    unit: immediate
+    starts_at: disowning of the transaction
+    counts_from: filing

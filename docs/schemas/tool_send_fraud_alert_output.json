@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "alert_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Alert Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "alert_id"
+  ],
+  "title": "SendFraudAlertOutput",
+  "type": "object"
+}

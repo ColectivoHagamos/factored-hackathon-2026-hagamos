@@ -1,0 +1,17 @@
+# Local demo: no credentials, mock data adapter and rules interpreter.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: vera-api:local
+    environment:
+      VERA_ADAPTER: mock
+      VERA_LLM: classifier
+    ports:
+      - "127.0.0.1:8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true

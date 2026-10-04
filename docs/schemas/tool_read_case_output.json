@@ -1,0 +1,327 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "n": {
+          "maximum": 50,
+          "minimum": 1,
+          "title": "N",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/ChargeKind"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        },
+        "merchant": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merchant"
+        },
+        "merchant_category": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merchant Category"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Country"
+        },
+        "status": {
+          "$ref": "#/$defs/ChargeStatus"
+        },
+        "card": {
+          "anyOf": [
+            {
+              "pattern": "^•••• \\d{4}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card"
+        },
+        "card_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "credit",
+                "debit"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card Type"
+        },
+        "card_n": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card N"
+        },
+        "is_known_merchant": {
+          "default": false,
+          "title": "Is Known Merchant",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "n",
+        "kind",
+        "occurred_at",
+        "amount",
+        "currency",
+        "status"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "CaseStatus": {
+      "enum": [
+        "registered",
+        "escalated",
+        "closed"
+      ],
+      "title": "CaseStatus",
+      "type": "string"
+    },
+    "ChargeKind": {
+      "enum": [
+        "purchase",
+        "bank_adjustment"
+      ],
+      "title": "ChargeKind",
+      "type": "string"
+    },
+    "ChargeStatus": {
+      "enum": [
+        "approved",
+        "pending",
+        "declined",
+        "reversed"
+      ],
+      "title": "ChargeStatus",
+      "type": "string"
+    },
+    "ClaimType": {
+      "enum": [
+        "unrecognized_charge",
+        "improper_charge",
+        "scam_transfer",
+        "human_request",
+        "out_of_scope"
+      ],
+      "title": "ClaimType",
+      "type": "string"
+    },
+    "Currency": {
+      "description": "Currencies present in the dataset; Mexico operates in USD only.",
+      "enum": [
+        "USD",
+        "COP",
+        "ARS"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "DeclaredChannel": {
+      "description": "Purchase channel as stated by the customer; the dataset channel is random and never used.",
+      "enum": [
+        "online",
+        "in_person",
+        "unknown"
+      ],
+      "title": "DeclaredChannel",
+      "type": "string"
+    },
+    "DisputeReason": {
+      "enum": [
+        "fraud",
+        "not_received",
+        "not_as_described",
+        "incorrect_amount",
+        "duplicate",
+        "cancelled_recurring",
+        "bank_charge",
+        "recognized_by_customer"
+      ],
+      "title": "DisputeReason",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        }
+      },
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "pattern": "^DSP-\\d{6}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "conversation_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Conversation Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/CaseStatus"
+    },
+    "claim_type": {
+      "$ref": "#/$defs/ClaimType"
+    },
+    "reason": {
+      "$ref": "#/$defs/DisputeReason"
+    },
+    "declared_channel": {
+      "$ref": "#/$defs/DeclaredChannel"
+    },
+    "charges": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "minItems": 1,
+      "title": "Charges",
+      "type": "array"
+    },
+    "total_exposure": {
+      "items": {
+        "$ref": "#/$defs/Money"
+      },
+      "title": "Total Exposure",
+      "type": "array"
+    },
+    "total_exposure_usd": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+          "type": "string"
+        }
+      ],
+      "title": "Total Exposure Usd"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "conversation_id",
+    "status",
+    "claim_type",
+    "reason",
+    "declared_channel",
+    "charges",
+    "total_exposure",
+    "total_exposure_usd",
+    "created_at"
+  ],
+  "title": "Case",
+  "type": "object"
+}

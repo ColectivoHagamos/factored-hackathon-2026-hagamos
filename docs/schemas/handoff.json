@@ -1,0 +1,925 @@
+{
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "block_card",
+            "register_dispute"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "ok",
+            "failed"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "read_back": {
+          "title": "Read Back",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action",
+        "result",
+        "read_back"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "Answer": {
+      "description": "Answer to a yes-or-no question that keeps the case in which the customer did not say.",
+      "enum": [
+        "yes",
+        "no",
+        "not_said"
+      ],
+      "title": "Answer",
+      "type": "string"
+    },
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "n": {
+          "maximum": 50,
+          "minimum": 1,
+          "title": "N",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/ChargeKind"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        },
+        "merchant": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merchant"
+        },
+        "merchant_category": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merchant Category"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Country"
+        },
+        "status": {
+          "$ref": "#/$defs/ChargeStatus"
+        },
+        "card": {
+          "anyOf": [
+            {
+              "pattern": "^•••• \\d{4}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card"
+        },
+        "card_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "credit",
+                "debit"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card Type"
+        },
+        "card_n": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card N"
+        },
+        "is_known_merchant": {
+          "default": false,
+          "title": "Is Known Merchant",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "n",
+        "kind",
+        "occurred_at",
+        "amount",
+        "currency",
+        "status"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "ChargeKind": {
+      "enum": [
+        "purchase",
+        "bank_adjustment"
+      ],
+      "title": "ChargeKind",
+      "type": "string"
+    },
+    "ChargeStatus": {
+      "enum": [
+        "approved",
+        "pending",
+        "declined",
+        "reversed"
+      ],
+      "title": "ChargeStatus",
+      "type": "string"
+    },
+    "ClaimType": {
+      "enum": [
+        "unrecognized_charge",
+        "improper_charge",
+        "scam_transfer",
+        "human_request",
+        "out_of_scope"
+      ],
+      "title": "ClaimType",
+      "type": "string"
+    },
+    "ContactChannel": {
+      "description": "How a third party reached the customer before a payment made under deception, as the customer says (POL-10).",
+      "enum": [
+        "phone_call",
+        "message",
+        "email",
+        "social_media",
+        "website",
+        "in_person"
+      ],
+      "title": "ContactChannel",
+      "type": "string"
+    },
+    "Country": {
+      "enum": [
+        "MX",
+        "CO",
+        "AR"
+      ],
+      "title": "Country",
+      "type": "string"
+    },
+    "Currency": {
+      "description": "Currencies present in the dataset; Mexico operates in USD only.",
+      "enum": [
+        "USD",
+        "COP",
+        "ARS"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "DeclaredChannel": {
+      "description": "Purchase channel as stated by the customer; the dataset channel is random and never used.",
+      "enum": [
+        "online",
+        "in_person",
+        "unknown"
+      ],
+      "title": "DeclaredChannel",
+      "type": "string"
+    },
+    "DeclaredFacts": {
+      "additionalProperties": false,
+      "description": "Facts stated by the customer and not verified by any tool.",
+      "properties": {
+        "channel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeclaredChannel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "has_card": {
+          "$ref": "#/$defs/Answer",
+          "default": "not_said"
+        },
+        "was_in_country": {
+          "$ref": "#/$defs/Answer",
+          "default": "not_said"
+        },
+        "authorized_payment": {
+          "$ref": "#/$defs/Answer",
+          "default": "not_said"
+        },
+        "date_text": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date Text"
+        },
+        "contacted_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContactChannel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "DeclaredFacts",
+      "type": "object"
+    },
+    "DisputeReason": {
+      "enum": [
+        "fraud",
+        "not_received",
+        "not_as_described",
+        "incorrect_amount",
+        "duplicate",
+        "cancelled_recurring",
+        "bank_charge",
+        "recognized_by_customer"
+      ],
+      "title": "DisputeReason",
+      "type": "string"
+    },
+    "FraudScoreBand": {
+      "description": "Band of the dataset fraud score; the raw score and the fraud label never leave the adapter.",
+      "enum": [
+        "<=30",
+        ">30",
+        "none"
+      ],
+      "title": "FraudScoreBand",
+      "type": "string"
+    },
+    "GoodwillCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "flagged": {
+          "default": false,
+          "title": "Flagged",
+          "type": "boolean"
+        },
+        "criteria": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/GoodwillCriterion"
+          },
+          "title": "Criteria",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "title": "GoodwillCandidate",
+      "type": "object"
+    },
+    "GoodwillCriterion": {
+      "description": "The three criteria of policy section 11.1; all of them are required to flag a candidate.",
+      "enum": [
+        "first_dispute_in_12_months",
+        "verified_amount_at_most_usd_100",
+        "recognized_or_bank_charge"
+      ],
+      "title": "GoodwillCriterion",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "es",
+        "pt"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "LanguageVariant": {
+      "description": "Register used with the customer: tu (MX), usted (CO), vos (AR), voce (PT).",
+      "enum": [
+        "es-MX",
+        "es-CO",
+        "es-AR",
+        "pt"
+      ],
+      "title": "LanguageVariant",
+      "type": "string"
+    },
+    "LegalClock": {
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "pattern": "^(CO|MX|AR|BR)-[a-z0-9]+(-[a-z0-9]+)*$",
+          "title": "Route",
+          "type": "string"
+        },
+        "rules_evaluated": {
+          "items": {
+            "$ref": "#/$defs/RuleEvaluation"
+          },
+          "title": "Rules Evaluated",
+          "type": "array"
+        },
+        "deadline_verified": {
+          "title": "Deadline Verified",
+          "type": "boolean"
+        },
+        "obligations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Obligation"
+          },
+          "title": "Obligations",
+          "type": "array"
+        },
+        "venues": {
+          "default": [],
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Venues",
+          "type": "array"
+        }
+      },
+      "required": [
+        "route",
+        "rules_evaluated",
+        "deadline_verified"
+      ],
+      "title": "LegalClock",
+      "type": "object"
+    },
+    "Level": {
+      "description": "Verification level: N1 read in the official source, N2 official reference, N3 pending.",
+      "enum": [
+        "N1",
+        "N2",
+        "N3"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        }
+      },
+      "required": [
+        "amount",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "NetworkClock": {
+      "additionalProperties": false,
+      "description": "Contractual card network deadline for the analyst only; never communicated as law.",
+      "properties": {
+        "network": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Network",
+          "type": "string"
+        },
+        "layer": {
+          "const": "network",
+          "default": "network",
+          "title": "Layer",
+          "type": "string"
+        },
+        "level": {
+          "$ref": "#/$defs/Level"
+        },
+        "suggested_code": {
+          "pattern": "^\\d{2}\\.\\d{1,2}(\\.\\d)?$",
+          "title": "Suggested Code",
+          "type": "string"
+        },
+        "due": {
+          "format": "date",
+          "title": "Due",
+          "type": "string"
+        },
+        "note": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "network",
+        "level",
+        "suggested_code",
+        "due",
+        "note"
+      ],
+      "title": "NetworkClock",
+      "type": "object"
+    },
+    "Obligation": {
+      "additionalProperties": false,
+      "properties": {
+        "party": {
+          "$ref": "#/$defs/Party"
+        },
+        "what": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "What",
+          "type": "string"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TermUnit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "party",
+        "what"
+      ],
+      "title": "Obligation",
+      "type": "object"
+    },
+    "Party": {
+      "enum": [
+        "bank",
+        "customer"
+      ],
+      "title": "Party",
+      "type": "string"
+    },
+    "Queue": {
+      "enum": [
+        "fraud",
+        "complaints"
+      ],
+      "title": "Queue",
+      "type": "string"
+    },
+    "RuleEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^(CO|MX|AR|BR)-R\\d{2}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/RuleResult"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleStatus"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "in_force_from": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "In Force From"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        }
+      },
+      "required": [
+        "id",
+        "result"
+      ],
+      "title": "RuleEvaluation",
+      "type": "object"
+    },
+    "RuleResult": {
+      "enum": [
+        "applies",
+        "not_applicable",
+        "expired"
+      ],
+      "title": "RuleResult",
+      "type": "string"
+    },
+    "RuleStatus": {
+      "description": "Status of an applicable rule on the date of the facts.",
+      "enum": [
+        "in_force_by_law",
+        "early_adopted"
+      ],
+      "title": "RuleStatus",
+      "type": "string"
+    },
+    "Segment": {
+      "enum": [
+        "basic",
+        "plus",
+        "premium",
+        "student"
+      ],
+      "title": "Segment",
+      "type": "string"
+    },
+    "Sweep": {
+      "additionalProperties": false,
+      "properties": {
+        "charges_reviewed": {
+          "minimum": 0,
+          "title": "Charges Reviewed",
+          "type": "integer"
+        },
+        "not_recognized": {
+          "minimum": 0,
+          "title": "Not Recognized",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "charges_reviewed",
+        "not_recognized"
+      ],
+      "title": "Sweep",
+      "type": "object"
+    },
+    "TermUnit": {
+      "enum": [
+        "hours",
+        "days",
+        "calendar_days",
+        "business_days",
+        "immediate"
+      ],
+      "title": "TermUnit",
+      "type": "string"
+    },
+    "VerifiedFacts": {
+      "additionalProperties": false,
+      "description": "Facts read from tools only.",
+      "properties": {
+        "charges": {
+          "items": {
+            "$ref": "#/$defs/Candidate"
+          },
+          "minItems": 1,
+          "title": "Charges",
+          "type": "array"
+        },
+        "total_exposure": {
+          "items": {
+            "$ref": "#/$defs/Money"
+          },
+          "title": "Total Exposure",
+          "type": "array"
+        },
+        "total_exposure_usd": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Total Exposure Usd"
+        },
+        "fraud_score_band": {
+          "$ref": "#/$defs/FraudScoreBand"
+        }
+      },
+      "required": [
+        "charges",
+        "total_exposure",
+        "total_exposure_usd",
+        "fraud_score_band"
+      ],
+      "title": "VerifiedFacts",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "handoff/2.0",
+      "default": "handoff/2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "pattern": "^DSP-\\d{6}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "summary": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "language": {
+      "$ref": "#/$defs/Language"
+    },
+    "variant": {
+      "$ref": "#/$defs/LanguageVariant"
+    },
+    "requires_pt_analyst": {
+      "title": "Requires Pt Analyst",
+      "type": "boolean"
+    },
+    "account_country": {
+      "$ref": "#/$defs/Country"
+    },
+    "segment": {
+      "$ref": "#/$defs/Segment"
+    },
+    "claim_type": {
+      "$ref": "#/$defs/ClaimType"
+    },
+    "reason": {
+      "$ref": "#/$defs/DisputeReason"
+    },
+    "response_level": {
+      "enum": [
+        1,
+        2,
+        3
+      ],
+      "title": "Response Level",
+      "type": "integer"
+    },
+    "verified_facts": {
+      "$ref": "#/$defs/VerifiedFacts"
+    },
+    "declared_by_customer": {
+      "$ref": "#/$defs/DeclaredFacts"
+    },
+    "sweep": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Sweep"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "actions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Action"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "legal_clock": {
+      "$ref": "#/$defs/LegalClock"
+    },
+    "network_clock": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NetworkClock"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "risk_signals": {
+      "default": [],
+      "items": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Risk Signals",
+      "type": "array"
+    },
+    "fraud_alert": {
+      "default": false,
+      "title": "Fraud Alert",
+      "type": "boolean"
+    },
+    "goodwill_candidate": {
+      "$ref": "#/$defs/GoodwillCandidate",
+      "default": {
+        "flagged": false,
+        "criteria": [],
+        "reason": null
+      }
+    },
+    "suggested_queue": {
+      "$ref": "#/$defs/Queue"
+    },
+    "open_questions": {
+      "default": [],
+      "items": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Open Questions",
+      "type": "array"
+    },
+    "policy_version": {
+      "pattern": "^\\d+\\.\\d+$",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "created_at",
+    "summary",
+    "language",
+    "variant",
+    "requires_pt_analyst",
+    "account_country",
+    "segment",
+    "claim_type",
+    "reason",
+    "response_level",
+    "verified_facts",
+    "declared_by_customer",
+    "legal_clock",
+    "suggested_queue",
+    "policy_version",
+    "trace_id"
+  ],
+  "title": "Handoff",
+  "type": "object"
+}

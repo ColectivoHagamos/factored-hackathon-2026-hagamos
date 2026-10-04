@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "ChargeKind": {
+      "enum": [
+        "purchase",
+        "bank_adjustment"
+      ],
+      "title": "ChargeKind",
+      "type": "string"
+    },
+    "ChargeStatus": {
+      "enum": [
+        "approved",
+        "pending",
+        "declined",
+        "reversed"
+      ],
+      "title": "ChargeStatus",
+      "type": "string"
+    },
+    "Currency": {
+      "description": "Currencies present in the dataset; Mexico operates in USD only.",
+      "enum": [
+        "USD",
+        "COP",
+        "ARS"
+      ],
+      "title": "Currency",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "n": {
+      "maximum": 50,
+      "minimum": 1,
+      "title": "N",
+      "type": "integer"
+    },
+    "kind": {
+      "$ref": "#/$defs/ChargeKind"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "amount": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+          "type": "string"
+        }
+      ],
+      "title": "Amount"
+    },
+    "currency": {
+      "$ref": "#/$defs/Currency"
+    },
+    "merchant": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Merchant"
+    },
+    "merchant_category": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Merchant Category"
+    },
+    "city": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "City"
+    },
+    "country": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Country"
+    },
+    "status": {
+      "$ref": "#/$defs/ChargeStatus"
+    },
+    "card": {
+      "anyOf": [
+        {
+          "pattern": "^•••• \\d{4}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Card"
+    },
+    "card_type": {
+      "anyOf": [
+        {
+          "enum": [
+            "credit",
+            "debit"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Card Type"
+    },
+    "card_n": {
+      "anyOf": [
+        {
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Card N"
+    },
+    "is_known_merchant": {
+      "default": false,
+      "title": "Is Known Merchant",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "n",
+    "kind",
+    "occurred_at",
+    "amount",
+    "currency",
+    "status"
+  ],
+  "title": "Candidate",
+  "type": "object"
+}

@@ -1,0 +1,16 @@
+{
+  "additionalProperties": false,
+  "description": "Demo only: the customer is picked from the demo page; a document number never opens a session.",
+  "properties": {
+    "demo_customer": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Demo Customer",
+      "type": "string"
+    }
+  },
+  "required": [
+    "demo_customer"
+  ],
+  "title": "DemoSessionRequest",
+  "type": "object"
+}

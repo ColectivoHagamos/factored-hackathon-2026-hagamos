@@ -1,0 +1,10 @@
+# Allowlist: only what the images need reaches the build context. Data, secrets and history never do.
+*
+!pyproject.toml
+!uv.lock
+!.python-version
+!vera/
+!api/
+!ml/
+!web/
+**/__pycache__

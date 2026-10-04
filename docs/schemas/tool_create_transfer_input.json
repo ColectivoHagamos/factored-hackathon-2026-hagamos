@@ -1,0 +1,42 @@
+{
+  "$defs": {
+    "Queue": {
+      "enum": [
+        "fraud",
+        "complaints"
+      ],
+      "title": "Queue",
+      "type": "string"
+    },
+    "TransferReason": {
+      "description": "Why a conversation went to a person without a case handoff; each reason is a rule.",
+      "enum": [
+        "person_requested",
+        "coercion",
+        "not_understood",
+        "regulator",
+        "scam_transfer",
+        "tool_failure",
+        "turn_limit"
+      ],
+      "title": "TransferReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A conversation that goes to a person without a case handoff leaves a note with what is known (POL-01).",
+  "properties": {
+    "queue": {
+      "$ref": "#/$defs/Queue"
+    },
+    "reason": {
+      "$ref": "#/$defs/TransferReason"
+    }
+  },
+  "required": [
+    "queue",
+    "reason"
+  ],
+  "title": "CreateTransferInput",
+  "type": "object"
+}

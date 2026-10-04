@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "EventType": {
+      "enum": [
+        "customer_message",
+        "interpretation",
+        "tool_called",
+        "tool_result",
+        "rule_decision",
+        "confirmation",
+        "action_read_back",
+        "clarification_confirmed",
+        "reply",
+        "handoff",
+        "fraud_alert",
+        "security_event"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "conversation_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Conversation Id",
+      "type": "string"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "data": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Data",
+      "type": "object"
+    },
+    "llm_provider": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Llm Provider"
+    },
+    "prev_hash": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Prev Hash"
+    },
+    "hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "conversation_id",
+    "ts",
+    "type",
+    "data",
+    "prev_hash",
+    "hash"
+  ],
+  "title": "Event",
+  "type": "object"
+}

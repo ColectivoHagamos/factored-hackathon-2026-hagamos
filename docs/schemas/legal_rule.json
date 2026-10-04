@@ -1,0 +1,333 @@
+{
+  "$defs": {
+    "CountsFrom": {
+      "description": "When a term starts: the fact (customer windows), the filing of the claim, or a later event.",
+      "enum": [
+        "event",
+        "filing",
+        "later"
+      ],
+      "title": "CountsFrom",
+      "type": "string"
+    },
+    "Jurisdiction": {
+      "enum": [
+        "MX",
+        "CO",
+        "AR",
+        "BR"
+      ],
+      "title": "Jurisdiction",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "es",
+        "pt"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "Layer": {
+      "description": "Origin of a rule; contractual network rules are never presented as law.",
+      "enum": [
+        "law",
+        "network",
+        "bank"
+      ],
+      "title": "Layer",
+      "type": "string"
+    },
+    "Level": {
+      "description": "Verification level: N1 read in the official source, N2 official reference, N3 pending.",
+      "enum": [
+        "N1",
+        "N2",
+        "N3"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "Party": {
+      "enum": [
+        "bank",
+        "customer"
+      ],
+      "title": "Party",
+      "type": "string"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "provision": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Provision",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "provision",
+        "url"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "Term": {
+      "additionalProperties": false,
+      "properties": {
+        "party": {
+          "$ref": "#/$defs/Party"
+        },
+        "what": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "What",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "unit": {
+          "$ref": "#/$defs/TermUnit"
+        },
+        "starts_at": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Starts At",
+          "type": "string"
+        },
+        "counts_from": {
+          "$ref": "#/$defs/CountsFrom"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Key"
+        },
+        "follows": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Follows"
+        },
+        "applies_when": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applies When"
+        }
+      },
+      "required": [
+        "party",
+        "what",
+        "unit",
+        "starts_at",
+        "counts_from"
+      ],
+      "title": "Term",
+      "type": "object"
+    },
+    "TermUnit": {
+      "enum": [
+        "hours",
+        "days",
+        "calendar_days",
+        "business_days",
+        "immediate"
+      ],
+      "title": "TermUnit",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^(CO|MX|AR|BR)-R\\d{2}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "country": {
+      "$ref": "#/$defs/Jurisdiction"
+    },
+    "route": {
+      "pattern": "^(CO|MX|AR|BR)-[a-z0-9]+(-[a-z0-9]+)*$",
+      "title": "Route",
+      "type": "string"
+    },
+    "summary": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "literal_text": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Literal Text"
+    },
+    "text_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Text Sha256"
+    },
+    "effective_from": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effective From"
+    },
+    "effective_to": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Effective To"
+    },
+    "early_adoption": {
+      "default": false,
+      "title": "Early Adoption",
+      "type": "boolean"
+    },
+    "level": {
+      "$ref": "#/$defs/Level"
+    },
+    "executable": {
+      "title": "Executable",
+      "type": "boolean"
+    },
+    "layer": {
+      "$ref": "#/$defs/Layer"
+    },
+    "terms": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Term"
+      },
+      "title": "Terms",
+      "type": "array"
+    },
+    "response_languages": {
+      "default": [
+        "es",
+        "pt"
+      ],
+      "items": {
+        "$ref": "#/$defs/Language"
+      },
+      "title": "Response Languages",
+      "type": "array"
+    },
+    "checked_on": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checked On"
+    },
+    "legal_review": {
+      "default": false,
+      "title": "Legal Review",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "country",
+    "route",
+    "summary",
+    "source",
+    "level",
+    "executable",
+    "layer"
+  ],
+  "title": "LegalRule",
+  "type": "object"
+}

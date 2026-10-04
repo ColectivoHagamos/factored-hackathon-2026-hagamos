@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "transfer_id": {
+      "pattern": "^TRF-\\d{6}$",
+      "title": "Transfer Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "transfer_id"
+  ],
+  "title": "CreateTransferOutput",
+  "type": "object"
+}

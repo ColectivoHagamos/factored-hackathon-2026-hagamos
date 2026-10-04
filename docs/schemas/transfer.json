@@ -1,0 +1,565 @@
+{
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "block_card",
+            "register_dispute"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "ok",
+            "failed"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "read_back": {
+          "title": "Read Back",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action",
+        "result",
+        "read_back"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "Answer": {
+      "description": "Answer to a yes-or-no question that keeps the case in which the customer did not say.",
+      "enum": [
+        "yes",
+        "no",
+        "not_said"
+      ],
+      "title": "Answer",
+      "type": "string"
+    },
+    "ChargeDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "n": {
+          "maximum": 50,
+          "minimum": 1,
+          "title": "N",
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/ChargeKind"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        },
+        "merchant": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merchant"
+        },
+        "merchant_category": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merchant Category"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Country"
+        },
+        "status": {
+          "$ref": "#/$defs/ChargeStatus"
+        },
+        "card": {
+          "anyOf": [
+            {
+              "pattern": "^•••• \\d{4}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card"
+        },
+        "card_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "credit",
+                "debit"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card Type"
+        },
+        "card_n": {
+          "anyOf": [
+            {
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card N"
+        },
+        "is_known_merchant": {
+          "default": false,
+          "title": "Is Known Merchant",
+          "type": "boolean"
+        },
+        "fraud_score_band": {
+          "$ref": "#/$defs/FraudScoreBand"
+        }
+      },
+      "required": [
+        "n",
+        "kind",
+        "occurred_at",
+        "amount",
+        "currency",
+        "status",
+        "fraud_score_band"
+      ],
+      "title": "ChargeDetail",
+      "type": "object"
+    },
+    "ChargeKind": {
+      "enum": [
+        "purchase",
+        "bank_adjustment"
+      ],
+      "title": "ChargeKind",
+      "type": "string"
+    },
+    "ChargeStatus": {
+      "enum": [
+        "approved",
+        "pending",
+        "declined",
+        "reversed"
+      ],
+      "title": "ChargeStatus",
+      "type": "string"
+    },
+    "ClaimType": {
+      "enum": [
+        "unrecognized_charge",
+        "improper_charge",
+        "scam_transfer",
+        "human_request",
+        "out_of_scope"
+      ],
+      "title": "ClaimType",
+      "type": "string"
+    },
+    "ContactChannel": {
+      "description": "How a third party reached the customer before a payment made under deception, as the customer says (POL-10).",
+      "enum": [
+        "phone_call",
+        "message",
+        "email",
+        "social_media",
+        "website",
+        "in_person"
+      ],
+      "title": "ContactChannel",
+      "type": "string"
+    },
+    "Country": {
+      "enum": [
+        "MX",
+        "CO",
+        "AR"
+      ],
+      "title": "Country",
+      "type": "string"
+    },
+    "Currency": {
+      "description": "Currencies present in the dataset; Mexico operates in USD only.",
+      "enum": [
+        "USD",
+        "COP",
+        "ARS"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "DeclaredChannel": {
+      "description": "Purchase channel as stated by the customer; the dataset channel is random and never used.",
+      "enum": [
+        "online",
+        "in_person",
+        "unknown"
+      ],
+      "title": "DeclaredChannel",
+      "type": "string"
+    },
+    "DeclaredFacts": {
+      "additionalProperties": false,
+      "description": "Facts stated by the customer and not verified by any tool.",
+      "properties": {
+        "channel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeclaredChannel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "has_card": {
+          "$ref": "#/$defs/Answer",
+          "default": "not_said"
+        },
+        "was_in_country": {
+          "$ref": "#/$defs/Answer",
+          "default": "not_said"
+        },
+        "authorized_payment": {
+          "$ref": "#/$defs/Answer",
+          "default": "not_said"
+        },
+        "date_text": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date Text"
+        },
+        "contacted_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContactChannel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "DeclaredFacts",
+      "type": "object"
+    },
+    "FraudScoreBand": {
+      "description": "Band of the dataset fraud score; the raw score and the fraud label never leave the adapter.",
+      "enum": [
+        "<=30",
+        ">30",
+        "none"
+      ],
+      "title": "FraudScoreBand",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "es",
+        "pt"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "LanguageVariant": {
+      "description": "Register used with the customer: tu (MX), usted (CO), vos (AR), voce (PT).",
+      "enum": [
+        "es-MX",
+        "es-CO",
+        "es-AR",
+        "pt"
+      ],
+      "title": "LanguageVariant",
+      "type": "string"
+    },
+    "Queue": {
+      "enum": [
+        "fraud",
+        "complaints"
+      ],
+      "title": "Queue",
+      "type": "string"
+    },
+    "Segment": {
+      "enum": [
+        "basic",
+        "plus",
+        "premium",
+        "student"
+      ],
+      "title": "Segment",
+      "type": "string"
+    },
+    "TransferReason": {
+      "description": "Why a conversation went to a person without a case handoff; each reason is a rule.",
+      "enum": [
+        "person_requested",
+        "coercion",
+        "not_understood",
+        "regulator",
+        "scam_transfer",
+        "tool_failure",
+        "turn_limit"
+      ],
+      "title": "TransferReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A conversation that went to a person without a case handoff, with what is already known (POL-01).\n\nLike the handoff, it never carries the transcript: the charges come from tools, and the rest is what the\ncustomer declared, the actions read back and what the analyst still has to ask.",
+  "properties": {
+    "schema_version": {
+      "const": "transfer/1.0",
+      "default": "transfer/1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "transfer_id": {
+      "pattern": "^TRF-\\d{6}$",
+      "title": "Transfer Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "reason": {
+      "$ref": "#/$defs/TransferReason"
+    },
+    "summary": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "language": {
+      "$ref": "#/$defs/Language"
+    },
+    "variant": {
+      "$ref": "#/$defs/LanguageVariant"
+    },
+    "requires_pt_analyst": {
+      "title": "Requires Pt Analyst",
+      "type": "boolean"
+    },
+    "account_country": {
+      "$ref": "#/$defs/Country"
+    },
+    "segment": {
+      "$ref": "#/$defs/Segment"
+    },
+    "claim_type": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ClaimType"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "charges": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ChargeDetail"
+      },
+      "title": "Charges",
+      "type": "array"
+    },
+    "declared_by_customer": {
+      "$ref": "#/$defs/DeclaredFacts",
+      "default": {
+        "channel": null,
+        "has_card": "not_said",
+        "was_in_country": "not_said",
+        "authorized_payment": "not_said",
+        "date_text": null,
+        "contacted_by": null
+      }
+    },
+    "actions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Action"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "pending_action_not_run": {
+      "anyOf": [
+        {
+          "enum": [
+            "block_card",
+            "register_dispute"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pending Action Not Run"
+    },
+    "case_id": {
+      "anyOf": [
+        {
+          "pattern": "^DSP-\\d{6}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Case Id"
+    },
+    "risk_signals": {
+      "default": [],
+      "items": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Risk Signals",
+      "type": "array"
+    },
+    "fraud_alert": {
+      "default": false,
+      "title": "Fraud Alert",
+      "type": "boolean"
+    },
+    "rules_applied": {
+      "default": [],
+      "items": {
+        "pattern": "^((POL|PROH)-\\d{2}|(CO|MX|AR|BR)-R\\d{2})$",
+        "type": "string"
+      },
+      "title": "Rules Applied",
+      "type": "array"
+    },
+    "suggested_queue": {
+      "$ref": "#/$defs/Queue"
+    },
+    "open_questions": {
+      "default": [],
+      "items": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Open Questions",
+      "type": "array"
+    },
+    "policy_version": {
+      "pattern": "^\\d+\\.\\d+$",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "trace_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Trace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "transfer_id",
+    "created_at",
+    "reason",
+    "summary",
+    "language",
+    "variant",
+    "requires_pt_analyst",
+    "account_country",
+    "segment",
+    "suggested_queue",
+    "policy_version",
+    "trace_id"
+  ],
+  "title": "Transfer",
+  "type": "object"
+}

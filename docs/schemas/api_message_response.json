@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "GlassBoxEntry": {
+      "additionalProperties": false,
+      "description": "Rule applied in a reply, with its source and, when a verified rule yields one, the deadline.",
+      "properties": {
+        "rule_id": {
+          "pattern": "^((POL|PROH)-\\d{2}|(CO|MX|AR|BR)-R\\d{2})$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline"
+        }
+      },
+      "required": [
+        "rule_id",
+        "source"
+      ],
+      "title": "GlassBoxEntry",
+      "type": "object"
+    },
+    "Option": {
+      "additionalProperties": false,
+      "properties": {
+        "n": {
+          "maximum": 50,
+          "minimum": 1,
+          "title": "N",
+          "type": "integer"
+        },
+        "label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        }
+      },
+      "required": [
+        "n",
+        "label"
+      ],
+      "title": "Option",
+      "type": "object"
+    },
+    "PendingConfirmation": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "block_card",
+            "register_dispute"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "summary",
+        "expires_at"
+      ],
+      "title": "PendingConfirmation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "reply": {
+      "title": "Reply",
+      "type": "string"
+    },
+    "options": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Option"
+      },
+      "title": "Options",
+      "type": "array"
+    },
+    "multiple_choice": {
+      "default": false,
+      "title": "Multiple Choice",
+      "type": "boolean"
+    },
+    "pending_confirmation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PendingConfirmation"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "glass_box": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/GlassBoxEntry"
+      },
+      "title": "Glass Box",
+      "type": "array"
+    }
+  },
+  "required": [
+    "reply"
+  ],
+  "title": "MessageResponse",
+  "type": "object"
+}

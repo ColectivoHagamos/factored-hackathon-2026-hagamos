@@ -1,0 +1,840 @@
+{
+  "set": "heldout-v15",
+  "sha256_of_the_cases": "70fdd93a55f9ac8c60970a8b755b8cef6ed7a3c41f0eed22a49d7332bcdad24e",
+  "cases_by_block": {
+    "ambiguous": 22,
+    "clarification": 38,
+    "expired_session": 13,
+    "foreign_charge": 11,
+    "human": 45,
+    "improper": 10,
+    "injection": 12,
+    "mitigation": 22,
+    "multilingual": 14,
+    "normal": 79,
+    "out_of_scope": 13,
+    "tool_failure": 11,
+    "wrong_data": 9
+  },
+  "portuguese_share": 0.2977,
+  "kind": "offline simulation: a scripted customer talks to the application in process; not production; rerun 'v15', after fixes this set's failures informed, so not a clean held-out",
+  "systems": {
+    "rules": {
+      "runs": 897,
+      "cases": 299,
+      "pass_at_1": {
+        "k": 498,
+        "n": 897,
+        "rate": 0.5552,
+        "low": 0.5225,
+        "high": 0.5874
+      },
+      "pass_hat_3": {
+        "k": 166,
+        "n": 299,
+        "rate": 0.5552,
+        "low": 0.4985,
+        "high": 0.6105
+      },
+      "cases_whose_result_changes_with_the_wording": 0,
+      "safe_automated_resolution": {
+        "k": 135,
+        "n": 750,
+        "rate": 0.18,
+        "low": 0.1542,
+        "high": 0.2091,
+        "attempted": {
+          "k": 750,
+          "n": 750,
+          "rate": 1.0,
+          "low": 0.9949,
+          "high": 1.0
+        },
+        "eligible_for_automation": 390
+      },
+      "containment": {
+        "k": 222,
+        "n": 897,
+        "rate": 0.2475,
+        "low": 0.2204,
+        "high": 0.2768
+      },
+      "explained_again": {
+        "k": 511,
+        "n": 750,
+        "rate": 0.6813,
+        "low": 0.6471,
+        "high": 0.7137
+      },
+      "escalation": {
+        "expected_transfers": 360,
+        "correct": 309,
+        "missed": {
+          "k": 6,
+          "n": 360,
+          "rate": 0.0167,
+          "low": 0.0077,
+          "high": 0.0359
+        },
+        "wrong_queue": 45,
+        "unnecessary": {
+          "k": 321,
+          "n": 537,
+          "rate": 0.5978,
+          "low": 0.5557,
+          "high": 0.6384
+        }
+      },
+      "legal_clock_correct": {
+        "k": 186,
+        "n": 186,
+        "rate": 1.0,
+        "low": 0.9798,
+        "high": 1.0
+      },
+      "output_validator": {
+        "runs_with_an_intervention": {
+          "k": 0,
+          "n": 897,
+          "rate": 0.0,
+          "low": 0.0,
+          "high": 0.0043
+        },
+        "interventions": 0
+      },
+      "unsafe_outcomes": {
+        "k": 0,
+        "n": 897,
+        "rate": 0.0,
+        "low": 0.0,
+        "high": 0.0043,
+        "by_type": {}
+      },
+      "efficiency": {
+        "turn_ms_p50": 5.0,
+        "turn_ms_p95": 9.9,
+        "conversation_ms_p50": 15.7,
+        "conversation_ms_p95": 47.1,
+        "turns_p50": 3,
+        "turns_p95": 7,
+        "cost_usd_per_attempted_case": 0.0,
+        "cost_usd_per_safe_resolution": 0.0,
+        "cost_usd_total": 0.0,
+        "llm_calls": 0,
+        "llm_fallbacks": 0
+      },
+      "by_block": {
+        "ambiguous": {
+          "k": 24,
+          "n": 66,
+          "rate": 0.3636,
+          "low": 0.2581,
+          "high": 0.4842
+        },
+        "clarification": {
+          "k": 36,
+          "n": 114,
+          "rate": 0.3158,
+          "low": 0.2377,
+          "high": 0.4059
+        },
+        "expired_session": {
+          "k": 12,
+          "n": 39,
+          "rate": 0.3077,
+          "low": 0.1857,
+          "high": 0.4642
+        },
+        "foreign_charge": {
+          "k": 33,
+          "n": 33,
+          "rate": 1.0,
+          "low": 0.8957,
+          "high": 1.0
+        },
+        "human": {
+          "k": 135,
+          "n": 135,
+          "rate": 1.0,
+          "low": 0.9723,
+          "high": 1.0
+        },
+        "improper": {
+          "k": 24,
+          "n": 30,
+          "rate": 0.8,
+          "low": 0.6269,
+          "high": 0.905
+        },
+        "injection": {
+          "k": 36,
+          "n": 36,
+          "rate": 1.0,
+          "low": 0.9036,
+          "high": 1.0
+        },
+        "mitigation": {
+          "k": 21,
+          "n": 66,
+          "rate": 0.3182,
+          "low": 0.2185,
+          "high": 0.4379
+        },
+        "multilingual": {
+          "k": 42,
+          "n": 42,
+          "rate": 1.0,
+          "low": 0.9162,
+          "high": 1.0
+        },
+        "normal": {
+          "k": 75,
+          "n": 237,
+          "rate": 0.3165,
+          "low": 0.2606,
+          "high": 0.3782
+        },
+        "out_of_scope": {
+          "k": 0,
+          "n": 39,
+          "rate": 0.0,
+          "low": 0.0,
+          "high": 0.0897
+        },
+        "tool_failure": {
+          "k": 33,
+          "n": 33,
+          "rate": 1.0,
+          "low": 0.8957,
+          "high": 1.0
+        },
+        "wrong_data": {
+          "k": 27,
+          "n": 27,
+          "rate": 1.0,
+          "low": 0.8754,
+          "high": 1.0
+        }
+      },
+      "by_language": {
+        "es": {
+          "k": 246,
+          "n": 630,
+          "rate": 0.3905,
+          "low": 0.3532,
+          "high": 0.4291
+        },
+        "pt": {
+          "k": 252,
+          "n": 267,
+          "rate": 0.9438,
+          "low": 0.9094,
+          "high": 0.9657
+        }
+      },
+      "by_country": {
+        "AR": {
+          "k": 159,
+          "n": 264,
+          "rate": 0.6023,
+          "low": 0.5422,
+          "high": 0.6594
+        },
+        "CO": {
+          "k": 147,
+          "n": 291,
+          "rate": 0.5052,
+          "low": 0.448,
+          "high": 0.5622
+        },
+        "MX": {
+          "k": 192,
+          "n": 342,
+          "rate": 0.5614,
+          "low": 0.5084,
+          "high": 0.613
+        }
+      },
+      "by_segment": {
+        "basic": {
+          "k": 309,
+          "n": 597,
+          "rate": 0.5176,
+          "low": 0.4775,
+          "high": 0.5574
+        },
+        "plus": {
+          "k": 120,
+          "n": 183,
+          "rate": 0.6557,
+          "low": 0.5843,
+          "high": 0.7207
+        },
+        "premium": {
+          "k": 42,
+          "n": 78,
+          "rate": 0.5385,
+          "low": 0.4286,
+          "high": 0.6447
+        },
+        "student": {
+          "k": 27,
+          "n": 39,
+          "rate": 0.6923,
+          "low": 0.5358,
+          "high": 0.8143
+        }
+      },
+      "failed_checks": {
+        "case": 255,
+        "queue": 372,
+        "block": 45,
+        "fraud_alert": 75,
+        "asked_to_choose": 42,
+        "session": 27
+      }
+    },
+    "classifier": {
+      "runs": 897,
+      "cases": 299,
+      "pass_at_1": {
+        "k": 883,
+        "n": 897,
+        "rate": 0.9844,
+        "low": 0.974,
+        "high": 0.9907
+      },
+      "pass_hat_3": {
+        "k": 289,
+        "n": 299,
+        "rate": 0.9666,
+        "low": 0.9395,
+        "high": 0.9817
+      },
+      "cases_whose_result_changes_with_the_wording": 8,
+      "safe_automated_resolution": {
+        "k": 390,
+        "n": 750,
+        "rate": 0.52,
+        "low": 0.4842,
+        "high": 0.5556,
+        "attempted": {
+          "k": 750,
+          "n": 750,
+          "rate": 1.0,
+          "low": 0.9949,
+          "high": 1.0
+        },
+        "eligible_for_automation": 390
+      },
+      "containment": {
+        "k": 541,
+        "n": 897,
+        "rate": 0.6031,
+        "low": 0.5707,
+        "high": 0.6346
+      },
+      "explained_again": {
+        "k": 28,
+        "n": 750,
+        "rate": 0.0373,
+        "low": 0.026,
+        "high": 0.0534
+      },
+      "escalation": {
+        "expected_transfers": 360,
+        "correct": 356,
+        "missed": {
+          "k": 4,
+          "n": 360,
+          "rate": 0.0111,
+          "low": 0.0043,
+          "high": 0.0282
+        },
+        "wrong_queue": 0,
+        "unnecessary": {
+          "k": 0,
+          "n": 537,
+          "rate": 0.0,
+          "low": 0.0,
+          "high": 0.0071
+        }
+      },
+      "legal_clock_correct": {
+        "k": 427,
+        "n": 427,
+        "rate": 1.0,
+        "low": 0.9911,
+        "high": 1.0
+      },
+      "output_validator": {
+        "runs_with_an_intervention": {
+          "k": 0,
+          "n": 897,
+          "rate": 0.0,
+          "low": 0.0,
+          "high": 0.0043
+        },
+        "interventions": 0
+      },
+      "unsafe_outcomes": {
+        "k": 0,
+        "n": 897,
+        "rate": 0.0,
+        "low": 0.0,
+        "high": 0.0043,
+        "by_type": {}
+      },
+      "efficiency": {
+        "turn_ms_p50": 6.9,
+        "turn_ms_p95": 11.8,
+        "conversation_ms_p50": 34.8,
+        "conversation_ms_p95": 51.1,
+        "turns_p50": 5,
+        "turns_p95": 7,
+        "cost_usd_per_attempted_case": 0.0,
+        "cost_usd_per_safe_resolution": 0.0,
+        "cost_usd_total": 0.0,
+        "llm_calls": 0,
+        "llm_fallbacks": 0
+      },
+      "by_block": {
+        "ambiguous": {
+          "k": 66,
+          "n": 66,
+          "rate": 1.0,
+          "low": 0.945,
+          "high": 1.0
+        },
+        "clarification": {
+          "k": 114,
+          "n": 114,
+          "rate": 1.0,
+          "low": 0.9674,
+          "high": 1.0
+        },
+        "expired_session": {
+          "k": 39,
+          "n": 39,
+          "rate": 1.0,
+          "low": 0.9103,
+          "high": 1.0
+        },
+        "foreign_charge": {
+          "k": 33,
+          "n": 33,
+          "rate": 1.0,
+          "low": 0.8957,
+          "high": 1.0
+        },
+        "human": {
+          "k": 135,
+          "n": 135,
+          "rate": 1.0,
+          "low": 0.9723,
+          "high": 1.0
+        },
+        "improper": {
+          "k": 16,
+          "n": 30,
+          "rate": 0.5333,
+          "low": 0.3614,
+          "high": 0.6977
+        },
+        "injection": {
+          "k": 36,
+          "n": 36,
+          "rate": 1.0,
+          "low": 0.9036,
+          "high": 1.0
+        },
+        "mitigation": {
+          "k": 66,
+          "n": 66,
+          "rate": 1.0,
+          "low": 0.945,
+          "high": 1.0
+        },
+        "multilingual": {
+          "k": 42,
+          "n": 42,
+          "rate": 1.0,
+          "low": 0.9162,
+          "high": 1.0
+        },
+        "normal": {
+          "k": 237,
+          "n": 237,
+          "rate": 1.0,
+          "low": 0.984,
+          "high": 1.0
+        },
+        "out_of_scope": {
+          "k": 39,
+          "n": 39,
+          "rate": 1.0,
+          "low": 0.9103,
+          "high": 1.0
+        },
+        "tool_failure": {
+          "k": 33,
+          "n": 33,
+          "rate": 1.0,
+          "low": 0.8957,
+          "high": 1.0
+        },
+        "wrong_data": {
+          "k": 27,
+          "n": 27,
+          "rate": 1.0,
+          "low": 0.8754,
+          "high": 1.0
+        }
+      },
+      "by_language": {
+        "es": {
+          "k": 622,
+          "n": 630,
+          "rate": 0.9873,
+          "low": 0.9751,
+          "high": 0.9936
+        },
+        "pt": {
+          "k": 261,
+          "n": 267,
+          "rate": 0.9775,
+          "low": 0.9518,
+          "high": 0.9897
+        }
+      },
+      "by_country": {
+        "AR": {
+          "k": 261,
+          "n": 264,
+          "rate": 0.9886,
+          "low": 0.9671,
+          "high": 0.9961
+        },
+        "CO": {
+          "k": 282,
+          "n": 291,
+          "rate": 0.9691,
+          "low": 0.9423,
+          "high": 0.9836
+        },
+        "MX": {
+          "k": 340,
+          "n": 342,
+          "rate": 0.9942,
+          "low": 0.9789,
+          "high": 0.9984
+        }
+      },
+      "by_segment": {
+        "basic": {
+          "k": 595,
+          "n": 597,
+          "rate": 0.9966,
+          "low": 0.9879,
+          "high": 0.9991
+        },
+        "plus": {
+          "k": 171,
+          "n": 183,
+          "rate": 0.9344,
+          "low": 0.8889,
+          "high": 0.9621
+        },
+        "premium": {
+          "k": 78,
+          "n": 78,
+          "rate": 1.0,
+          "low": 0.9531,
+          "high": 1.0
+        },
+        "student": {
+          "k": 39,
+          "n": 39,
+          "rate": 1.0,
+          "low": 0.9103,
+          "high": 1.0
+        }
+      },
+      "failed_checks": {
+        "case": 14,
+        "queue": 4
+      }
+    },
+    "anthropic": {
+      "runs": 897,
+      "cases": 299,
+      "pass_at_1": {
+        "k": 891,
+        "n": 897,
+        "rate": 0.9933,
+        "low": 0.9855,
+        "high": 0.9969
+      },
+      "pass_hat_3": {
+        "k": 297,
+        "n": 299,
+        "rate": 0.9933,
+        "low": 0.9759,
+        "high": 0.9982
+      },
+      "cases_whose_result_changes_with_the_wording": 0,
+      "safe_automated_resolution": {
+        "k": 390,
+        "n": 750,
+        "rate": 0.52,
+        "low": 0.4842,
+        "high": 0.5556,
+        "attempted": {
+          "k": 750,
+          "n": 750,
+          "rate": 1.0,
+          "low": 0.9949,
+          "high": 1.0
+        },
+        "eligible_for_automation": 390
+      },
+      "containment": {
+        "k": 543,
+        "n": 897,
+        "rate": 0.6054,
+        "low": 0.573,
+        "high": 0.6368
+      },
+      "explained_again": {
+        "k": 13,
+        "n": 750,
+        "rate": 0.0173,
+        "low": 0.0102,
+        "high": 0.0294
+      },
+      "escalation": {
+        "expected_transfers": 360,
+        "correct": 354,
+        "missed": {
+          "k": 6,
+          "n": 360,
+          "rate": 0.0167,
+          "low": 0.0077,
+          "high": 0.0359
+        },
+        "wrong_queue": 0,
+        "unnecessary": {
+          "k": 0,
+          "n": 537,
+          "rate": 0.0,
+          "low": 0.0,
+          "high": 0.0071
+        }
+      },
+      "legal_clock_correct": {
+        "k": 435,
+        "n": 435,
+        "rate": 1.0,
+        "low": 0.9912,
+        "high": 1.0
+      },
+      "output_validator": {
+        "runs_with_an_intervention": {
+          "k": 0,
+          "n": 897,
+          "rate": 0.0,
+          "low": 0.0,
+          "high": 0.0043
+        },
+        "interventions": 0
+      },
+      "unsafe_outcomes": {
+        "k": 0,
+        "n": 897,
+        "rate": 0.0,
+        "low": 0.0,
+        "high": 0.0043,
+        "by_type": {}
+      },
+      "efficiency": {
+        "turn_ms_p50": 7.5,
+        "turn_ms_p95": 1548.2,
+        "conversation_ms_p50": 1590.1,
+        "conversation_ms_p95": 4905.8,
+        "turns_p50": 5,
+        "turns_p95": 7,
+        "cost_usd_per_attempted_case": 0.0038,
+        "cost_usd_per_safe_resolution": 0.0087,
+        "cost_usd_total": 3.4109,
+        "llm_calls": 1244,
+        "llm_fallbacks": 1
+      },
+      "by_block": {
+        "ambiguous": {
+          "k": 66,
+          "n": 66,
+          "rate": 1.0,
+          "low": 0.945,
+          "high": 1.0
+        },
+        "clarification": {
+          "k": 114,
+          "n": 114,
+          "rate": 1.0,
+          "low": 0.9674,
+          "high": 1.0
+        },
+        "expired_session": {
+          "k": 39,
+          "n": 39,
+          "rate": 1.0,
+          "low": 0.9103,
+          "high": 1.0
+        },
+        "foreign_charge": {
+          "k": 33,
+          "n": 33,
+          "rate": 1.0,
+          "low": 0.8957,
+          "high": 1.0
+        },
+        "human": {
+          "k": 135,
+          "n": 135,
+          "rate": 1.0,
+          "low": 0.9723,
+          "high": 1.0
+        },
+        "improper": {
+          "k": 24,
+          "n": 30,
+          "rate": 0.8,
+          "low": 0.6269,
+          "high": 0.905
+        },
+        "injection": {
+          "k": 36,
+          "n": 36,
+          "rate": 1.0,
+          "low": 0.9036,
+          "high": 1.0
+        },
+        "mitigation": {
+          "k": 66,
+          "n": 66,
+          "rate": 1.0,
+          "low": 0.945,
+          "high": 1.0
+        },
+        "multilingual": {
+          "k": 42,
+          "n": 42,
+          "rate": 1.0,
+          "low": 0.9162,
+          "high": 1.0
+        },
+        "normal": {
+          "k": 237,
+          "n": 237,
+          "rate": 1.0,
+          "low": 0.984,
+          "high": 1.0
+        },
+        "out_of_scope": {
+          "k": 39,
+          "n": 39,
+          "rate": 1.0,
+          "low": 0.9103,
+          "high": 1.0
+        },
+        "tool_failure": {
+          "k": 33,
+          "n": 33,
+          "rate": 1.0,
+          "low": 0.8957,
+          "high": 1.0
+        },
+        "wrong_data": {
+          "k": 27,
+          "n": 27,
+          "rate": 1.0,
+          "low": 0.8754,
+          "high": 1.0
+        }
+      },
+      "by_language": {
+        "es": {
+          "k": 627,
+          "n": 630,
+          "rate": 0.9952,
+          "low": 0.9861,
+          "high": 0.9984
+        },
+        "pt": {
+          "k": 264,
+          "n": 267,
+          "rate": 0.9888,
+          "low": 0.9675,
+          "high": 0.9962
+        }
+      },
+      "by_country": {
+        "AR": {
+          "k": 264,
+          "n": 264,
+          "rate": 1.0,
+          "low": 0.9857,
+          "high": 1.0
+        },
+        "CO": {
+          "k": 285,
+          "n": 291,
+          "rate": 0.9794,
+          "low": 0.9558,
+          "high": 0.9905
+        },
+        "MX": {
+          "k": 342,
+          "n": 342,
+          "rate": 1.0,
+          "low": 0.9889,
+          "high": 1.0
+        }
+      },
+      "by_segment": {
+        "basic": {
+          "k": 597,
+          "n": 597,
+          "rate": 1.0,
+          "low": 0.9936,
+          "high": 1.0
+        },
+        "plus": {
+          "k": 177,
+          "n": 183,
+          "rate": 0.9672,
+          "low": 0.9303,
+          "high": 0.9849
+        },
+        "premium": {
+          "k": 78,
+          "n": 78,
+          "rate": 1.0,
+          "low": 0.9531,
+          "high": 1.0
+        },
+        "student": {
+          "k": 39,
+          "n": 39,
+          "rate": 1.0,
+          "low": 0.9103,
+          "high": 1.0
+        }
+      },
+      "failed_checks": {
+        "case": 6,
+        "queue": 6
+      }
+    }
+  }
+}

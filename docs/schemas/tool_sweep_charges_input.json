@@ -1,0 +1,17 @@
+{
+  "additionalProperties": false,
+  "description": "Charges of the same card since the first suspicious one, pending ones included.",
+  "properties": {
+    "candidate_n": {
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Candidate N",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "candidate_n"
+  ],
+  "title": "SweepChargesInput",
+  "type": "object"
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VERA · Analyst console</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>VERA · analyst console</h1>
+      <p>Structured handoffs and transfer notes: verified facts apart from declared facts, legal and network clocks, signals and queue. The transcript never comes.</p>
+    </div>
+    <nav><a href="index.html">Customer chat</a></nav>
+  </header>
+  <main class="single">
+    <section class="card">
+      <form id="lookup" class="row">
+        <div>
+          <label for="case">Case or transfer id</label>
+          <input id="case" type="text" placeholder="DSP-000001 or TRF-000001" autocomplete="off">
+        </div>
+        <button>Open</button>
+        <button id="refresh" type="button" class="secondary">Refresh queue</button>
+      </form>
+      <p class="note">Demo analyst session; in production the bank's identity provider issues it.</p>
+    </section>
+    <section class="card spaced">
+      <h2>Waiting for an analyst</h2>
+      <div id="queue"><p class="note">Loading the queue…</p></div>
+    </section>
+    <div id="handoff"></div>
+  </main>
+  <script src="console.js"></script>
+</body>
+</html>
