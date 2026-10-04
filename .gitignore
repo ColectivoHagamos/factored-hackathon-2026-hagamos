@@ -13,6 +13,7 @@
 /SKILLS/
 /*.md
 !/README.md
+!/SECURITY.md
 
 # Data: the dataset and anything derived from it live outside the repository
 data/
