@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help install test lint format schemas check check-policy serve demo data ml-report
+.PHONY: help install test lint format schemas check check-policy serve demo data ml-report evaluation
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -33,6 +33,10 @@ check-policy: ## Check the executable policy; set VERA_MASTER_POLICY to compare 
 
 ml-report: ## Retrain the claim classifier and write docs/ml/claims_report.json (learned component against baseline)
 	$(UV) run python -m ml.evaluate_claims
+
+evaluation: ## Run SET=dev (default) or SET=heldout with both systems and write docs/evaluation; needs VERA_DEMO_DB
+	$(UV) run python -m evaluation.run $(or $(SET),dev)
+	$(UV) run python -m evaluation.report $(or $(SET),dev)
 
 serve: ## Run the API locally with reload, mock adapter and rules interpreter
 	$(UV) run uvicorn api.main:app --reload --port 8000

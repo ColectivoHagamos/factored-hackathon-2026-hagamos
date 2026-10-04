@@ -25,12 +25,18 @@ from vera.core.state import FlowState, Step
 from vera.output.render import money
 from vera.policy.model import load_policy
 
-PHRASES = yaml.safe_load((Path(__file__).parent / "phrases.yaml").read_text(encoding="utf-8"))["templates"]
 CARD_QUESTION = re.compile(r"tarjeta con|cartão está com")
 RECOGNIZE_QUESTION = re.compile(r"[Rr]econoc|reconhece")
 IS_THIS_THE_CHARGE = re.compile(r"Es este el cobro|É esta a cobrança")
+PERSON_OFFER = re.compile(r"pase con una persona|passe a conversa para uma pessoa")
 MAX_TURNS = 14
 START = datetime.combine(load_policy().parameters.system_clock, datetime.min.time()).replace(hour=10)
+
+
+def load_phrases(which: str) -> dict:
+    """The wordings of a set: the development set and the sealed held-out never share one."""
+    path = Path(__file__).parent / f"phrases_{which}.yaml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))["templates"]
 
 
 class Clock:
@@ -57,6 +63,8 @@ class Transcript:
     most_candidates_listed: int = 0
     session_expired: bool = False
     seconds_per_turn: list[float] = field(default_factory=list)
+    # Times VERA asked in free text and the customer had to explain again: the effort a misreading costs.
+    explained_again: int = 0
 
 
 class Charges:
@@ -78,17 +86,19 @@ class Charges:
         return all(piece in label for piece in pieces)
 
 
-def phrase(name: str, language: str, variant: int, **values: str) -> str:
+def phrase(phrases: dict, name: str, language: str, variant: int, **values: str) -> str:
     """The wording, with only the known placeholders filled: a phrase may itself contain braces, as JSON does."""
-    text = PHRASES[name][language][variant]
+    text = phrases[name][language][variant]
     for key, value in values.items():
         text = text.replace("{" + key + "}", value)
     return text
 
 
 class Customer:
-    def __init__(self, case: Case, variant: int, interpreter: str, demo_db: Path, charges: Charges) -> None:
-        self.case, self.variant, self.charges = case, variant, charges
+    def __init__(
+        self, case: Case, variant: int, interpreter: str, demo_db: Path, charges: Charges, phrases: dict
+    ) -> None:
+        self.case, self.variant, self.charges, self.phrases = case, variant, charges, phrases
         self.clock = Clock()
         settings = Settings(
             adapter="dataset",
@@ -102,6 +112,7 @@ class Customer:
         self.client = TestClient(create_app(settings, self.container), raise_server_exceptions=False)
         self.transcript = Transcript(case.id, variant)
         self.asked_for_a_person = False
+        self.free_text_questions = 0
 
     def talk(self) -> Transcript:
         token = self.client.post("/v1/demo-session", json={"demo_customer": self.case.customer}).json()["token"]
@@ -119,7 +130,7 @@ class Customer:
                 break
         return self.transcript
 
-    def opening(self) -> str:
+    def values(self) -> dict[str, str]:
         case, values = self.case, {}
         if case.target:
             values["merchant"] = self.charges.merchant(case.target[0]) or ""
@@ -127,7 +138,10 @@ class Customer:
             values["wrong_merchant"] = self.charges.merchant(case.wrong_merchant_from)
         if case.other_customer:
             values["other"] = case.other_customer
-        return phrase(case.script.opening, case.language, self.variant, **values)
+        return values
+
+    def opening(self) -> str:
+        return phrase(self.phrases, self.case.script.opening, self.case.language, self.variant, **self.values())
 
     def send(self, message: dict) -> dict | None:
         started = time.perf_counter()
@@ -170,7 +184,9 @@ class Customer:
                 (o for o in options if self.case.target and self.charges.shown_in(self.case.target[0], o["label"])),
                 None,
             )
-            return {"selected_option": mine["n"]} if mine else {"text": phrase("none_of_these", language, variant)}
+            if mine:
+                return {"selected_option": mine["n"]}
+            return {"text": phrase(self.phrases, "none_of_these", language, variant)}
         text = reply["reply"]
         if options and CARD_QUESTION.search(text):
             return {"selected_option": "yes" if script.has_card else "no"}
@@ -179,15 +195,24 @@ class Customer:
         if options and RECOGNIZE_QUESTION.search(text):
             if script.asks_for_a_person_at_receipt and not self.asked_for_a_person:
                 self.asked_for_a_person = True
-                return {"text": phrase("human_midflow", language, variant)}
+                return {"text": phrase(self.phrases, "human_midflow", language, variant)}
             return {"selected_option": "yes" if script.recognizes_after_receipt else "no"}
+        if options and PERSON_OFFER.search(text):
+            return {"selected_option": "yes" if self.case.block == "human" else "no"}
         if options and IS_THIS_THE_CHARGE.search(text):
             mine = self.case.target and self.charges.shown_in(self.case.target[0], text)
             return {"selected_option": "yes" if mine else "no"}
         if options:
             return {"selected_option": "yes"}
-        # A question in free text: the customer can only repeat what it knows about its charge.
+        # A question in free text: the customer gives the merchant once, then tells its claim in other words twice,
+        # and then leaves, as a customer who is not understood would.
+        self.free_text_questions += 1
+        self.transcript.explained_again = self.free_text_questions
         known = self.case.target[0] if self.case.target else self.case.wrong_merchant_from
-        if known and self.charges.merchant(known):
-            return {"text": phrase("detail", language, variant, merchant=self.charges.merchant(known))}
+        if self.free_text_questions == 1 and known and self.charges.merchant(known):
+            merchant = self.charges.merchant(known)
+            return {"text": phrase(self.phrases, "detail", language, variant, merchant=merchant)}
+        if self.free_text_questions <= 3:
+            wording = (variant + self.free_text_questions) % 3
+            return {"text": phrase(self.phrases, self.case.script.opening, language, wording, **self.values())}
         return None
