@@ -13,6 +13,7 @@ from api.services.access import AccessService
 from api.services.analyst import AnalystDesk
 from api.services.conversations import ConversationService
 from api.services.customer import CustomerViews
+from api.services.data import DataOverviewService
 from api.services.demo import DemoDirectory
 from api.settings import Settings
 
@@ -29,6 +30,7 @@ class AppContext:
     customers: CustomerViews
     conversations: ConversationService
     analyst: AnalystDesk
+    data: DataOverviewService
 
 
 def build_context(settings: Settings, container: Container) -> AppContext:
@@ -55,6 +57,12 @@ def build_context(settings: Settings, container: Container) -> AppContext:
         customers=customers,
         conversations=ConversationService(container.conversation, container.state, demo, metrics, messages),
         analyst=AnalystDesk(container.state),
+        data=DataOverviewService(
+            customers=container.customers,
+            cards=container.cards,
+            transactions=container.transactions,
+            now=container.now,
+        ),
     )
 
 

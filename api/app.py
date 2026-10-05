@@ -13,7 +13,7 @@ from api.context import build_context
 from api.dependencies import Container, build
 from api.failures import ApiFailure
 from api.observability import log_event
-from api.routers import API_PREFIX, access, analyst, conversations, customer, demo, operations, pages
+from api.routers import API_PREFIX, access, analyst, conversations, customer, data, demo, operations, pages
 from api.schemas import ApiError, ApiErrorCode
 from api.settings import Settings
 from api.web import SinglePageApp
@@ -21,7 +21,7 @@ from api.web import SinglePageApp
 # The built web (npm run build in web/); the image copies it here (ADR 0006).
 WEB = Path(__file__).resolve().parents[1] / "web" / "dist"
 # In this order, so the OpenAPI document lists the paths as the product reads them.
-ROUTERS = (access, operations, demo, conversations, customer, analyst, pages)
+ROUTERS = (access, operations, demo, data, conversations, customer, analyst, pages)
 logger = logging.getLogger("vera.api")
 
 
