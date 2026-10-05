@@ -10,11 +10,11 @@ from api.access import Accounts, check_password, hash_password
 from api.dependencies import build
 from api.main import create_app
 from api.personas import personas
+from api.schemas import MeResponse, Movement
 from api.security import ACCESS_TTL, SESSION_TTL
 from api.settings import Settings
 from tests.contract.test_api import CO_01, CO_02, Clock, login, say
 from vera.adapters.mock_bank import CUSTOMERS
-from vera.contracts.api import MeResponse, Movement
 
 PASSWORD = "una-clave-larga-de-prueba"
 

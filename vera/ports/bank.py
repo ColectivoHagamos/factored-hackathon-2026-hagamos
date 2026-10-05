@@ -117,3 +117,13 @@ class RoutingPort(Protocol):
     def transfer(self, note: Transfer, conversation_id: str) -> Transfer:
         """Deliver the note to an analyst queue once per conversation; the store assigns the transfer id."""
         ...
+
+
+class AnalystQueuePort(Protocol):
+    """What waits for an analyst: the queue, and each case handoff or transfer note by its reference."""
+
+    def queue(self, limit: int = 50) -> tuple[Handoff | Transfer, ...]: ...
+
+    def handoff_of(self, case_id: str) -> Handoff | None: ...
+
+    def transfer_of(self, transfer_id: str) -> Transfer | None: ...
