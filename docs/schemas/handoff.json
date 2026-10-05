@@ -763,8 +763,8 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "handoff/2.0",
-      "default": "handoff/2.0",
+      "const": "handoff/2.1",
+      "default": "handoff/2.1",
       "title": "Schema Version",
       "type": "string"
     },
@@ -888,6 +888,15 @@
         "type": "string"
       },
       "title": "Open Questions",
+      "type": "array"
+    },
+    "rules_applied": {
+      "default": [],
+      "items": {
+        "pattern": "^((POL|PROH)-\\d{2}|(CO|MX|AR|BR)-R\\d{2})$",
+        "type": "string"
+      },
+      "title": "Rules Applied",
       "type": "array"
     },
     "policy_version": {

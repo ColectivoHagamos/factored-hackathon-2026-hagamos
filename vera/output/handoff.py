@@ -62,6 +62,7 @@ def build_handoff(
     open_questions: tuple[str, ...],
     policy_version: str,
     created_at: datetime,
+    rules_applied: tuple[str, ...] = (),
 ) -> Handoff:
     language = Language.PT if variant is LanguageVariant.PT else Language.ES
     first = min(case.charges, key=lambda charge: charge.occurred_at)
@@ -100,6 +101,7 @@ def build_handoff(
         goodwill_candidate=goodwill,
         suggested_queue=queue,
         open_questions=open_questions,
+        rules_applied=rules_applied,
         policy_version=policy_version,
         trace_id=f"trace-{case.conversation_id}"[:64],
     )

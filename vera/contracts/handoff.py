@@ -186,7 +186,8 @@ def _check_language(language: Language, variant: LanguageVariant, requires_pt_an
 
 
 class Handoff(Contract):
-    schema_version: Literal["handoff/2.0"] = "handoff/2.0"
+    # 2.1 adds rules_applied; a reader of 2.0 finds every field it knew.
+    schema_version: Literal["handoff/2.1"] = "handoff/2.1"
     case_id: CaseId
     created_at: AwareDatetime
     summary: ShortText
@@ -209,6 +210,8 @@ class Handoff(Contract):
     goodwill_candidate: GoodwillCandidate = GoodwillCandidate()
     suggested_queue: Queue
     open_questions: tuple[ShortText, ...] = ()
+    # Every policy rule that decided a step of the conversation, in the order it first applied.
+    rules_applied: tuple[PolicyRuleId, ...] = ()
     policy_version: PolicyVersion
     trace_id: Identifier
 
