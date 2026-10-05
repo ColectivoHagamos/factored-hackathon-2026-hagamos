@@ -186,8 +186,8 @@ def _check_language(language: Language, variant: LanguageVariant, requires_pt_an
 
 
 class Handoff(Contract):
-    # 2.1 adds rules_applied; a reader of 2.0 finds every field it knew.
-    schema_version: Literal["handoff/2.1"] = "handoff/2.1"
+    # 2.1 adds rules_applied; a reader of 2.0 finds every field it knew, and handoffs stored as 2.0 still read.
+    schema_version: Literal["handoff/2.0", "handoff/2.1"] = "handoff/2.1"
     case_id: CaseId
     created_at: AwareDatetime
     summary: ShortText
