@@ -1,6 +1,8 @@
 """The product around the conversation: the login of the jury and the team, the demo customers with invented names,
 their cards and movements, and where the dispute stands in every reply."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -8,6 +10,7 @@ from api.access import Accounts, check_password, hash_password
 from api.dependencies import build
 from api.main import create_app
 from api.personas import personas
+from api.security import ACCESS_TTL, SESSION_TTL
 from api.settings import Settings
 from tests.contract.test_api import CO_01, CO_02, Clock, login, say
 from vera.adapters.mock_bank import CUSTOMERS
@@ -134,3 +137,17 @@ def test_every_reply_says_where_the_dispute_stands(api):
     done = say(client, headers, conversation, selected_option="yes")
     assert stages[1:] == ["verification"] * 4 and done.case_id and done.case_id in done.reply
     assert done.stage in ("result", "resolved")
+
+
+def test_sessions_expire_in_real_time_whatever_day_the_demo_lives_on():
+    settings = Settings(session_secret="test-secret")
+    client = TestClient(create_app(settings, build(settings)))
+    login_reply = client.post("/v1/auth/login", json={"username": "dev", "password": "x"}).json()
+    expires_at = datetime.fromisoformat(login_reply["expires_at"])
+    assert abs(expires_at - (datetime.now(UTC) + ACCESS_TTL)) < timedelta(minutes=1)
+    session = client.post("/v1/demo-session", json={"demo_customer": CO_01}, headers=access_header(login_reply)).json()
+    assert abs(datetime.fromisoformat(session["expires_at"]) - (datetime.now(UTC) + SESSION_TTL)) < timedelta(minutes=1)
+
+
+def access_header(login_reply: dict) -> dict:
+    return {"Authorization": f"Bearer {login_reply['token']}"}

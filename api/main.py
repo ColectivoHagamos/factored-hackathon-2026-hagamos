@@ -20,7 +20,7 @@ from api.access import Accounts
 from api.dependencies import Container, build
 from api.observability import Metrics, configure_logging, log_event, turn_summary
 from api.personas import personas
-from api.security import ACCESS_TTL, SESSION_TTL, InvalidSessionError, SessionToken
+from api.security import ACCESS_TTL, InvalidSessionError, SessionToken
 from api.settings import Settings
 from vera.contracts.api import (
     ApiError,
@@ -173,9 +173,10 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         logins.check(request.client.host if request.client else "unknown")
         if not testers.open and not testers.check(body.username, body.password):
             raise ApiFailure(ApiErrorCode.UNAUTHORIZED)
-        token = container.signer.issue(body.username, role="tester", ttl=ACCESS_TTL)
-        expires_at = (container.now() + ACCESS_TTL).astimezone()
-        return LoginResponse(token=token, expires_at=expires_at, display_name=body.username, role="tester")
+        issued = container.signer.issue(body.username, role="tester", ttl=ACCESS_TTL)
+        return LoginResponse(
+            token=issued.token, expires_at=issued.expires_at, display_name=body.username, role="tester"
+        )
 
     @app.get(f"{PREFIX}/health", response_model=HealthResponse, tags=["operations"])
     def health() -> HealthResponse:
@@ -209,8 +210,8 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     def demo_session(body: DemoSessionRequest, _: SessionToken | None = Depends(access)) -> DemoSessionResponse:
         if container.customers.customer(body.demo_customer) is None:
             raise ApiFailure(ApiErrorCode.NOT_FOUND)
-        token = container.signer.issue(body.demo_customer)
-        return DemoSessionResponse(token=token, expires_at=(container.now() + SESSION_TTL).astimezone())
+        issued = container.signer.issue(body.demo_customer)
+        return DemoSessionResponse(token=issued.token, expires_at=issued.expires_at)
 
     @app.post(f"{PREFIX}/demo-analyst-session", response_model=DemoSessionResponse, tags=["demo"])
     def demo_analyst_session(
@@ -218,8 +219,8 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     ) -> DemoSessionResponse:
         if settings.analyst_key and not hmac.compare_digest(x_analyst_key, settings.analyst_key):
             raise ApiFailure(ApiErrorCode.UNAUTHORIZED)
-        token = container.signer.issue("demo-analyst", role="analyst")
-        return DemoSessionResponse(token=token, expires_at=(container.now() + SESSION_TTL).astimezone())
+        issued = container.signer.issue("demo-analyst", role="analyst")
+        return DemoSessionResponse(token=issued.token, expires_at=issued.expires_at)
 
     @app.post(f"{PREFIX}/conversations", response_model=StartConversationResponse, tags=["conversation"])
     def start(
