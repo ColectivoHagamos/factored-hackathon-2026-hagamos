@@ -378,5 +378,6 @@
   "scenario.repeat_disputes_90_days": "Varias disputas en 90 días",
   "scenario.declined_purchase": "Compra rechazada",
   "scenario.reversed_purchase": "Compra revertida",
-  "scenario.known_merchant_purchase": "Compra en un comercio habitual"
+  "scenario.known_merchant_purchase": "Compra en un comercio habitual",
+  "chat.langNote": "VERA atiende a los clientes del banco en español y portugués, en el idioma de cada cliente."
 }
