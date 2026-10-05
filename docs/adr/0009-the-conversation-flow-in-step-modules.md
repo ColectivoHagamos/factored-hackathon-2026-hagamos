@@ -17,6 +17,7 @@ The conversation's state machine lived in one module, `vera/core/flow.py`: 1,281
    | `person.py` | The offer before a transfer, the check of an unsure reading and the way back to the open question |
    | `claim.py` | The opening, the claim and the key questions of a scam |
    | `lost_card.py` | A lost or stolen card protected first, then its movements reviewed |
+   | `blocked.py` | A payment declined or a card blocked: the declined attempts, and the person who can unblock |
    | `charges.py` | The search, the choice, how the charge was bought, the card and the sweep |
    | `actions.py` | The block and the registration on a yes, each read back, and the closing of a case |
    | `handoff.py` | The transfer note, a failed tool and the fraud alert |
