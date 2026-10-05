@@ -107,6 +107,8 @@ def test_the_analyst_queue_lists_transfers_and_customers_cannot_read_it(api):
     assert client.get("/v1/queue", headers=headers).status_code == 401
     [item] = client.get("/v1/queue", headers=analyst).json()
     assert (item["kind"], item["queue"], item["trace_id"]) == ("transfer", "complaints", f"trace-{conversation}")
+    # The parts of the summary come as codes, for a console in any language.
+    assert (item["reason"], item["charge_count"], item["pending_action"]) == ("person_requested", 0, None)
     path = f"/v1/transfers/{item['reference']}"
     assert client.get(path, headers=headers).status_code == 401
     assert client.get(path, headers=analyst).json()["reason"] == "person_requested"
@@ -130,6 +132,9 @@ def test_handoff_needs_the_analyst_role(api):
     assert handoff.status_code == 200 and read.suggested_queue == "fraud"
     # The rules that decided the conversation reach the analyst: the sweep, the block and the registration.
     assert read.rules_applied == ("POL-05", "POL-06", "POL-16")
+    [item] = client.get("/v1/queue", headers={"Authorization": f"Bearer {analyst}"}).json()
+    # The sweep brought the two other charges the customer did not recognize into the one case.
+    assert (item["claim_type"], item["reason"], item["charge_count"]) == ("unrecognized_charge", "fraud", 3)
 
 
 def test_card_numbers_are_masked_before_the_conversation_sees_them(world):

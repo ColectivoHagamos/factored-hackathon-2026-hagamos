@@ -91,25 +91,57 @@ const nCharges = (n: string, lang: UiLang, known: boolean) => {
   return `${n} ${one ? "cargo" : "cargos"}${known ? (one ? " identificado" : " identificados") : ""}`;
 };
 
+/** The parts of a queue summary, as the API sends them in each queue item (codes, not words). */
+export type SummaryParts = {
+  kind: "case" | "transfer";
+  claim_type?: string | null;
+  reason: string;
+  charge_count: number;
+  pending_action?: string | null;
+};
+
+const words = (code: string) => code.replaceAll("_", " ");
+
+/** The summary in the language of the console, or null when a part is not in the tables yet. */
+export function describe(parts: SummaryParts, lang: UiLang): string | null {
+  const count = String(parts.charge_count);
+  if (parts.kind === "case") {
+    const claim = words(parts.claim_type ?? "");
+    const type = pick(CLAIM, claim, lang, cap(claim));
+    const reason = pick(REASON, words(parts.reason), lang, words(parts.reason));
+    if (!type || !reason) return null;
+    const word = lang === "en" ? "reason" : "motivo";
+    return `${type} · ${nCharges(count, lang, false)} · ${word}: ${reason}`;
+  }
+  const reason = pick(TREASON, words(parts.reason), lang, cap(words(parts.reason)));
+  const claim = parts.claim_type && parts.claim_type !== parts.reason ? pick(CLAIM, words(parts.claim_type), lang, words(parts.claim_type)) : "";
+  const pending = parts.pending_action ? pick(PENDING, words(parts.pending_action), lang, `${words(parts.pending_action)} pending, not run`) : "";
+  if (!reason || claim === null || pending === null) return null;
+  return [reason + (claim ? `: ${claim}` : ""), nCharges(count, lang, true), pending].filter(Boolean).join(" · ");
+}
+
+/** A queue item in the console's language: from its parts when the API sends them, else from its English summary. */
+export function queueSummary(item: Partial<SummaryParts> & { kind: "case" | "transfer"; summary: string }, lang: UiLang): string {
+  if (typeof item.reason === "string" && typeof item.charge_count === "number") {
+    const described = describe(item as SummaryParts, lang);
+    if (described) return described;
+  }
+  return translateSummary(item.summary, lang);
+}
+
 export function translateSummary(summary: string, lang: UiLang): string {
   const c = /^(.+?): (\d+) charge\(s\), reason (.+)$/.exec(summary);
   if (c) {
-    const type = pick(CLAIM, c[1]!, lang, cap(c[1]!));
-    // The API writes the reason as its code ("bank_charge"); the table reads it in words.
-    const reason = pick(REASON, c[3]!.replaceAll("_", " "), lang, c[3]!.replaceAll("_", " "));
-    if (type && reason) {
-      const word = lang === "pt" ? "motivo" : lang === "en" ? "reason" : "motivo";
-      return `${type} · ${nCharges(c[2]!, lang, false)} · ${word}: ${reason}`;
-    }
+    const described = describe({ kind: "case", claim_type: c[1]!, reason: c[3]!, charge_count: Number(c[2]) }, lang);
+    if (described) return described;
   }
   const t = /^(.+?)(?:: (.+?))?, (\d+) charge\(s\) known(?:, (.+?) pending and not run)?$/.exec(summary);
   if (t) {
-    const reason = pick(TREASON, t[1]!, lang, cap(t[1]!));
-    const type = t[2] ? pick(CLAIM, t[2], lang, t[2]) : "";
-    const pend = t[4] ? pick(PENDING, t[4], lang, `${t[4]} pending, not run`) : "";
-    if (reason && type !== null && pend !== null) {
-      return [reason + (type ? `: ${type}` : ""), nCharges(t[3]!, lang, true), pend].filter(Boolean).join(" · ");
-    }
+    const described = describe(
+      { kind: "transfer", reason: t[1]!, claim_type: t[2] ?? null, charge_count: Number(t[3]), pending_action: t[4] ?? null },
+      lang,
+    );
+    if (described) return described;
   }
   return summary;
 }

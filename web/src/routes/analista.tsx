@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChartNoAxesColumn, ChevronDown, RefreshCw, X } from "lucide-react";
 import { StageTag, STAGE, STROKE, type StageKey } from "@/components/vera/ui";
-import { fixedText, translateSummary } from "@/lib/analyst-text";
+import { fixedText, queueSummary, translateSummary } from "@/lib/analyst-text";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api } from "@/api/client";
 import type { Handoff, QueueItem } from "@/api/types";
@@ -321,7 +321,7 @@ function Analista() {
                             <span className="font-medium text-foreground">{t(`analyst.queue.${q.queue}`)}</span>
                           </td>
                           <td className="px-3 py-3.5">
-                            <p className="min-w-[12rem] break-words">{translateSummary(q.summary, lang)}</p>
+                            <p className="min-w-[12rem] break-words">{queueSummary(q, lang)}</p>
                             {q.requires_pt_analyst && <span className="mt-1 block text-xs font-medium text-primary">{t("analyst.pt")}</span>}
                           </td>
                         </tr>

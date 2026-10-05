@@ -4,9 +4,9 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Literal, Self, get_args
 
-from pydantic import AwareDatetime, StringConstraints, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
-from vera.contracts.cases import Case
+from vera.contracts.cases import Case, DisputeReason
 from vera.contracts.charges import ChargeKind, ChargeStatus
 from vera.contracts.common import (
     Amount,
@@ -20,7 +20,8 @@ from vera.contracts.common import (
     PolicyRuleId,
     ShortText,
 )
-from vera.contracts.handoff import Action, Handoff, Queue, Transfer
+from vera.contracts.handoff import Action, Handoff, Queue, Transfer, TransferReason
+from vera.contracts.interpretation import ClaimType
 from vera.contracts.legal import RouteId
 
 MessageText = Annotated[str, StringConstraints(min_length=1, max_length=2000)]
@@ -184,6 +185,11 @@ class QueueItem(Contract):
     summary: ShortText
     requires_pt_analyst: bool
     trace_id: Identifier
+    # The summary's parts as codes, so a console shows them in its own language instead of reading the summary.
+    claim_type: ClaimType | None = None
+    reason: DisputeReason | TransferReason
+    charge_count: int = Field(ge=0)
+    pending_action: Literal["block_card", "register_dispute"] | None = None
 
     @classmethod
     def of(cls, item: Handoff | Transfer) -> "QueueItem":
@@ -196,6 +202,10 @@ class QueueItem(Contract):
             summary=item.summary,
             requires_pt_analyst=item.requires_pt_analyst,
             trace_id=item.trace_id,
+            claim_type=item.claim_type,
+            reason=item.reason,
+            charge_count=len(item.charges) if transfer else len(item.verified_facts.charges),
+            pending_action=item.pending_action_not_run if transfer else None,
         )
 
 
