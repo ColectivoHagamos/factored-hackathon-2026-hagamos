@@ -85,6 +85,11 @@ export type QueueItem = {
   summary: string;
   requires_pt_analyst: boolean;
   trace_id: string;
+  // The summary's parts as codes (the API sends them since the structured queue); older items carry only the summary.
+  claim_type?: string | null;
+  reason?: string;
+  charge_count?: number;
+  pending_action?: "block_card" | "register_dispute" | null;
 };
 
 export type Handoff = Record<string, unknown>;
