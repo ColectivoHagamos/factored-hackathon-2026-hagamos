@@ -190,7 +190,7 @@ function Banca() {
                               {!adj && (
                                 <button
                                   type="button"
-                                  onClick={() => navigate({ to: "/chat", search: { msg: disputeMessage(m, me.language) } })}
+                                  onClick={() => navigate({ to: "/chat", search: { msg: disputeMessage(m, me.language), intent: m.kind === "bank_adjustment" ? "improper_charge" : "unrecognized_charge" } })}
                                   className="col-start-2 col-end-4 justify-self-end text-xs font-semibold text-primary underline-offset-2 hover:underline"
                                 >
                                   {t("bank.dispute")}

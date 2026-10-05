@@ -73,11 +73,16 @@ class MessageRequest(Contract):
     text: MessageText | None = None
     # A candidate number, the answer to a question or a pending confirmation, or a reason of the opening menu.
     selected_option: CandidateNumber | OptionAnswer | None = None
+    # The reason the customer pressed in the bank's app ("I do not recognize this movement") next to the text that
+    # names the charge: the button says what kind of claim it is, the text says which charge.
+    intent: Intent | None = None
 
     @model_validator(mode="after")
     def _exactly_one_input(self) -> Self:
         if (self.text is None) == (self.selected_option is None):
             raise ValueError("send either text or selected_option")
+        if self.intent is not None and self.text is None:
+            raise ValueError("intent goes with the text that names the charge")
         return self
 
 

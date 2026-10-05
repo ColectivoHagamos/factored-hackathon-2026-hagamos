@@ -46,7 +46,9 @@ export type OptionAnswer =
 export type Option = { n: number; label: string; answer?: OptionAnswer | null };
 export type StartResponse = { conversation_id: string; greeting: string; options: Option[] };
 
-export type MessageBody = { text: string } | { selected_option: number | OptionAnswer };
+/** The reasons a customer can press in the bank's app; sent with the text that names the charge. */
+export type Intent = "unrecognized_charge" | "improper_charge" | "lost_card" | "scam_transfer" | "human_request";
+export type MessageBody = { text: string; intent?: Intent } | { selected_option: number | OptionAnswer };
 
 export type Stage = "received" | "analysis" | "verification" | "result" | "resolved";
 export type PendingConfirmation = {
