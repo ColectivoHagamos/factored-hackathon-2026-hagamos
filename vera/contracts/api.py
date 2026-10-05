@@ -2,7 +2,7 @@
 
 from datetime import date
 from enum import StrEnum
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, get_args
 
 from pydantic import AwareDatetime, StringConstraints, model_validator
 
@@ -12,6 +12,13 @@ from vera.contracts.handoff import Action, Handoff, Queue, Transfer
 from vera.contracts.legal import RouteId
 
 MessageText = Annotated[str, StringConstraints(min_length=1, max_length=2000)]
+# The reasons of the opening menu: a button names one instead of the customer writing it.
+Intent = Literal["unrecognized_charge", "improper_charge", "lost_card", "scam_transfer", "human_request"]
+INTENTS: tuple[str, ...] = get_args(Intent)
+# What a button sends back besides a candidate number: an answer, "not sure", or a reason of the menu.
+OptionAnswer = Literal[
+    "yes", "no", "not_sure", "unrecognized_charge", "improper_charge", "lost_card", "scam_transfer", "human_request"
+]
 
 
 class DemoSessionRequest(Contract):
@@ -32,12 +39,14 @@ class StartConversationRequest(Contract):
 class StartConversationResponse(Contract):
     conversation_id: Identifier
     greeting: str
+    # The opening menu: the reasons VERA covers, as buttons; the customer may also write.
+    options: tuple["Option", ...] = ()
 
 
 class MessageRequest(Contract):
     text: MessageText | None = None
-    # A candidate number, or the answer to a pending confirmation.
-    selected_option: CandidateNumber | Literal["yes", "no"] | None = None
+    # A candidate number, the answer to a question or a pending confirmation, or a reason of the opening menu.
+    selected_option: CandidateNumber | OptionAnswer | None = None
 
     @model_validator(mode="after")
     def _exactly_one_input(self) -> Self:
@@ -49,8 +58,8 @@ class MessageRequest(Contract):
 class Option(Contract):
     n: CandidateNumber
     label: ShortText
-    # Yes-or-no buttons carry their answer; the client sends it back as selected_option.
-    answer: Literal["yes", "no"] | None = None
+    # Buttons that are not a candidate carry their answer; the client sends it back as selected_option.
+    answer: OptionAnswer | None = None
 
 
 class PendingConfirmation(Contract):
@@ -138,3 +147,6 @@ class ApiErrorCode(StrEnum):
 class ApiError(Contract):
     code: ApiErrorCode
     message: ShortText
+
+
+StartConversationResponse.model_rebuild()

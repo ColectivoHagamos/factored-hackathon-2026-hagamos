@@ -12,6 +12,7 @@ from vera.output.validator import UnsafeReplyError, check, violations
 
 RENDERER = Renderer()
 VALUES = {
+    "who": ", Ana",
     "date": "14 de junio de 2026",
     "merchant": "Uber",
     "amount": "COP 120.000",
@@ -32,9 +33,10 @@ ALLOWED = frozenset({"COP 120.000", "COP 185.000"})
 def test_every_template_renders_in_every_variant_and_passes_the_validator(variant: LanguageVariant):
     language = Language.PT if variant is LanguageVariant.PT else Language.ES
     for name in RENDERER.names(language):
-        reply = RENDERER.text(name, variant, **VALUES)
-        assert "{" not in reply and "}" not in reply, name
-        assert violations(reply, ALLOWED) == [], (name, reply)
+        for pick in range(RENDERER.variants(name, language)):
+            reply = RENDERER.text(name, variant, pick=pick, **VALUES)
+            assert "{" not in reply and "}" not in reply, name
+            assert violations(reply, ALLOWED) == [], (name, reply)
 
 
 def test_both_languages_have_the_same_templates():
@@ -49,8 +51,16 @@ def test_register_follows_the_variant():
 
 
 def test_greeting_says_it_is_an_ai_and_offers_a_person():
-    greeting = RENDERER.text("greeting", LanguageVariant.ES_CO)
+    greeting = RENDERER.text("greeting", LanguageVariant.ES_CO, who=", Ana")
+    assert greeting.startswith("Hola, Ana, soy VERA")
     assert "inteligencia artificial" in greeting and "persona" in greeting
+
+
+def test_a_reply_that_comes_back_changes_its_words():
+    for name in ("welcome", "out_of_scope_opening", "low_confidence", "rephrase"):
+        for language, variant in ((Language.ES, LanguageVariant.ES_MX), (Language.PT, LanguageVariant.PT)):
+            wordings = {RENDERER.text(name, variant, pick=pick) for pick in range(3)}
+            assert RENDERER.variants(name, language) == 3 and len(wordings) == 3, (name, variant)
 
 
 @pytest.mark.parametrize(

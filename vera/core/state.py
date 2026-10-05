@@ -24,6 +24,10 @@ class Step(StrEnum):
     PERSON_OFFERED = "person_offered"
     # POL-10: VERA asked the key questions of a scam and waits for the answer before the transfer.
     SCAM_DETAILS = "scam_details"
+    # A lost or stolen card: which card, when the customer has several, so it can be protected first.
+    CHOOSE_CARD = "choose_card"
+    # After the card is protected, the recent movements, so the customer marks the ones they did not make.
+    REVIEW = "review"
     DONE = "done"
     HANDED_OFF = "handed_off"
 
@@ -61,6 +65,10 @@ class FlowState(BaseModel):
     person_offers: int = 0
     # The open question during a detour about a person (POL-01 offer, POL-14 check), to go back to it.
     resume_step: Step | None = None
+    # Warm replies at the opening (a greeting, small talk, another topic), so the same words are never sent twice.
+    nudges: int = 0
+    # A lost or stolen card is protected before anything else; its recent movements are reviewed afterwards.
+    review_after_block: bool = False
 
     def advance(self, **changes: object) -> "FlowState":
         """A new state with the given changes; a new question starts its own count of attempts (POL-05)."""

@@ -69,7 +69,8 @@ def status_word(status: ChargeStatus, language: Language) -> str:
 
 class Renderer:
     def __init__(self, folder: Path = TEMPLATES) -> None:
-        self._templates: dict[Language, dict[str, str]] = {}
+        # A template is one text or a list of variants of the same reply.
+        self._templates: dict[Language, dict[str, str | list[str]]] = {}
         self._register: dict[Language, dict[str, dict[str, str]]] = {}
         for language in Language:
             content = yaml.safe_load((folder / f"{language.value}.yaml").read_text(encoding="utf-8"))
@@ -79,7 +80,13 @@ class Renderer:
     def names(self, language: Language) -> frozenset[str]:
         return frozenset(self._templates[language])
 
-    def text(self, name: str, variant: LanguageVariant, **values: object) -> str:
+    def variants(self, name: str, language: Language) -> int:
+        """How many wordings a template has, so a reply that comes back can change its words."""
+        template = self._templates[language][name]
+        return len(template) if isinstance(template, list) else 1
+
+    def text(self, name: str, variant: LanguageVariant, pick: int = 0, **values: object) -> str:
+        """The template in the register of the variant; pick chooses among its wordings, when it has several."""
         language = language_of(variant)
         words = self._register[language].get(variant.value) or {}
 
@@ -92,4 +99,7 @@ class Renderer:
                 raise KeyError(f"template {name} needs a value for {key}")
             return word[0].upper() + word[1:] if key[0].isupper() else word
 
-        return re.sub(r"\{(\w+)\}", fill, self._templates[language][name])
+        template = self._templates[language][name]
+        if isinstance(template, list):
+            template = template[pick % len(template)]
+        return re.sub(r"\{(\w+)\}", fill, template)

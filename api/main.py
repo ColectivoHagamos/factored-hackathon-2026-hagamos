@@ -182,9 +182,11 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     ) -> StartConversationResponse:
         conversation_id = secrets.token_hex(8)
         container.state.open_conversation(conversation_id, session.subject)
-        greeting = container.conversation.start(Session(session.subject, conversation_id), body.preferred_language)
+        opening = container.conversation.start(Session(session.subject, conversation_id), body.preferred_language)
         metrics.conversation()
-        return StartConversationResponse(conversation_id=conversation_id, greeting=greeting)
+        return StartConversationResponse(
+            conversation_id=conversation_id, greeting=opening.reply, options=opening.options
+        )
 
     @app.post(
         f"{PREFIX}/conversations/{{conversation_id}}/messages", response_model=MessageResponse, tags=["conversation"]

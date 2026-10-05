@@ -35,6 +35,8 @@ PERSON_OFFER = re.compile(r"pase con una persona|passe a conversa para uma pesso
 # POL-01 (v1.5): before the transfer a customer asked for, VERA offers once to review the case first.
 REVIEW_FIRST = re.compile(r"conectar con un analista|conectar você com um analista")
 BACK_TO_QUESTION = re.compile(r"pregunta anterior|pergunta anterior")
+# The reasons of the opening menu: this customer writes its claim instead of pressing one.
+MENU_ANSWERS = frozenset({"unrecognized_charge", "improper_charge", "lost_card", "scam_transfer", "human_request"})
 MAX_TURNS = 14
 START = datetime.combine(load_policy().parameters.system_clock, datetime.min.time()).replace(hour=10)
 
@@ -190,7 +192,13 @@ class Customer:
         if pending == "block_card":
             return {"selected_option": "yes" if script.accepts_block else "no"}
         if reply.get("multiple_choice"):
-            return {"text": "todos"}
+            # After a lost card is protected, the recent movements include the customer's own charge: it marks it.
+            # In the sweep the charge in question is not listed, so the customer recognizes the rest.
+            target = self.case.target[0] if self.case.target else None
+            mine = [o["n"] for o in options if target and self.charges.shown_in(target, o["label"])]
+            return {"selected_option": mine[0]} if mine else {"text": "todos"}
+        if options and all(o.get("answer") in MENU_ANSWERS for o in options):
+            options = []
         if options and not any(o.get("answer") for o in options):
             mine = next(
                 (o for o in options if self.case.target and self.charges.shown_in(self.case.target[0], o["label"])),

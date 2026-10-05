@@ -1,4 +1,51 @@
 {
+  "$defs": {
+    "Option": {
+      "additionalProperties": false,
+      "properties": {
+        "n": {
+          "maximum": 50,
+          "minimum": 1,
+          "title": "N",
+          "type": "integer"
+        },
+        "label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no",
+                "not_sure",
+                "unrecognized_charge",
+                "improper_charge",
+                "lost_card",
+                "scam_transfer",
+                "human_request"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        }
+      },
+      "required": [
+        "n",
+        "label"
+      ],
+      "title": "Option",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
   "properties": {
     "conversation_id": {
@@ -9,6 +56,14 @@
     "greeting": {
       "title": "Greeting",
       "type": "string"
+    },
+    "options": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Option"
+      },
+      "title": "Options",
+      "type": "array"
     }
   },
   "required": [

@@ -56,7 +56,13 @@
             {
               "enum": [
                 "yes",
-                "no"
+                "no",
+                "not_sure",
+                "unrecognized_charge",
+                "improper_charge",
+                "lost_card",
+                "scam_transfer",
+                "human_request"
               ],
               "type": "string"
             },

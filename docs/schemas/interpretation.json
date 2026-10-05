@@ -175,6 +175,11 @@
       "title": "Asks If Human",
       "type": "boolean"
     },
+    "greeting": {
+      "default": false,
+      "title": "Greeting",
+      "type": "boolean"
+    },
     "answer": {
       "$ref": "#/$defs/Answer",
       "default": "not_said"
