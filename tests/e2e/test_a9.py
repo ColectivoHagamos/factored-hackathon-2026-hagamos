@@ -26,7 +26,7 @@ def test_a9_the_customer_chooses_and_a_side_question_does_not_cut_the_flow(clien
     assert any(entry["rule_id"] == "POL-05" for entry in listed["glass_box"])
 
     aside = customer.say(text="¿Y mi saldo?")
-    assert "saldo" in aside["reply"] and aside["options"] == listed["options"]
+    assert "banca en línea" in aside["reply"] and aside["options"] == listed["options"]
 
     chosen = customer.say(selected_option=same[1]["n"])
     # The chosen charge, and nothing else, is shown and asked about (the wording follows the country).

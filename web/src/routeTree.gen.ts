@@ -14,6 +14,7 @@ import { Route as AnalistaRouteImport } from './routes/analista'
 import { Route as BancaRouteImport } from './routes/banca'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as DatosRouteImport } from './routes/datos'
 import { Route as LoginRouteImport } from './routes/login'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const ClientesRoute = ClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DatosRoute = DatosRouteImport.update({
+  id: '/datos',
+  path: '/datos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/banca': typeof BancaRoute
   '/chat': typeof ChatRoute
   '/clientes': typeof ClientesRoute
+  '/datos': typeof DatosRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/banca': typeof BancaRoute
   '/chat': typeof ChatRoute
   '/clientes': typeof ClientesRoute
+  '/datos': typeof DatosRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesById {
@@ -70,15 +78,24 @@ export interface FileRoutesById {
   '/banca': typeof BancaRoute
   '/chat': typeof ChatRoute
   '/clientes': typeof ClientesRoute
+  '/datos': typeof DatosRoute
   '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analista' | '/banca' | '/chat' | '/clientes' | '/login'
+  fullPaths:
+    '/' | '/analista' | '/banca' | '/chat' | '/clientes' | '/datos' | '/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analista' | '/banca' | '/chat' | '/clientes' | '/login'
+  to: '/' | '/analista' | '/banca' | '/chat' | '/clientes' | '/datos' | '/login'
   id:
-    '__root__' | '/' | '/analista' | '/banca' | '/chat' | '/clientes' | '/login'
+    | '__root__'
+    | '/'
+    | '/analista'
+    | '/banca'
+    | '/chat'
+    | '/clientes'
+    | '/datos'
+    | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -87,6 +104,7 @@ export interface RootRouteChildren {
   BancaRoute: typeof BancaRoute
   ChatRoute: typeof ChatRoute
   ClientesRoute: typeof ClientesRoute
+  DatosRoute: typeof DatosRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -127,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/datos': {
+      id: '/datos'
+      path: '/datos'
+      fullPath: '/datos'
+      preLoaderRoute: typeof DatosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -143,6 +168,7 @@ const rootRouteChildren: RootRouteChildren = {
   BancaRoute: BancaRoute,
   ChatRoute: ChatRoute,
   ClientesRoute: ClientesRoute,
+  DatosRoute: DatosRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

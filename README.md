@@ -1,5 +1,34 @@
 # VERA · dispute assistant for LATAM Bank
 
+<div align="center">
+
+<a href="https://vera.colectivohagamos.com"><img src="docs/images/vera_cover.png" width="90%" alt="VERA, the dispute assistant of LATAM Bank: the product page with the chat"/></a>
+
+<br/><br/>
+
+[![Live demo](https://img.shields.io/badge/Live%20demo-vera.colectivohagamos.com-0F5C5A)](https://vera.colectivohagamos.com)
+[![Factored AI & Data Hackathon 2026](https://img.shields.io/badge/Factored-AI%20%26%20Data%20Hackathon%202026-123A3A)](https://factored.ai)
+[![CI](https://github.com/HagamosES/factored-hackathon-2026-hagamos/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/HagamosES/factored-hackathon-2026-hagamos/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-709%20Python%20%C2%B7%2021%20web-2E8B57)](#evaluation)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-3DA639)](LICENSE)
+
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](#run-it)
+[![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)](#how-it-works)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](web/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](web/)
+[![Claude](https://img.shields.io/badge/Claude-Haiku%204.5-D97757?logo=anthropic&logoColor=white)](docs/adr/0004-a-language-model-reads-and-the-classifier-stands-underneath.md)
+[![DuckDB](https://img.shields.io/badge/DuckDB-read--only-FFF000?logo=duckdb&logoColor=black)](#data)
+[![SQLite](https://img.shields.io/badge/SQLite-event%20log-003B57?logo=sqlite&logoColor=white)](#how-it-works)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docs/deployment.md)
+[![AWS](https://img.shields.io/badge/AWS-EC2-FF9900)](docs/deployment.md)
+[![Languages](https://img.shields.io/badge/Languages-ES%20%C2%B7%20PT-0F5C5A)](#what-a-customer-gets)
+
+**[Try the live demo](https://vera.colectivohagamos.com)** · [How it works](#how-it-works) · [Architecture](#the-architecture-in-seven-drawings) · [Evaluation](docs/evaluation/README.md) · [Security](SECURITY.md)
+
+</div>
+
+---
+
 **VERA** handles the first contact of a card dispute at **LATAM Bank**, the synthetic bank of the Factored AI & Data Hackathon 2026: customers in Mexico, Colombia and Argentina, in Spanish and Portuguese. The name comes from *verificación*, and it is also what VERA does:
 
 - it **V**erifies the charge against the records before it acts;
@@ -77,6 +106,8 @@ In the LATAM Bank data, disputes (unrecognized and improper charges) are 24,491 
 
 ## How it works
 
+The same, drawn, is in [the architecture in seven drawings](#the-architecture-in-seven-drawings).
+
 ```
 customer text ─▶ gateway ──────▶ interpreter ───────▶ flow (state machine) ─▶ tools ─────▶ action gate ─▶ bank
                  masking          rules, a learned      policy engine          read         confirmation
@@ -101,6 +132,38 @@ customer text ─▶ gateway ──────▶ interpreter ─────�
 - **Every turn is an event in a hash-chained log,** so a conversation can be audited and replayed.
 - **The analyst receives a handoff** with verified and declared facts, the legal and network clocks, the actions taken and the open questions. A conversation that goes to a person without a case still leaves a transfer note with what is known: the reason and its rule, the charges read from the tools, what the customer declared, any action left pending and never run, and what to ask. The console lists both, newest first. Neither carries the transcript.
 - **Security and operations:** the threat model, its reading against the OWASP list for language model applications, and what remains open are in [SECURITY.md](SECURITY.md). Logs, the trace of a conversation, metrics, alerts and the load test are in [docs/operations.md](docs/operations.md). Before it goes public, the tree and the whole history pass a publication audit ([docs/publication_audit.md](docs/publication_audit.md)).
+
+## The architecture in seven drawings
+
+Each drawing uses a standard notation, the C4 model or UML 2.5, and carries a title block with the commit it was checked against. The full-size images are in [docs/architecture/](docs/architecture/).
+
+**1. System context.** Who uses VERA and which systems it depends on. Only masked text leaves the bank.
+
+![System context: the customer, the analyst, the bank's systems and the Anthropic API](docs/architecture/01_system_context.png)
+
+**2. Containers.** What runs, and in which technology: the web, the reverse proxy, the API, the read-only demo database and the state store.
+
+![Containers: web application, Caddy, API, DuckDB and SQLite](docs/architecture/02_containers.png)
+
+**3. Components of the API.** Ports and adapters. The use cases and the domain depend only on ports; each dashed arrow is an adapter implementing one ([ADR 0008](docs/adr/0008-the-api-adapter-in-layers.md)).
+
+![Components: HTTP adapter, use cases, domain, ports and driven adapters](docs/architecture/03_api_components.png)
+
+**4. Deployment.** The server, its containers, volumes and open ports, and how a release reaches it from GitHub.
+
+![Deployment: EC2, Docker Compose, GitHub Actions, GHCR, DNS, Let's Encrypt and Anthropic](docs/architecture/04_deployment.png)
+
+**5. One turn.** Every message, in order: the checks run before any model reads it, and no reply leaves without the validator.
+
+![Activity: request checks, reading the message, acting and answering](docs/architecture/05_turn_activity.png)
+
+**6. A complete dispute.** Message by message, from the claim to the case in the analyst's queue, with the model's fallback, the confirmation token, the read-back and the legal clock.
+
+![Sequence of a dispute of an unrecognized charge](docs/architecture/06_dispute_sequence.png)
+
+**7. Conversation states.** The 16 steps of the state machine and what moves each one on, with the stage the customer sees ([ADR 0009](docs/adr/0009-the-conversation-flow-in-step-modules.md)).
+
+![State machine of the conversation](docs/architecture/07_conversation_states.png)
 
 ## Decisions, alternatives and evidence
 
@@ -183,7 +246,7 @@ Configuration comes from environment variables, all optional; `.env.example` lis
 | `pipeline/` | Bronze, silver and gold layers, the pseudonymized demo subset and the freshness fixture |
 | `ml/` · `evaluation/` | The learned classifier; the sealed held-out evaluation |
 | `docker/` · `deploy/` | Images, production compose with Caddy, deployment with rollback |
-| `docs/` | ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations, deployment, the publication audit and the final verification |
+| `docs/` | The architecture drawings (C4 and UML), ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations, deployment, the publication audit and the final verification |
 | `tests/` | Unit, contract, property, architecture and end-to-end tests (A1 to A10 over HTTP, in memory with both interpreters or against the deployment) |
 
 ## Data

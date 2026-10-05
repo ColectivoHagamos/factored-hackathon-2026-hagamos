@@ -159,3 +159,42 @@ class ApiErrorCode(StrEnum):
 class ApiError(Contract):
     code: ApiErrorCode
     message: ShortText
+
+
+class SourceTable(Contract):
+    """One table of the Factored dataset as the pipeline received it, with what its contracts let through."""
+
+    name: Identifier
+    rows_in: int = Field(ge=0)
+    rows_valid: int = Field(ge=0)
+    rows_quarantined: int = Field(ge=0)
+
+
+class Count(Contract):
+    label: Identifier
+    count: int = Field(ge=0)
+
+
+class DemoSubset(Contract):
+    """The pseudonymized subset VERA runs on, counted live from the database: totals only, never a record."""
+
+    customers: int = Field(ge=0)
+    customers_by_country: tuple[Count, ...]
+    cards: int = Field(ge=0)
+    cards_by_status: tuple[Count, ...]
+    movements: int = Field(ge=0)
+    movements_by_kind: tuple[Count, ...]
+    movements_by_status: tuple[Count, ...]
+    earlier_disputes: int = Field(ge=0)
+    first_movement: date | None = None
+    last_movement: date | None = None
+    customers_per_scenario: tuple[Count, ...] = ()
+
+
+class DataOverview(Contract):
+    """Where the data of the demo comes from and how much of it there is, for the page that shows it to a reviewer."""
+
+    source_tables: tuple[SourceTable, ...]
+    # SHA-256 of the manifest of the raw files the pipeline read: the same data gives the same hash.
+    source_manifest: ShortText | None = None
+    subset: DemoSubset

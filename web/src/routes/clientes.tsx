@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, ChartNoAxesColumn, Search } from "lucide-react";
+import { ArrowRight, ChartNoAxesColumn, Search, ShieldCheck } from "lucide-react";
 import { CLIENT_ICONS, IconBox, STROKE } from "@/components/vera/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/api/client";
@@ -101,6 +101,9 @@ function Clientes() {
           <h1 className="mt-3 max-w-2xl text-3xl font-extrabold sm:text-4xl">{t("clients.title")}</h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-primary-foreground/85 sm:text-base">{t("clients.sub")}</p>
           <p className="mt-4 text-xs font-medium text-primary-foreground/70">{t("clients.note")}</p>
+          <Link to="/datos" className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary-foreground px-5 py-2.5 text-sm font-semibold text-primary-dark transition hover:bg-primary-light">
+            <ShieldCheck className="size-4" strokeWidth={STROKE} aria-hidden /> {t("clients.data")}
+          </Link>
         </div>
       </div>
       <main className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-8">

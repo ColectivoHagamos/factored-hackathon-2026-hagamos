@@ -62,6 +62,16 @@ Release #97 moved the case handoff to `handoff/2.1` and accepted only 2.1. The d
 
 The hotfix #98 reads both versions, with a regression test that stores a 2.0 handoff and lists it in the queue. It was deployed about fifteen minutes after the release; since then the queue answers 200 with the stored cases and the suite passes 12 of 12.
 
+## Later releases
+
+The same checks ran again after each release that followed: the continuous deployment, `/v1/health` reporting the new commit, and the end-to-end suite against the URL with the demo account.
+
+| Release | `production` | What changed | End-to-end at the URL |
+|---|---|---|---|
+| #103 | `1de3691` | A purchase charged twice is registered as a duplicate for Complaints; prompt `interpreter-v6` | 12 of 12; a real A9 customer (AR-12) gets both purchases offered and the duplicate recognized |
+| #107 | `dcf5c66` | The API adapter in layers, and the use cases on ports ([ADR 0008](adr/0008-the-api-adapter-in-layers.md)). The OpenAPI document is byte for byte the same | 12 of 12 |
+| #110 | `e3cf46a` | The conversation flow in step modules ([ADR 0009](adr/0009-the-conversation-flow-in-step-modules.md)). On the development set, every reply, option, state and event is byte for byte the same | 12 of 12 |
+
 ## Not verified here
 
 - **The audit of the running container** (`docker exec <api> env` and `docker history`) runs on the server, which only the team reaches over SSH. By construction, the CD writes six values to the server's `.env`, which only its owner can read:

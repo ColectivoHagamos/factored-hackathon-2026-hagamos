@@ -28,6 +28,8 @@ class Step(StrEnum):
     CHOOSE_CARD = "choose_card"
     # After the card is protected, the recent movements, so the customer marks the ones they did not make.
     REVIEW = "review"
+    # A payment declined or a card blocked: VERA showed what it sees and offered the person who can unblock.
+    BLOCKED_OFFER = "blocked_offer"
     DONE = "done"
     HANDED_OFF = "handed_off"
 

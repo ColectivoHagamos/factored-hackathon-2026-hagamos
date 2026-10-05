@@ -83,6 +83,15 @@ DUPLICATE = (
     r"\b(cobro duplicado|cargo duplicado|compra duplicada|cargo repetido|cobro repetido|compra repetida)",
     r"\b(duas vezes|em dobro|cobranca duplicada|cobranca repetida|compra duplicada)",
 )
+# A payment declined or a card blocked by the bank (folded text). Only what happened, never a request to block:
+# "quiero bloquear mi tarjeta" is a lost card.
+BLOCKED = (
+    r"\b(se (me )?bloque(o|aron)|me (la |lo )?bloquearon|bloquearon (mi|la|el)|(esta|quedo) bloquead[ao]|"
+    r"(tarjeta|cuenta|compra|transaccion|pago|movimiento) bloquead[ao]|el bloqueo de)",
+    r"\b(rechaz(o|aron|ada|ado)|me rechazaron|declin(o|aron|ada|ado)|no (me )?(paso|pasa) (el|la|mi) "
+    r"(pago|compra|tarjeta)|no me deja (pagar|comprar))",
+    r"\b(bloquead[oa]|bloquearam|foi bloquead|recusad[ao]|recusaram|negad[ao]|nao passou)",
+)
 IMPROPER = (
     *DUPLICATE,
     r"\b(cobro indebido|me cobraron (una |un )?(comision|cuota|cargo del banco|seguro)|cuota de manejo|ajuste)",
@@ -209,6 +218,7 @@ class RulesInterpreter:
             greeting=_only_greeting(text) and not confident and amount is None,
             distress=_any(DISTRESS, text),
             duplicate=_any(DUPLICATE, text),
+            blocked=_any(BLOCKED, text),
             answer=Answer.YES if _any(YES, text) else Answer.NO if _any(NO, text) else Answer.NOT_SAID,
             selected_numbers=_numbers(text, context),
             language=language,

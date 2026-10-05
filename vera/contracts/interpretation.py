@@ -67,6 +67,8 @@ class Interpretation(Contract):
     distress: bool = False
     # The customer says the same purchase was charged more than once: a duplicate, not a charge they disown.
     duplicate: bool = False
+    # The customer asks why a payment was declined or the card was blocked: the bank did it, not a stranger.
+    blocked: bool = False
     # Answer to the yes-or-no question asked in the previous turn, and option numbers the customer referred to.
     answer: Answer = Answer.NOT_SAID
     selected_numbers: tuple[Annotated[int, Field(ge=1, le=50)], ...] = ()

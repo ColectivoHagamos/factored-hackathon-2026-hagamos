@@ -15,8 +15,12 @@ class SafetySteps(FlowSupport):
     def _safety_first(self, turn: Turn, reading: Interpretation) -> bool:
         """POL-01, POL-02 and POL-09 win over every other step."""
         customer = self._tools.customer(turn.session)
-        # During the key questions of a scam a person is already on the way (POL-10): the request needs no offer.
-        person = reading.claim_type is ClaimType.HUMAN_REQUEST and turn.state.step is not Step.SCAM_DETAILS
+        # During the key questions of a scam a person is already on the way (POL-10), and at a block VERA itself
+        # offered the person: there the request needs no offer.
+        person = reading.claim_type is ClaimType.HUMAN_REQUEST and turn.state.step not in (
+            Step.SCAM_DETAILS,
+            Step.BLOCKED_OFFER,
+        )
         sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
         if person and not sure and turn.state.step not in (Step.HANDED_OFF, Step.PERSON_OFFERED):
             # POL-14 before POL-01: when the reading is unsure, VERA asks before treating it as a request.

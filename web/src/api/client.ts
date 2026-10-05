@@ -1,7 +1,7 @@
 import { session, type TokenKind } from "@/lib/session";
 import { ApiError } from "./errors";
 import type {
-  ApiErrorCode, DemoCustomer, Handoff, Lang, LoginRequest, LoginResponse, Me, MessageBody,
+  ApiErrorCode, DataOverview, DemoCustomer, Handoff, Lang, LoginRequest, LoginResponse, Me, MessageBody,
   MessageResponse, Movement, QueueItem, SessionResponse, StartResponse,
 } from "./types";
 
@@ -46,6 +46,7 @@ async function http<T>(method: "GET" | "POST", path: string, auth?: string, body
 export const api = {
   login: (req: LoginRequest): Promise<LoginResponse> => http("POST", "/v1/auth/login", undefined, req),
   demoCustomers: (): Promise<DemoCustomer[]> => http("GET", "/v1/demo-customers", token("access")),
+  dataOverview: (): Promise<DataOverview> => http("GET", "/v1/data/overview", token("access")),
   demoSession: (ref: string): Promise<SessionResponse> =>
     http("POST", "/v1/demo-session", token("access"), { demo_customer: ref }),
   me: (): Promise<Me> => http("GET", "/v1/me", token("customer")),

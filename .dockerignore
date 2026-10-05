@@ -7,6 +7,9 @@
 !api/
 !ml/
 !web/
+# The pipeline's two reports, for the page that shows reviewers where the data comes from.
+!docs/data_quality_report.json
+!docs/demo_subset_report.json
 web/node_modules
 web/dist
 **/__pycache__
