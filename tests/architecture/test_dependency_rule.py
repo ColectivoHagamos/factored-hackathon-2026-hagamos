@@ -109,6 +109,11 @@ def test_controllers_reach_no_adapter_or_infrastructure():
     assert imports_in("api/routers", INFRASTRUCTURE) == {}
 
 
+def test_use_cases_take_ports_not_adapters():
+    # A use case gets the core and its ports through its constructor; the composition root alone picks the adapters.
+    assert imports_in("api/services", INFRASTRUCTURE) == {}
+
+
 def test_the_layer_check_finds_what_a_folder_imports():
     # Positive control: the routers do import the web framework, so the check is not silently empty.
     assert imports_in("api/routers", WEB_FRAMEWORK)

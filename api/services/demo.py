@@ -2,16 +2,17 @@
 
 import hmac
 
-from api.dependencies import Container
 from api.failures import ApiFailure
 from api.personas import Persona, personas
 from api.schemas import ApiErrorCode, DemoCustomer, DemoSessionResponse
-from api.security import IssuedToken
+from api.security import IssuedToken, SessionSigner
+from vera.ports.bank import CustomersPort
 
 
 class DemoDirectory:
-    def __init__(self, container: Container, analyst_key: str) -> None:
-        self._container = container
+    def __init__(self, customers: CustomersPort, signer: SessionSigner, analyst_key: str) -> None:
+        self._customers = customers
+        self._signer = signer
         # Empty: the demo analyst view is open, on purpose; set: the analyst session requires it.
         self._analyst_key = analyst_key
         self._people: dict[str, Persona] = {}
@@ -19,7 +20,7 @@ class DemoDirectory:
     def people(self) -> dict[str, Persona]:
         """The invented name of each demo customer, computed once, on first use."""
         if not self._people:
-            self._people.update(personas(self._container.customers.customers()))
+            self._people.update(personas(self._customers.customers()))
         return self._people
 
     def persona(self, customer_ref: str) -> Persona | None:
@@ -38,18 +39,18 @@ class DemoDirectory:
                 scenarios=list(customer.scenarios),
                 language=people[customer.customer_ref].language.value,
             )
-            for customer in self._container.customers.customers()
+            for customer in self._customers.customers()
         ]
 
     def customer_session(self, customer_ref: str) -> DemoSessionResponse:
-        if self._container.customers.customer(customer_ref) is None:
+        if self._customers.customer(customer_ref) is None:
             raise ApiFailure(ApiErrorCode.NOT_FOUND)
-        return _session(self._container.signer.issue(customer_ref))
+        return _session(self._signer.issue(customer_ref))
 
     def analyst_session(self, key: str) -> DemoSessionResponse:
         if self._analyst_key and not hmac.compare_digest(key, self._analyst_key):
             raise ApiFailure(ApiErrorCode.UNAUTHORIZED)
-        return _session(self._container.signer.issue("demo-analyst", role="analyst"))
+        return _session(self._signer.issue("demo-analyst", role="analyst"))
 
 
 def _session(issued: IssuedToken) -> DemoSessionResponse:

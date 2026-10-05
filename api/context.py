@@ -32,18 +32,28 @@ class AppContext:
 
 
 def build_context(settings: Settings, container: Container) -> AppContext:
+    """The use cases, each given the ports and the core it needs; none of them sees the container."""
     metrics = Metrics()
-    demo = DemoDirectory(container, settings.analyst_key)
+    demo = DemoDirectory(container.customers, container.signer, settings.analyst_key)
     logins = RateLimiter(LOGINS_PER_MINUTE, container.now)
     messages = RateLimiter(settings.messages_per_minute, container.now)
+    customers = CustomerViews(
+        customers=container.customers,
+        cards=container.cards,
+        transactions=container.transactions,
+        tools=container.tools,
+        handoffs=container.state,
+        now=container.now,
+        demo=demo,
+    )
     return AppContext(
         settings=settings,
         container=container,
         metrics=metrics,
         access=AccessService(Accounts(settings.testers), container.signer, logins),
         demo=demo,
-        customers=CustomerViews(container, demo),
-        conversations=ConversationService(container, demo, metrics, messages),
+        customers=customers,
+        conversations=ConversationService(container.conversation, container.state, demo, metrics, messages),
         analyst=AnalystDesk(container.state),
     )
 
