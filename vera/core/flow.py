@@ -225,6 +225,15 @@ class Conversation:
                 context["flagged"] = "yes"
             reading = self._interpreter.interpret(message.text, context)
             provider = self._interpreter.name
+            if message.intent and expecting == "claim" and not _overrides_the_button(reading):
+                # The button the customer pressed is the claim; the text still gives the charge and the safety words.
+                reading = reading.model_copy(
+                    update={
+                        "claim_type": INTENT_CLAIMS[message.intent],
+                        "has_card": Answer.NO if message.intent == "lost_card" else reading.has_card,
+                        "confidence": 1.0,
+                    }
+                )
         else:
             option = message.selected_option
             # A reason of the opening menu reads as the claim the customer would have written.
@@ -1246,6 +1255,11 @@ def _exposure(details: list[ChargeDetail]) -> tuple[Money, ...]:
 def _charges(turn: Turn, count: int) -> str:
     singular, plural = ("cobrança", "cobranças") if turn.state.variant is LanguageVariant.PT else ("cargo", "cargos")
     return f"{count} {singular if count == 1 else plural}"
+
+
+def _overrides_the_button(reading: Interpretation) -> bool:
+    """A person, a threat or a question about who answers in the text wins over the button (POL-01, POL-02)."""
+    return reading.claim_type is ClaimType.HUMAN_REQUEST or reading.coercion or reading.asks_if_human
 
 
 def _aware(moment: datetime) -> datetime:

@@ -15,9 +15,11 @@ import { useT } from "@/i18n/useT";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/chat")({
-  validateSearch: (s: Record<string, unknown>): { msg?: string; intent?: "improper_charge" | "lost_card" | "scam_transfer" } => ({
+  validateSearch: (s: Record<string, unknown>): { msg?: string; intent?: "unrecognized_charge" | "improper_charge" | "lost_card" | "scam_transfer" } => ({
     ...(typeof s.msg === "string" && s.msg ? { msg: s.msg } : {}),
-    ...(s.intent === "improper_charge" || s.intent === "lost_card" || s.intent === "scam_transfer" ? { intent: s.intent } : {}),
+    ...(s.intent === "unrecognized_charge" || s.intent === "improper_charge" || s.intent === "lost_card" || s.intent === "scam_transfer"
+      ? { intent: s.intent }
+      : {}),
   }),
   head: () => ({
     meta: [
@@ -122,7 +124,8 @@ function Chat() {
     start().then((cid) => {
       if (cid && initialMsg) {
         navigate({ to: "/chat", search: {}, replace: true });
-        send({ text: initialMsg }, initialMsg, cid);
+        // A movement opens the chat with its text and the button the customer pressed: the button is the claim.
+        send(intent ? { text: initialMsg, intent } : { text: initialMsg }, initialMsg, cid);
       } else if (cid && intent) {
         navigate({ to: "/chat", search: {}, replace: true });
         send({ selected_option: intent }, t(intent === "lost_card" ? "bank.sc.lost" : intent === "scam_transfer" ? "clients.any.scam" : "bank.sc.improper"), cid);
