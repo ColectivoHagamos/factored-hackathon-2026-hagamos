@@ -379,5 +379,16 @@
   "scenario.declined_purchase": "Compra recusada",
   "scenario.reversed_purchase": "Compra estornada",
   "scenario.known_merchant_purchase": "Compra em um estabelecimento habitual",
-  "chat.langNote": "A VERA atende os clientes do banco em espanhol e português, no idioma de cada cliente."
+  "chat.langNote": "A VERA atende os clientes do banco em espanhol e português, no idioma de cada cliente.",
+  "nav.results": "Resultados",
+  "home.results.eyebrow": "Resultados medidos",
+  "home.results.title": "Testada com 299 casos que nunca tinha visto.",
+  "home.results.sub": "Os casos foram selados antes da primeira execução e cada um veio em três redações, em espanhol e português. Um assistente tradicional de regras fixas atendeu os mesmos casos. É uma simulação offline, não produção.",
+  "home.results.per100": "em cada 100",
+  "home.results.r1": "primeiros contatos foram resolvidos com segurança, sem um atendente",
+  "home.results.r2": "clientes precisaram repetir a sua história",
+  "home.results.r3": "casos que não precisavam de uma pessoa acabaram transferidos",
+  "home.results.r4": "casos foram enviados para a fila errada",
+  "home.results.baseline": "Assistente tradicional: {n} em cada 100",
+  "home.results.note": "Na avaliação selada, 3 em cada 100 conversas tiveram um erro que podia afetar o cliente ou o banco. Foram corrigidos e a segunda execução deu 0, embora já não fosse às cegas. Com o Claude, cada conversa custa US$ 0,0038 e 95 % dos turnos respondem em menos de 1,5 s. O método e as tabelas completas estão no repositório."
 }

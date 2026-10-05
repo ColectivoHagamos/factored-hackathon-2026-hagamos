@@ -379,5 +379,16 @@
   "scenario.declined_purchase": "Declined purchase",
   "scenario.reversed_purchase": "Reversed purchase",
   "scenario.known_merchant_purchase": "Purchase at a usual merchant",
-  "chat.langNote": "VERA serves the bank's customers in Spanish and Portuguese, in each customer's language; this page is in English for you."
+  "chat.langNote": "VERA serves the bank's customers in Spanish and Portuguese, in each customer's language; this page is in English for you.",
+  "nav.results": "Results",
+  "home.results.eyebrow": "Measured results",
+  "home.results.title": "Tested on 299 cases it had never seen.",
+  "home.results.sub": "The cases were sealed before the first run, and each one came in three wordings, in Spanish and Portuguese. A traditional assistant with fixed rules handled the same cases. It is an offline simulation, not production.",
+  "home.results.per100": "in 100",
+  "home.results.r1": "first contacts were resolved safely, without an agent",
+  "home.results.r2": "customers had to tell their story again",
+  "home.results.r3": "cases that needed no person were transferred anyway",
+  "home.results.r4": "cases were sent to the wrong queue",
+  "home.results.baseline": "Traditional assistant: {n} in 100",
+  "home.results.note": "In the sealed evaluation, 3 in 100 conversations had an error that could affect the customer or the bank. They were fixed and the second run gave 0, although it was no longer blind. With Claude, a conversation costs US$ 0.0038 and 95 % of turns answer in under 1.5 s. The method and the full tables are in the repository."
 }
