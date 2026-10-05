@@ -16,6 +16,7 @@ from vera.core import flow
 from vera.core.events import reduce, verify_chain
 from vera.core.flow import Conversation
 from vera.core.state import FlowState, Step
+from vera.core.steps import handoff as handoff_steps
 from vera.gateway.injection import signals
 from vera.llm.classifier_adapter import ClassifierInterpreter
 from vera.llm.rules_adapter import RulesInterpreter
@@ -251,7 +252,7 @@ def test_a_note_that_cannot_be_kept_never_blocks_the_way_to_a_person(world: Worl
     def fails(*args, **kwargs):
         raise OSError("disk full") if broken == "store" else ValueError("the note does not validate")
 
-    monkeypatch.setattr(*((world.state, "transfer") if broken == "store" else (flow, "build_transfer")), fails)
+    monkeypatch.setattr(*((world.state, "transfer") if broken == "store" else (handoff_steps, "build_transfer")), fails)
     *_, last = world.chat(CO_01, "Quiero hablar con una persona", "no")
     assert world.state_of().step is Step.HANDED_OFF and "una persona" in last.reply
     events = world.log.read("conv-1")
