@@ -82,6 +82,23 @@ def test_the_safety_words_underneath_are_a_floor_the_model_can_only_add_to():
     assert reading.regulator_mentioned and messages.requests
 
 
+def test_a_fact_of_a_scam_the_model_left_unsaid_is_kept_from_underneath_for_fraud():
+    scam = {"claim_type": "scam_transfer", "answer": "not_said", "language": "es", "confidence": 0.9}
+    text = "Ayer transferí plata a una cuenta que me dieron por teléfono y era una estafa"
+    reading = AnthropicInterpreter(FakeMessages(reply(scam))).interpret(text, CLAIM)
+    assert (reading.authorized_payment, reading.date_text, reading.contact_channel) == ("yes", "ayer", "phone_call")
+
+
+def test_what_the_model_said_stands_and_the_facts_that_steer_the_flow_are_never_filled_from_underneath():
+    said = {"authorized_payment": "no", "date_text": "el lunes", "contact_channel": "message"}
+    messages = FakeMessages(reply(READ | said))
+    # The rules would read a call, an online purchase ("en la app") and a missing card in this text.
+    text = "Me llamaron ayer, lo vi en la app y no tengo la tarjeta"
+    reading = AnthropicInterpreter(messages).interpret(text, CLAIM)
+    assert (reading.authorized_payment, reading.date_text, reading.contact_channel) == ("no", "el lunes", "message")
+    assert reading.has_card == "not_said" and reading.declared_channel is None
+
+
 @pytest.mark.parametrize(
     "response",
     [
