@@ -22,6 +22,23 @@ Report it privately through this repository's GitHub security advisories (Securi
 | Dataset or secrets in the repository | No dataset record, database or model file is versioned. The publication check blocks data, secrets, forbidden files and large files in CI, and the demo subset is pseudonymized with a key that never leaves the building machine | `scripts/check_publication.py`, `pipeline/demo.py`, [datasheet](docs/datasheet.md) |
 | Supply chain | Locked dependencies (`uv.lock`); no model file or pickle is shipped, because the classifier retrains from versioned phrases at start; images run as a non-root user on a read-only filesystem behind Caddy with HSTS and a strict CSP | `docker/`, `deploy/` |
 
+## OWASP Top 10 for LLM applications (2025)
+
+The same controls, read against the OWASP list of risks for applications that use a language model:
+
+| Risk | How VERA handles it |
+|---|---|
+| LLM01 Prompt injection | Contained by design. The model only fills a closed schema through one forced tool call and decides nothing; flagged text never reaches it; another customer's data answers as if it did not exist; every write needs the customer's confirmation token. In the held-out, the injection block passes 36 of 36 runs with every interpreter ([ADR 0003](docs/adr/0003-prompt-injection-is-contained-by-design.md)) |
+| LLM02 Sensitive information disclosure | Customer text is masked before anything stores or interprets it, so the model only receives masked text. The logs hold no customer text, and the analyst's handoff never carries the transcript |
+| LLM03 Supply chain | Locked dependencies; the model is pinned by its dated id (`claude-haiku-4-5-20251001`); no model file is shipped, because the classifier retrains from versioned phrases at start |
+| LLM04 Data and model poisoning | The classifier learns only from phrases the team wrote, versioned in this repository and changed only through pull requests with CI. No conversation feeds any training, and Claude is used as is, without fine-tuning |
+| LLM05 Improper output handling | The model's output is validated against the contract and discarded when it does not fit. The model never writes a reply: replies come from templates filled with data from the tools, and each one passes the output validator. The chat and the console show every text as plain text, never as HTML |
+| LLM06 Excessive agency | The model has one tool, which records an interpretation. The flow chooses every action under the executable policy, every write passes the action gate, and no tool can move or promise money (PROH-03) |
+| LLM07 System prompt leakage | The prompt holds no secret and no policy rule: it is versioned in this repository (`vera/llm/prompts/`), and policy and permissions live in code |
+| LLM08 Vector and embedding weaknesses | Not applicable: VERA has no retrieval, vector store or embeddings |
+| LLM09 Misinformation | The model states no fact to the customer. Amounts, dates and merchants come from the tools; a legal deadline is dated only from a loaded official text; the validator blocks amounts that no tool returned. In the policy v1.5 rerun, the deadlines matched a hand-written truth table in every run with a case |
+| LLM10 Unbounded consumption | 2,000 characters per message, 30 messages per minute per customer and 40 turns per conversation; at most 400 output tokens and a 3-second timeout per call; a spending cap of US$ 15 in the process and in the provider's console |
+
 ## What remains open
 
 - **The demo analyst view is open by default**, so reviewers can read handoffs. Setting `VERA_ANALYST_KEY` closes it ([deployment](docs/deployment.md)). A real deployment would need real analyst authentication.

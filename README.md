@@ -7,7 +7,7 @@
 - it **R**ecords the case and reads it back before it says it is done;
 - it **A**ccompanies the customer, with a person always available.
 
-**Demo:** https://vera.colectivohagamos.com, live since 4 October 2026, with Claude reading over the classifier. The customer chat is at `/`, the analyst console at `/console.html`. The demo customers are pseudonymized: nothing there is a real person.
+**Demo:** https://vera.colectivohagamos.com, live since 4 October 2026, with Claude reading over the classifier; the end-to-end suite passes against it ([final verification](docs/final_verification.md)). The customer chat is at `/`, the analyst console at `/console.html`. The demo customers are pseudonymized: nothing there is a real person.
 
 ## Try it in two minutes
 
@@ -47,6 +47,10 @@ Three limits to read with these numbers:
 - **The sealed run is the honest measurement.** Its 30 unsafe runs had one root cause, fixed afterwards. The rerun is labeled not clean because those failures informed the fixes, and Claude was measured only there. On the same cases, Claude resolves as many safely as the classifier; what it adds is a result that holds across wordings, and fewer customers explaining again.
 - **The evaluation is an offline simulation** with wordings the team wrote. The human blind set and a human red team are pending.
 - **Legal deadlines are dated only where the official text is loaded:** Ley 1755 in Colombia, and Ley 25.065 and the BCRA rules in Argentina. Mexican routes and Colombia's Decreto 587 are recorded without a date.
+
+## Why disputes
+
+In the LATAM Bank data, disputes (unrecognized and improper charges) are 24,491 of 67,095 complaints (36.5 %). One in five missed its service deadline, they took 15.5 days to resolve on average, and half arrived through the call center. The complaints cannot be traced to their charges, so VERA asks the customer which one, and the evaluation is built on transactions. The figures, how they were computed and a yearly projection, labeled as such, are in the [business case](docs/business_case.md).
 
 ## What a customer gets
 
@@ -88,7 +92,19 @@ customer text ─▶ gateway ──────▶ interpreter ─────�
 - **Failures go to a person.** A tool that fails is retried once if it only reads; then the case goes to a person, and nothing is filled in (POL-13).
 - **Every turn is an event in a hash-chained log,** so a conversation can be audited and replayed.
 - **The analyst receives a handoff** with verified and declared facts, the legal and network clocks, the actions taken and the open questions. A conversation that goes to a person without a case still leaves a transfer note with what is known: the reason and its rule, the charges read from the tools, what the customer declared, any action left pending and never run, and what to ask. The console lists both, newest first. Neither carries the transcript.
-- **Security and operations:** the threat model and what remains open are in [SECURITY.md](SECURITY.md). Logs, the trace of a conversation, metrics, alerts and the load test are in [docs/operations.md](docs/operations.md). Before it goes public, the tree and the whole history pass a publication audit ([docs/publication_audit.md](docs/publication_audit.md)).
+- **Security and operations:** the threat model, its reading against the OWASP list for language model applications, and what remains open are in [SECURITY.md](SECURITY.md). Logs, the trace of a conversation, metrics, alerts and the load test are in [docs/operations.md](docs/operations.md). Before it goes public, the tree and the whole history pass a publication audit ([docs/publication_audit.md](docs/publication_audit.md)).
+
+## Decisions, alternatives and evidence
+
+| Decision | Rejected alternative | Evidence |
+|---|---|---|
+| The model reads and the policy decides, in code ([ADR 0001](docs/adr/0001-monorepo-and-hexagonal-architecture.md)) | An agent whose model chooses the tools and the next step | 0 unsafe outcomes in 897 runs per interpreter in the policy v1.5 rerun; in A7, a forged tool call changes nothing, against the deployment too |
+| Prompt injection is contained by design ([ADR 0003](docs/adr/0003-prompt-injection-is-contained-by-design.md)) | Instructions in the prompt, or a model that screens every message | The injection block of the held-out passes 36 of 36 runs with every interpreter |
+| Claude reads over the classifier, which stays underneath ([ADR 0004](docs/adr/0004-a-language-model-reads-and-the-classifier-stands-underneath.md)) | The model replaces the rules and the classifier | pass^3 of 99.3 % against 96.7 % on the same rerun, with 1 fallback in 1,244 calls; every person request and threat of the port's contract test wins, whatever the model reads |
+| A learned classifier, measured against a keyword baseline ([model card](docs/model_card.md)) | Keywords alone | Macro F1 of 0.880 against 0.425, on phrases that no fit or choice saw |
+| A legal deadline is dated only from a loaded official text | A date estimated by a model, or a fixed count of days | The deadlines match a hand-written truth table in 1,048 of 1,048 runs with a case; Mexico is recorded without a date |
+| The evaluation is built on transactions and sealed before its first run ([evaluation](docs/evaluation/README.md)) | The historical complaints as ground truth | No complaint can be traced to its charge ([business case](docs/business_case.md)); the set carries a hash and a tag from before its first run |
+| One process, and the API serves the web ([ADR 0002](docs/adr/0002-api-serves-the-web.md)) | Microservices, a separate web container, or a framework with a build step | One image, one URL and one health check, on one server with 1 GB of memory |
 
 ## The learned component
 
@@ -157,7 +173,7 @@ Configuration comes from environment variables, all optional; `.env.example` lis
 | `pipeline/` | Bronze, silver and gold layers, the pseudonymized demo subset and the freshness fixture |
 | `ml/` · `evaluation/` | The learned classifier; the sealed held-out evaluation |
 | `docker/` · `deploy/` | Images, production compose with Caddy, deployment with rollback |
-| `docs/` | ADRs, model card, datasheet, data quality and freshness, evaluation reports, operations and the publication audit |
+| `docs/` | ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations, deployment, the publication audit and the final verification |
 | `tests/` | Unit, contract, property, architecture and end-to-end tests (A1 to A10 over HTTP, in memory with both interpreters or against the deployment) |
 
 ## Data
