@@ -18,7 +18,7 @@
    - its charges and the actions read back;
    - the legal and network deadlines;
    - the risk signals and open questions;
-   - the policy version and the trace id.
+   - the policy rules that decided each step, the policy version and the trace id.
 
 | Walkthrough | What to do | What VERA does |
 |---|---|---|

@@ -923,6 +923,7 @@ class Conversation:
                     reason="policy section 11.1 criteria met" if goodwill else None,
                 ),
                 queue=queue,
+                rules_applied=tuple(dict.fromkeys(turn.state.rules_applied)),
                 open_questions=(CARD_LAST_SEEN,) if Signal.CARD_NOT_IN_POSSESSION in signals else (),
                 policy_version=self._engine.version,
                 created_at=_aware(self._now()),

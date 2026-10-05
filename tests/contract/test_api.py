@@ -126,7 +126,10 @@ def test_handoff_needs_the_analyst_role(api):
     assert client.get(f"/v1/cases/{case_id}/handoff", headers=headers).status_code == 401
     analyst = client.post("/v1/demo-analyst-session").json()["token"]
     handoff = client.get(f"/v1/cases/{case_id}/handoff", headers={"Authorization": f"Bearer {analyst}"})
-    assert handoff.status_code == 200 and Handoff.model_validate(handoff.json()).suggested_queue == "fraud"
+    read = Handoff.model_validate(handoff.json())
+    assert handoff.status_code == 200 and read.suggested_queue == "fraud"
+    # The rules that decided the conversation reach the analyst: the sweep, the block and the registration.
+    assert read.rules_applied == ("POL-05", "POL-06", "POL-16")
 
 
 def test_card_numbers_are_masked_before_the_conversation_sees_them(world):

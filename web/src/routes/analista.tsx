@@ -27,7 +27,7 @@ export const Route = createFileRoute("/analista")({
 });
 
 const SECTIONS = ["declared_by_customer", "actions", "legal_clock", "network_clock", "risk_signals", "open_questions"] as const;
-const HEAD = ["summary", "claim_type", "reason", "verified_facts", "charges", "suggested_queue", "stage", "policy_version", "trace_id"];
+const HEAD = ["summary", "claim_type", "reason", "verified_facts", "charges", "suggested_queue", "stage", "policy_version", "trace_id", "rules_applied"];
 
 function useLabels() {
   const { t, lang } = useT();
@@ -113,8 +113,10 @@ function Detail({ d, kind }: { d: Record<string, unknown>; kind: QueueItem["kind
   const charges = ((vf.charges ?? d.charges ?? []) as Charge[]).slice().sort((a, b) => String(a.occurred_at).localeCompare(String(b.occurred_at)));
   const exposure = (vf.total_exposure ?? []) as { amount: string; currency: string }[];
   const usd = typeof vf.total_exposure_usd === "string" ? new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(vf.total_exposure_usd)) : null;
-  const legal = (d.legal_clock ?? null) as { obligations?: { due?: string }[] } | null;
-  const due = legal?.obligations?.find((o) => o.due)?.due;
+  const legal = (d.legal_clock ?? null) as { obligations?: { party?: string; what?: string; due?: string }[] } | null;
+  // What the analyst must meet first: the bank's earliest dated obligation, never the customer's own deadline.
+  const next = (legal?.obligations ?? []).filter((o) => o.party === "bank" && o.due).sort((a, b) => a.due!.localeCompare(b.due!))[0];
+  const due = next?.due;
   const stage = (typeof d.stage === "string" && d.stage in STAGE ? d.stage : "received") as StageKey;
   const queue = (d.suggested_queue as string) ?? "";
   const technical = Object.fromEntries(Object.entries(d).filter(([k]) => !HEAD.includes(k) && !(SECTIONS as readonly string[]).includes(k)));
@@ -147,6 +149,7 @@ function Detail({ d, kind }: { d: Record<string, unknown>; kind: QueueItem["kind
             <div>
               <dt className="text-xs text-muted-foreground">{t("analyst.legalDue")}</dt>
               <dd className="mt-0.5 font-medium">{dateLong(due, locale)}</dd>
+              {next?.what && <dd className="text-xs text-muted-foreground">{fixedText(next.what, lang) ?? next.what}</dd>}
             </div>
           )}
           {/* Governance in sight: which policy decided, and the trace that ties every event of the case. */}
@@ -154,6 +157,12 @@ function Detail({ d, kind }: { d: Record<string, unknown>; kind: QueueItem["kind
             <div>
               <dt className="text-xs text-muted-foreground">{L.key("policy_version")}</dt>
               <dd className="mt-0.5 font-medium tabular-nums">{d.policy_version}</dd>
+            </div>
+          )}
+          {Array.isArray(d.rules_applied) && d.rules_applied.length > 0 && (
+            <div>
+              <dt className="text-xs text-muted-foreground">{L.key("rules_applied")}</dt>
+              <dd className="mt-0.5 font-medium tabular-nums">{(d.rules_applied as string[]).join(" · ")}</dd>
             </div>
           )}
           {typeof d.trace_id === "string" && (
