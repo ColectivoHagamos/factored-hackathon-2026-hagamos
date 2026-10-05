@@ -1,7 +1,6 @@
 # Production on the demo server: the API image from GHCR behind Caddy, which obtains and renews the certificate.
 # Run by deploy/deploy.sh from /opt/vera, where .env (secrets) and data/demo.duckdb (read-only) live.
-# The server is shared with other stacks that own port 80, so Caddy publishes only 443 and the compose project
-# ("vera", from the folder) never touches theirs.
+# The compose project ("vera", from the folder) touches nothing else on the host; Caddy owns ports 80 and 443.
 services:
   api:
     image: ghcr.io/hagamoses/vera-api:${VERA_IMAGE_TAG:?set VERA_IMAGE_TAG}
@@ -32,6 +31,8 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
+      # 80 only redirects to https and answers the certificate challenge.
+      - "80:80"
       - "443:443"
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN}
