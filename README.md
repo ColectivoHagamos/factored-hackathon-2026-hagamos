@@ -132,7 +132,7 @@ Each drawing uses a standard notation, the C4 model or UML 2.5, and carries a ti
 
 ![Sequence of a dispute of an unrecognized charge](docs/architecture/06_dispute_sequence.png)
 
-**7. Conversation states.** The 15 steps of the state machine and what moves each one on, with the stage the customer sees ([ADR 0009](docs/adr/0009-the-conversation-flow-in-step-modules.md)).
+**7. Conversation states.** The 16 steps of the state machine and what moves each one on, with the stage the customer sees ([ADR 0009](docs/adr/0009-the-conversation-flow-in-step-modules.md)).
 
 ![State machine of the conversation](docs/architecture/07_conversation_states.png)
 
