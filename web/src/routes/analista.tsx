@@ -289,8 +289,8 @@ function Analista() {
             <ChartNoAxesColumn className="size-4" strokeWidth={STROKE} /> {entering ? t("common.loading") : t("analyst.enter")}
           </button>
         ) : (
-          <div className={cn("mt-6 grid gap-6", sel && "2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]")}>
-            <section className="card-soft overflow-hidden" aria-labelledby="q-h">
+          <div className={cn("mt-6 grid grid-cols-1 gap-6", sel && "2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]")}>
+            <section className="card-soft min-w-0 overflow-hidden" aria-labelledby="q-h">
               <div className="flex items-center justify-between border-b px-5 py-4">
                 <h2 id="q-h" className="font-bold">{t("analyst.queue")}</h2>
                 <button type="button" onClick={loadQueue} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary"><RefreshCw className="size-4" strokeWidth={STROKE} /> {t("analyst.refresh")}</button>
@@ -333,7 +333,7 @@ function Analista() {
             </section>
 
             {sel && (
-              <section className="card-soft bubble-in p-6" aria-labelledby="d-h">
+              <section className="card-soft bubble-in min-w-0 p-6" aria-labelledby="d-h">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground">{t(`analyst.kind.${sel.kind}`)} · {t(`analyst.queue.${sel.queue}`)}</p>
