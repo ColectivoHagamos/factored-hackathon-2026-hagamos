@@ -89,6 +89,19 @@ def test_a_fact_of_a_scam_the_model_left_unsaid_is_kept_from_underneath_for_frau
     assert (reading.authorized_payment, reading.date_text, reading.contact_channel) == ("yes", "ayer", "phone_call")
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Les aseguro que no fui yo", "not_said"),
+        ("No reconozco ese cargo, tengo la tarjeta conmigo", "yes"),
+        ("No reconozco ese cargo y no tengo la tarjeta", "no"),
+    ],
+)
+def test_the_model_cannot_say_the_customer_has_the_card_unless_the_words_say_so(text: str, expected: str):
+    reading = AnthropicInterpreter(FakeMessages(reply(READ | {"has_card": "yes"}))).interpret(text, CLAIM)
+    assert reading.has_card.value == expected
+
+
 def test_what_the_model_said_stands_and_the_facts_that_steer_the_flow_are_never_filled_from_underneath():
     said = {"authorized_payment": "no", "date_text": "el lunes", "contact_channel": "message"}
     messages = FakeMessages(reply(READ | said))
@@ -129,7 +142,7 @@ def test_past_the_spending_cap_every_message_goes_to_the_fallback():
 
 
 def test_the_prompt_is_versioned_and_carries_no_secret():
-    assert PROMPT_VERSION == "interpreter-v3" and "record_interpretation" in PROMPT
+    assert PROMPT_VERSION == "interpreter-v5" and "record_interpretation" in PROMPT
     assert not re.search(r"sk-ant|api[_-]?key|[A-Za-z0-9_-]{40,}", PROMPT, re.IGNORECASE)
 
 

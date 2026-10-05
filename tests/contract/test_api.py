@@ -60,6 +60,7 @@ def test_a_full_dispute_over_http(api):
     start = client.post("/v1/conversations", json={}, headers=headers).json()
     conversation = start["conversation_id"]
     assert "inteligencia artificial" in start["greeting"]
+    assert [option["answer"] for option in start["options"]][2] == "lost_card"
     for text in ("No reconozco un cargo de Libreria Andina", "no", "sí", "sí, la tengo", "todos"):
         say(client, headers, conversation, text=text)
     done = say(client, headers, conversation, selected_option="yes")
@@ -106,6 +107,8 @@ def test_the_analyst_queue_lists_transfers_and_customers_cannot_read_it(api):
     assert client.get("/v1/queue", headers=headers).status_code == 401
     [item] = client.get("/v1/queue", headers=analyst).json()
     assert (item["kind"], item["queue"], item["trace_id"]) == ("transfer", "complaints", f"trace-{conversation}")
+    # The parts of the summary come as codes, for a console in any language.
+    assert (item["reason"], item["charge_count"], item["pending_action"]) == ("person_requested", 0, None)
     path = f"/v1/transfers/{item['reference']}"
     assert client.get(path, headers=headers).status_code == 401
     assert client.get(path, headers=analyst).json()["reason"] == "person_requested"
@@ -125,7 +128,13 @@ def test_handoff_needs_the_analyst_role(api):
     assert client.get(f"/v1/cases/{case_id}/handoff", headers=headers).status_code == 401
     analyst = client.post("/v1/demo-analyst-session").json()["token"]
     handoff = client.get(f"/v1/cases/{case_id}/handoff", headers={"Authorization": f"Bearer {analyst}"})
-    assert handoff.status_code == 200 and Handoff.model_validate(handoff.json()).suggested_queue == "fraud"
+    read = Handoff.model_validate(handoff.json())
+    assert handoff.status_code == 200 and read.suggested_queue == "fraud"
+    # The rules that decided the conversation reach the analyst: the sweep, the block and the registration.
+    assert read.rules_applied == ("POL-05", "POL-06", "POL-16")
+    [item] = client.get("/v1/queue", headers={"Authorization": f"Bearer {analyst}"}).json()
+    # The sweep brought the two other charges the customer did not recognize into the one case.
+    assert (item["claim_type"], item["reason"], item["charge_count"]) == ("unrecognized_charge", "fraud", 3)
 
 
 def test_card_numbers_are_masked_before_the_conversation_sees_them(world):
@@ -161,12 +170,35 @@ def test_openapi_lists_every_endpoint(api):
     } <= paths
 
 
-def test_the_api_serves_the_customer_chat_and_the_analyst_console(api):
-    client, _ = api
-    chat = client.get("/")
-    assert chat.status_code == 200 and "VERA" in chat.text and "app.js" in chat.text
-    assert client.get("/console.html").status_code == 200
-    assert client.get("/app.js").status_code == 200
+@pytest.fixture
+def web(tmp_path) -> TestClient:
+    """A deployment with a built web: an index page and one hashed asset."""
+    (tmp_path / "assets").mkdir()
+    page = '<!doctype html><div id="root"></div><script type="module" src="/assets/app-1a2b.js"></script>'
+    (tmp_path / "index.html").write_text(page)
+    (tmp_path / "assets" / "app-1a2b.js").write_text("export {};")
+    settings = Settings(session_secret="test-secret", web_dir=str(tmp_path))
+    return TestClient(create_app(settings, build(settings, now=Clock())))
+
+
+def test_every_page_of_the_web_answers_with_the_app(web):
+    for page in ("/", "/login", "/clientes", "/banca", "/chat", "/analista"):
+        response = web.get(page)
+        assert response.status_code == 200 and 'id="root"' in response.text
+        assert response.headers["cache-control"] == "no-cache"
+    asset = web.get("/assets/app-1a2b.js")
+    assert asset.status_code == 200 and "immutable" in asset.headers["cache-control"]
+
+
+def test_a_missing_file_or_api_route_is_not_answered_with_the_app(web):
+    assert web.get("/assets/missing.js").status_code == 404
+    missing = web.get("/v1/nothing-here")
+    assert missing.status_code == 404 and 'id="root"' not in missing.text
+
+
+def test_the_old_console_address_leads_to_the_analyst_page(web):
+    moved = web.get("/console.html", follow_redirects=False)
+    assert moved.status_code == 308 and moved.headers["location"] == "/analista"
 
 
 def test_the_sweep_reply_allows_several_options(api):

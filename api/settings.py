@@ -22,6 +22,8 @@ class Settings:
     session_secret: str = field(default_factory=lambda: secrets.token_hex(32))
     # Empty: the demo analyst view is open, on purpose, for reviewers. Set: the analyst session requires it.
     analyst_key: str = ""
+    # Accounts of the jury and the team, as "user:hash,..." (api/access.py); empty keeps the demo without a login.
+    testers: str = field(default="", repr=False)
     messages_per_minute: int = 30
     # The language model of the anthropic interpreter (P41); the key never appears in a log or a repr.
     llm_api_key: str = field(default="", repr=False)
@@ -30,6 +32,8 @@ class Settings:
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_max_spend_usd: float = 15.0
     llm_timeout_seconds: float = 3.0
+    # Where the built web lives; empty uses web/dist of the repository, which the image also uses.
+    web_dir: str = ""
 
     def __post_init__(self) -> None:
         if self.adapter not in ADAPTERS:
@@ -52,9 +56,11 @@ class Settings:
             "state_db": env.get("VERA_STATE_DB"),
             "session_secret": env.get("SESSION_SECRET"),
             "analyst_key": env.get("VERA_ANALYST_KEY"),
+            "testers": env.get("VERA_TESTERS"),
             "llm_api_key": env.get("LLM_API_KEY"),
             "llm_workspace_id": env.get("LLM_WORKSPACE_ID"),
             "llm_model": env.get("LLM_MODEL"),
+            "web_dir": env.get("VERA_WEB_DIR"),
         }
         numbers = {
             "messages_per_minute": (env.get("VERA_MESSAGES_PER_MINUTE"), int),

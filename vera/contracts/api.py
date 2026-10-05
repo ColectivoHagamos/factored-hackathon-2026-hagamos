@@ -1,17 +1,51 @@
 """Request and response bodies of the HTTP API /v1."""
 
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, get_args
 
-from pydantic import AwareDatetime, StringConstraints, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
-from vera.contracts.cases import Case
-from vera.contracts.common import CandidateNumber, Contract, Identifier, Language, PolicyRuleId, ShortText
-from vera.contracts.handoff import Action, Handoff, Queue, Transfer
+from vera.contracts.cases import Case, DisputeReason
+from vera.contracts.charges import ChargeKind, ChargeStatus
+from vera.contracts.common import (
+    Amount,
+    CandidateNumber,
+    Contract,
+    Country,
+    Currency,
+    Identifier,
+    Language,
+    MaskedCard,
+    PolicyRuleId,
+    ShortText,
+)
+from vera.contracts.handoff import Action, Handoff, Queue, Transfer, TransferReason
+from vera.contracts.interpretation import ClaimType
 from vera.contracts.legal import RouteId
 
 MessageText = Annotated[str, StringConstraints(min_length=1, max_length=2000)]
+# The reasons of the opening menu: a button names one instead of the customer writing it.
+Intent = Literal["unrecognized_charge", "improper_charge", "lost_card", "scam_transfer", "human_request"]
+INTENTS: tuple[str, ...] = get_args(Intent)
+# What a button sends back besides a candidate number: an answer, "not sure", or a reason of the menu.
+OptionAnswer = Literal[
+    "yes", "no", "not_sure", "unrecognized_charge", "improper_charge", "lost_card", "scam_transfer", "human_request"
+]
+
+
+class LoginRequest(Contract):
+    """The access of the jury and the team to the demo, so nobody else spends the language model."""
+
+    username: Annotated[str, StringConstraints(min_length=1, max_length=64)]
+    password: Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class LoginResponse(Contract):
+    token: str
+    expires_at: AwareDatetime
+    display_name: ShortText
+    role: Literal["tester"]
 
 
 class DemoSessionRequest(Contract):
@@ -32,25 +66,32 @@ class StartConversationRequest(Contract):
 class StartConversationResponse(Contract):
     conversation_id: Identifier
     greeting: str
+    # The opening menu: the reasons VERA covers, as buttons; the customer may also write.
+    options: tuple["Option", ...] = ()
 
 
 class MessageRequest(Contract):
     text: MessageText | None = None
-    # A candidate number, or the answer to a pending confirmation.
-    selected_option: CandidateNumber | Literal["yes", "no"] | None = None
+    # A candidate number, the answer to a question or a pending confirmation, or a reason of the opening menu.
+    selected_option: CandidateNumber | OptionAnswer | None = None
+    # The reason the customer pressed in the bank's app ("I do not recognize this movement") next to the text that
+    # names the charge: the button says what kind of claim it is, the text says which charge.
+    intent: Intent | None = None
 
     @model_validator(mode="after")
     def _exactly_one_input(self) -> Self:
         if (self.text is None) == (self.selected_option is None):
             raise ValueError("send either text or selected_option")
+        if self.intent is not None and self.text is None:
+            raise ValueError("intent goes with the text that names the charge")
         return self
 
 
 class Option(Contract):
     n: CandidateNumber
     label: ShortText
-    # Yes-or-no buttons carry their answer; the client sends it back as selected_option.
-    answer: Literal["yes", "no"] | None = None
+    # Buttons that are not a candidate carry their answer; the client sends it back as selected_option.
+    answer: OptionAnswer | None = None
 
 
 class PendingConfirmation(Contract):
@@ -67,6 +108,22 @@ class GlassBoxEntry(Contract):
     deadline: date | None = None
 
 
+# Where the dispute stands, in the five states of the brand: received, analysis, verification, result, resolved.
+Stage = Literal["received", "analysis", "verification", "result", "resolved"]
+
+
+class ChargeSummary(Contract):
+    """The charge in question, read from the tools, for the panel beside the conversation."""
+
+    merchant: ShortText | None = None
+    city: ShortText | None = None
+    amount: Amount
+    currency: Currency
+    occurred_at: datetime
+    status: ChargeStatus
+    card: MaskedCard | None = None
+
+
 class MessageResponse(Contract):
     reply: str
     options: tuple[Option, ...] = ()
@@ -74,6 +131,41 @@ class MessageResponse(Contract):
     multiple_choice: bool = False
     pending_confirmation: PendingConfirmation | None = None
     glass_box: tuple[GlassBoxEntry, ...] = ()
+    stage: Stage = "received"
+    charge: ChargeSummary | None = None
+    case_id: Identifier | None = None
+
+
+class CardView(Contract):
+    masked: MaskedCard
+    type: Literal["credit", "debit"]
+    status: Literal["active", "blocked"]
+
+
+class MeResponse(Contract):
+    """The demo customer as the bank's app would show it; the name is invented, as the subset holds none."""
+
+    display_name: ShortText
+    first_name: ShortText
+    alias: ShortText
+    country: Country
+    segment: ShortText
+    language: Language
+    cards: tuple[CardView, ...] = ()
+
+
+class Movement(Contract):
+    """A movement of the session customer, newest first, so the person testing knows what to dispute."""
+
+    occurred_at: datetime
+    kind: ChargeKind
+    merchant: ShortText | None = None
+    city: ShortText | None = None
+    country: ShortText | None = None
+    amount: Amount
+    currency: Currency
+    status: ChargeStatus
+    card: MaskedCard | None = None
 
 
 class CaseView(Contract):
@@ -93,6 +185,11 @@ class QueueItem(Contract):
     summary: ShortText
     requires_pt_analyst: bool
     trace_id: Identifier
+    # The summary's parts as codes, so a console shows them in its own language instead of reading the summary.
+    claim_type: ClaimType | None = None
+    reason: DisputeReason | TransferReason
+    charge_count: int = Field(ge=0)
+    pending_action: Literal["block_card", "register_dispute"] | None = None
 
     @classmethod
     def of(cls, item: Handoff | Transfer) -> "QueueItem":
@@ -105,6 +202,10 @@ class QueueItem(Contract):
             summary=item.summary,
             requires_pt_analyst=item.requires_pt_analyst,
             trace_id=item.trace_id,
+            claim_type=item.claim_type,
+            reason=item.reason,
+            charge_count=len(item.charges) if transfer else len(item.verified_facts.charges),
+            pending_action=item.pending_action_not_run if transfer else None,
         )
 
 
@@ -138,3 +239,6 @@ class ApiErrorCode(StrEnum):
 class ApiError(Contract):
     code: ApiErrorCode
     message: ShortText
+
+
+StartConversationResponse.model_rebuild()

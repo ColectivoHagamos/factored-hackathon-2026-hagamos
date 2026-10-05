@@ -13,6 +13,7 @@ dependencies = [
     "fastapi>=0.115",
     "holidays>=0.60",
     "pydantic>=2.9",
+    "pyjwt>=2.10",
     "pyyaml>=6.0",
     "scikit-learn>=1.5",
     "threadpoolctl>=3.5",

@@ -11,7 +11,15 @@ from decimal import Decimal
 
 from pydantic import JsonValue
 
-from vera.contracts.api import GlassBoxEntry, MessageRequest, MessageResponse, Option, PendingConfirmation
+from vera.contracts.api import (
+    ChargeSummary,
+    GlassBoxEntry,
+    MessageRequest,
+    MessageResponse,
+    Option,
+    PendingConfirmation,
+    Stage,
+)
 from vera.contracts.cases import Case, DisputeReason
 from vera.contracts.charges import Candidate, ChargeDetail, ChargeKind, ChargeStatus, FraudScoreBand
 from vera.contracts.common import Country, Language, Money
@@ -69,6 +77,31 @@ POLICY_SOURCE = {
     Language.ES: "Política de disputas de LATAM Bank v{version}",
     Language.PT: "Política de disputas do LATAM Bank v{version}",
 }
+# The opening menu: each reason VERA covers as a button, in the order a customer looks for it.
+MENU = (
+    ("unrecognized_charge", "menu_unrecognized"),
+    ("improper_charge", "menu_improper"),
+    ("lost_card", "menu_lost_card"),
+    ("scam_transfer", "menu_scam"),
+    ("human_request", "menu_person"),
+)
+INTENT_CLAIMS = {
+    "unrecognized_charge": ClaimType.UNRECOGNIZED_CHARGE,
+    "improper_charge": ClaimType.IMPROPER_CHARGE,
+    "lost_card": ClaimType.UNRECOGNIZED_CHARGE,
+    "scam_transfer": ClaimType.SCAM_TRANSFER,
+    "human_request": ClaimType.HUMAN_REQUEST,
+}
+# A lost or stolen card: the most recent movements shown once the card is protected.
+REVIEW_LIMIT = 8
+# The five states of the brand for the panel beside the conversation; a step not listed is a verification.
+STAGES: dict[Step, Stage] = {
+    Step.CHOOSE_CHARGE: "analysis",
+    Step.CLARIFY: "analysis",
+    Step.CHOOSE_CARD: "analysis",
+    Step.HANDED_OFF: "result",
+    Step.DONE: "resolved",
+}
 
 
 @dataclass
@@ -88,6 +121,8 @@ class Turn:
     asked: Event | None = None
     # Rule decisions already recorded in the conversation, as (rule, outcome): each one is recorded once.
     decided: set[tuple[str, str | None]] = field(default_factory=set)
+    # The customer wrote this turn, instead of pressing a button.
+    typed: bool = False
 
 
 class Conversation:
@@ -114,16 +149,19 @@ class Conversation:
 
     # Public API
 
-    def start(self, session: Session, preferred_language: Language | None = None) -> str:
+    def start(
+        self, session: Session, preferred_language: Language | None = None, first_name: str | None = None
+    ) -> MessageResponse:
+        """The greeting, by name when the customer has one, and the opening menu."""
         customer = self._tools.customer(session)
         if customer is None:
             raise LookupError("unknown customer")
         variant = LanguageVariant.PT if preferred_language is Language.PT else VARIANTS[customer.country]
         state = FlowState(variant=variant)
         turn = Turn(session, state, None)
-        turn.lines.append(self._text(turn, "greeting"))
-        self._finish(turn)
-        return turn.lines[0]
+        turn.lines.append(self._text(turn, "greeting", who=f", {first_name}" if first_name else ""))
+        self._menu(turn)
+        return self._finish(turn)
 
     def reply(
         self, session: Session, message: MessageRequest, security_signals: tuple[str, ...] = ()
@@ -149,6 +187,7 @@ class Conversation:
         return self._log.read(conversation_id)
 
     def _take_turn(self, turn: Turn, message: MessageRequest, security_signals: tuple[str, ...]) -> None:
+        turn.typed = message.text is not None
         reading = self._interpret(turn, message, flagged=bool(security_signals))
         if security_signals:
             self._security_event(turn, security_signals)
@@ -159,6 +198,7 @@ class Conversation:
             return
         if self._safety_first(turn, reading):
             return
+        self._validate_emotion(turn, reading, flagged=bool(security_signals))
         if security_signals:
             # POL-03: the message is data; nothing is searched or changed.
             turn.lines.append(self._text(turn, "not_found"))
@@ -172,7 +212,7 @@ class Conversation:
         language = language_of(turn.state.variant)
         if turn.state.step is Step.ASK_CLAIM and turn.state.claim_type is None:
             expecting = "claim"
-        elif turn.state.step in (Step.CHOOSE_CHARGE, Step.SWEEP):
+        elif turn.state.step in (Step.CHOOSE_CHARGE, Step.SWEEP, Step.CHOOSE_CARD, Step.REVIEW):
             expecting = "choice"
         elif turn.state.step is Step.SCAM_DETAILS:
             expecting = "details"
@@ -185,10 +225,22 @@ class Conversation:
                 context["flagged"] = "yes"
             reading = self._interpreter.interpret(message.text, context)
             provider = self._interpreter.name
+            if message.intent and expecting == "claim" and not _overrides_the_button(reading):
+                # The button the customer pressed is the claim; the text still gives the charge and the safety words.
+                reading = reading.model_copy(
+                    update={
+                        "claim_type": INTENT_CLAIMS[message.intent],
+                        "has_card": Answer.NO if message.intent == "lost_card" else reading.has_card,
+                        "confidence": 1.0,
+                    }
+                )
         else:
             option = message.selected_option
+            # A reason of the opening menu reads as the claim the customer would have written.
+            intent = option if isinstance(option, str) and option in INTENT_CLAIMS else None
             reading = Interpretation(
-                claim_type=turn.state.claim_type or ClaimType.UNRECOGNIZED_CHARGE,
+                claim_type=INTENT_CLAIMS[intent] if intent else turn.state.claim_type or ClaimType.UNRECOGNIZED_CHARGE,
+                has_card=Answer.NO if intent == "lost_card" else Answer.NOT_SAID,
                 answer=Answer(option) if option in ("yes", "no") else Answer.NOT_SAID,
                 selected_numbers=(option,) if isinstance(option, int) else (),
                 language=language,
@@ -241,6 +293,23 @@ class Conversation:
         self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, reason)
         return True
 
+    def _validate_emotion(self, turn: Turn, reading: Interpretation, flagged: bool) -> None:
+        """Worry, fear or anger is acknowledged before the next step, in words that change each time.
+
+        A clear claim in the first message is answered by its own empathy, so it is not acknowledged twice."""
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        opening_claim = (
+            turn.state.step is Step.ASK_CLAIM
+            and turn.state.claim_type is None
+            and sure
+            and not reading.greeting
+            and reading.claim_type is not ClaimType.OUT_OF_SCOPE
+        )
+        if not reading.distress or flagged or opening_claim:
+            return
+        turn.lines.append(self._text(turn, "calm", pick=turn.state.calmed))
+        turn.state = turn.state.advance(calmed=turn.state.calmed + 1)
+
     def _security_event(self, turn: Turn, signals: tuple[str, ...]) -> None:
         """POL-03: every attempt is recorded with its signals, also when a person takes over."""
         facts = Facts(
@@ -278,12 +347,28 @@ class Conversation:
             Step.CONFIRM_PERSON: self._on_person,
             Step.PERSON_OFFERED: self._on_person_offer,
             Step.SCAM_DETAILS: self._on_scam_details,
+            Step.CHOOSE_CARD: self._on_choose_card,
+            Step.REVIEW: self._on_review,
         }
         handler = handlers.get(turn.state.step)
         if handler is None:
-            turn.lines.append(self._text(turn, "closing"))
+            self._after_the_end(turn, reading)
             return
         handler(turn, reading)
+
+    def _after_the_end(self, turn: Turn, reading: Interpretation) -> None:
+        """A message after the end: with a person on the way VERA says so; after a closing, a new reason starts over."""
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        new_claim = sure and not reading.greeting and reading.claim_type is not ClaimType.OUT_OF_SCOPE
+        if turn.state.step is Step.DONE and new_claim:
+            turn.state = FlowState(variant=turn.state.variant)
+            self._on_claim(turn, reading)
+            return
+        template = "after_handoff" if turn.state.step is Step.HANDED_OFF else "after_done"
+        turn.lines.append(self._text(turn, template, pick=turn.state.nudges))
+        if template == "after_done":
+            self._menu(turn)
+        turn.state = turn.state.advance(nudges=turn.state.nudges + 1)
 
     def _answer_aside(self, turn: Turn, reading: Interpretation) -> None:
         """What VERA does not cover is said and oriented (POL-15 for Pix); the open question stays open."""
@@ -319,7 +404,19 @@ class Conversation:
         )
 
     def _on_person_offer(self, turn: Turn, reading: Interpretation) -> None:
-        if reading.answer is Answer.YES:
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        # A claim written in so many words takes the offer, even when it starts with "no": VERA goes on with it.
+        tells_what_happened = (
+            turn.typed
+            and sure
+            and not reading.greeting
+            and reading.claim_type not in (ClaimType.HUMAN_REQUEST, ClaimType.OUT_OF_SCOPE)
+            and self._open_question(turn) is Step.ASK_CLAIM
+        )
+        if tells_what_happened:
+            turn.state = turn.state.advance(step=Step.ASK_CLAIM, resume_step=None)
+            self._on_claim(turn, reading)
+        elif reading.answer is Answer.YES:
             self._resume(turn)
         else:
             # The customer insists, or does not take the offer.
@@ -364,6 +461,11 @@ class Conversation:
             known = turn.state.claim_type is ClaimType.IMPROPER_CHARGE
             self._search(turn, reading, ChargeKind.BANK_ADJUSTMENT if known else ChargeKind.PURCHASE)
             return
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        if reading.greeting and (reading.claim_type is ClaimType.OUT_OF_SCOPE or not sure):
+            # A greeting, small talk or a plea for help: warm words and the menu, never a question about a charge.
+            self._welcome(turn, "welcome")
+            return
         customer = self._tools.customer(turn.session)
         evaluation = self._evaluate(
             turn,
@@ -377,9 +479,10 @@ class Conversation:
         )
         if Outcome.OUT_OF_SCOPE in evaluation.outcomes:
             turn.lines.append(self._text(turn, "pix"))
+            self._menu(turn)
             return
         if reading.claim_type is ClaimType.OUT_OF_SCOPE:
-            turn.lines.append(self._text(turn, "out_of_scope"))
+            self._welcome(turn, "out_of_scope_opening")
             return
         if Outcome.ASK_INSTEAD_OF_ACT in evaluation.outcomes:
             self._ask_again(turn, "low_confidence")
@@ -401,8 +504,98 @@ class Conversation:
         turn.state = turn.state.advance(claim_type=reading.claim_type, declared_channel=reading.declared_channel)
         if reading.has_card is not Answer.NOT_SAID:
             turn.state = turn.state.advance(has_card=reading.has_card)
+        if kind is ChargeKind.PURCHASE and turn.state.has_card is Answer.NO:
+            self._protect_first(turn)
+            return
         turn.lines.append(self._text(turn, "improper" if kind is ChargeKind.BANK_ADJUSTMENT else "empathy"))
         self._search(turn, reading, kind)
+
+    def _welcome(self, turn: Turn, template: str) -> None:
+        """At the opening, warm words that change each time they come back, and the menu of what VERA covers."""
+        turn.lines.append(self._text(turn, template, pick=turn.state.nudges))
+        self._menu(turn)
+        turn.state = turn.state.advance(nudges=turn.state.nudges + 1)
+
+    def _menu(self, turn: Turn) -> None:
+        turn.options.extend(
+            Option(n=n, label=self._text(turn, label), answer=intent) for n, (intent, label) in enumerate(MENU, 1)
+        )
+
+    # A lost or stolen card
+
+    def _protect_first(self, turn: Turn) -> None:
+        """POL-06: the card is protected before anything else, and its recent movements are reviewed afterwards."""
+        turn.lines.append(self._text(turn, "lost_card_empathy"))
+        today = self._now().date()
+        args = SearchChargesInput(
+            date_from=today - timedelta(days=SEARCH_DAYS[ChargeKind.PURCHASE]), date_to=today, kind=ChargeKind.PURCHASE
+        )
+        result = self._tools.search_charges(turn.session, self._offers(turn), args)
+        self._record_tool(turn, "search_charges", args.model_dump(mode="json"), result)
+        if _no_results(result):
+            # No recent purchase names the card: a person of the Fraud team protects it.
+            turn.lines.append(self._text(turn, "lost_card_no_movements"))
+            self._hand_off(turn, Queue.FRAUD, TransferReason.LOST_CARD)
+            return
+        if isinstance(result, ToolError):
+            self._fail(turn)
+            return
+        output, offers = result
+        turn.state = turn.state.advance(
+            charges_offered=offers.charges, cards_offered=offers.cards, review_after_block=True, attempts=0
+        )
+        cards = {c.card_n: c.card or "" for c in output.candidates if c.card_n is not None}
+        if len(cards) > 1:
+            turn.lines.append(self._text(turn, "choose_card"))
+            turn.options.extend(Option(n=n, label=label) for n, label in sorted(cards.items()))
+            turn.state = turn.state.advance(step=Step.CHOOSE_CARD)
+            return
+        if not cards:
+            self._review_movements(turn)
+            return
+        card_n, card = next(iter(cards.items()))
+        self._protect_card(turn, card_n, card)
+
+    def _on_choose_card(self, turn: Turn, reading: Interpretation) -> None:
+        chosen = [n for n in reading.selected_numbers if n in turn.state.cards_offered]
+        if not chosen:
+            self._ask_again(turn, "choose_card", step=Step.CHOOSE_CARD)
+            return
+        shown = {o["n"]: o["label"] for o in (turn.asked.data.get("options", []) if turn.asked else [])}
+        self._protect_card(turn, chosen[0], shown.get(chosen[0], ""))
+
+    def _protect_card(self, turn: Turn, card_n: int, card: str) -> None:
+        turn.state = turn.state.advance(signals=[Signal.CARD_NOT_IN_POSSESSION])
+        evaluation = self._evaluate(turn, self._dispute_facts(turn, []))
+        on_request = Outcome.BLOCK_ON_CUSTOMER_REQUEST in evaluation.outcomes
+        self._propose_block(turn, card_n, card, "lost_card_block_on_request" if on_request else "lost_card_block")
+
+    def _review_movements(self, turn: Turn) -> None:
+        """Once the card is protected, the recent movements: the customer marks the ones they did not make."""
+        recent = sorted(turn.state.charges_offered)[:REVIEW_LIMIT]
+        details = [d for d in (self._detail(turn, n) for n in recent) if d is not None]
+        turn.lines.append(self._text(turn, "review_movements"))
+        turn.options.extend(Option(n=d.n, label=self._receipt(turn, d)) for d in details)
+        turn.multiple_choice = True
+        turn.state = turn.state.advance(
+            step=Step.REVIEW, swept=[d.n for d in details], review_after_block=False, chosen=None
+        )
+
+    def _on_review(self, turn: Turn, reading: Interpretation) -> None:
+        offered = set(turn.state.swept)
+        if reading.selected_numbers:
+            unrecognized = [n for n in reading.selected_numbers if n in offered]
+        elif reading.answer is Answer.NO:
+            unrecognized = sorted(offered)
+        else:
+            unrecognized = []
+        if not unrecognized:
+            # As in the sweep, «todos» means the customer recognizes every movement shown.
+            turn.lines.append(self._text(turn, "recognized_all"))
+            turn.lines.append(self._text(turn, "closing"))
+            turn.state = turn.state.advance(step=Step.DONE)
+            return
+        self._assess_signals(turn, unrecognized, offer_block=False)
 
     def _search(self, turn: Turn, reading: Interpretation, kind: ChargeKind) -> None:
         today = self._now().date()
@@ -481,6 +674,7 @@ class Conversation:
         if turn.state.declared_channel is None:
             turn.lines.append(self._text(turn, "ask_channel"))
             self._yes_no(turn)
+            turn.options.append(Option(n=3, label=self._text(turn, "not_sure"), answer="not_sure"))
             turn.state = turn.state.advance(step=Step.ASK_CHANNEL)
             return
         self._ask_card_or_sweep(turn)
@@ -539,7 +733,7 @@ class Conversation:
             unrecognized = []
         self._assess_signals(turn, unrecognized)
 
-    def _assess_signals(self, turn: Turn, unrecognized: list[int]) -> None:
+    def _assess_signals(self, turn: Turn, unrecognized: list[int], offer_block: bool = True) -> None:
         details = [self._detail(turn, n) for n in [turn.state.chosen, *unrecognized]]
         details = [d for d in details if d is not None]
         signals: set[Signal] = set()
@@ -558,7 +752,7 @@ class Conversation:
         evaluation = self._evaluate(turn, self._dispute_facts(turn, details))
         if Outcome.FRAUD_ALERT in evaluation.outcomes:
             turn.state = turn.state.advance(fraud_alert_charges=[d.n for d in details])
-        card_n = details[0].card_n if details else None
+        card_n = details[0].card_n if details and offer_block else None
         if Outcome.OFFER_BLOCK in evaluation.outcomes and card_n:
             self._propose_block(turn, card_n, details[0].card, "offer_block")
         elif Outcome.BLOCK_ON_CUSTOMER_REQUEST in evaluation.outcomes and card_n:
@@ -587,12 +781,16 @@ class Conversation:
             if not result.read_back_matches:
                 self._fail(turn)
                 return
-            card = next((c for c in self._case_cards(turn)), "")
+            pending = (turn.asked.data.get("pending") or {}) if turn.asked else {}
+            card = next((c for c in self._case_cards(turn)), pending.get("summary", ""))
             turn.lines.append(self._text(turn, "block_done", card=card))
         elif reading.answer is Answer.NO:
             turn.lines.append(self._text(turn, "block_skipped"))
         else:
             self._ask_again(turn, "confirm_options", step=Step.CONFIRM_BLOCK)
+            return
+        if turn.state.review_after_block:
+            self._review_movements(turn)
             return
         self._propose_registration(turn)
 
@@ -725,6 +923,7 @@ class Conversation:
                     reason="policy section 11.1 criteria met" if goodwill else None,
                 ),
                 queue=queue,
+                rules_applied=tuple(dict.fromkeys(turn.state.rules_applied)),
                 open_questions=(CARD_LAST_SEEN,) if Signal.CARD_NOT_IN_POSSESSION in signals else (),
                 policy_version=self._engine.version,
                 created_at=_aware(self._now()),
@@ -803,6 +1002,22 @@ class Conversation:
         turn.amounts.add(text)
         return text
 
+    def _charge_in_question(self, turn: Turn) -> ChargeSummary | None:
+        state = turn.state
+        n = state.chosen if state.chosen is not None else next(iter(state.disputed), None)
+        detail = self._detail(turn, n)
+        if detail is None:
+            return None
+        return ChargeSummary(
+            merchant=detail.merchant,
+            city=detail.city,
+            amount=detail.amount,
+            currency=detail.currency,
+            occurred_at=detail.occurred_at,
+            status=detail.status,
+            card=detail.card,
+        )
+
     def _case_cards(self, turn: Turn) -> list[str]:
         details = [self._detail(turn, n) for n in turn.state.disputed]
         return [d.card for d in details if d is not None and d.card]
@@ -846,7 +1061,7 @@ class Conversation:
             turn.lines.append(self._text(turn, "handoff_unclear"))
             self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, TransferReason.NOT_UNDERSTOOD)
             return
-        turn.lines.append(self._text(turn, template))
+        turn.lines.append(self._text(turn, template, pick=attempts - 1))
         if step in (None, turn.state.step):
             self._show_again(turn)
         turn.state = turn.state.advance(attempts=attempts, step=step or turn.state.step)
@@ -977,6 +1192,10 @@ class Conversation:
 
     def _finish(self, turn: Turn) -> MessageResponse:
         text = "\n\n".join(turn.lines)
+        previous = turn.asked.data.get("text") if turn.asked else None
+        if text == previous and turn.state.step not in (Step.DONE, Step.HANDED_OFF):
+            # The same words twice in a row read as a machine stuck: the reply is introduced differently.
+            text = f"{self._text(turn, 'rephrase', pick=turn.state.attempts)} {text}"
         try:
             text = check(text, frozenset(turn.amounts))
         except UnsafeReplyError as error:
@@ -990,6 +1209,9 @@ class Conversation:
             multiple_choice=turn.multiple_choice,
             pending_confirmation=turn.pending,
             glass_box=tuple(turn.glass_box),
+            stage=_stage(turn.state),
+            charge=self._charge_in_question(turn),
+            case_id=turn.state.case_id,
         )
         self._record(
             turn,
@@ -1002,6 +1224,12 @@ class Conversation:
             },
         )
         return response
+
+
+def _stage(state: FlowState) -> Stage:
+    if state.step is Step.ASK_CLAIM:
+        return "analysis" if state.claim_type else "received"
+    return STAGES.get(state.step, "verification")
 
 
 def _no_results(result: object) -> bool:
@@ -1028,6 +1256,11 @@ def _exposure(details: list[ChargeDetail]) -> tuple[Money, ...]:
 def _charges(turn: Turn, count: int) -> str:
     singular, plural = ("cobrança", "cobranças") if turn.state.variant is LanguageVariant.PT else ("cargo", "cargos")
     return f"{count} {singular if count == 1 else plural}"
+
+
+def _overrides_the_button(reading: Interpretation) -> bool:
+    """A person, a threat or a question about who answers in the text wins over the button (POL-01, POL-02)."""
+    return reading.claim_type is ClaimType.HUMAN_REQUEST or reading.coercion or reading.asks_if_human
 
 
 def _aware(moment: datetime) -> datetime:

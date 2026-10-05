@@ -20,6 +20,7 @@ The team compared providers on 2026-10-03 (planning repository, `04_desarrollo/l
    - A person request or a threat it finds wins without asking the model (POL-01, POL-02).
    - Its safety words (threat, regulator, Pix, a question about VERA) are a floor that the model can only add to.
    - The facts of a scam it heard (that the customer made the payment, when, and how the third party made contact) are kept when the model leaves them unsaid, because they go to Fraud (POL-10). The purchase channel and the card are not: they steer the flow, and there the model's silence is a reason to ask.
+   - The model may say that the customer lacks the card, which leads to protection, but not that the customer has it unless the customer's words say so: a wrong yes skipped the card question and the block offer in 3 of 294 development runs with prompt `interpreter-v4` (POL-06).
    - Text the gateway flagged as an injection never reaches the model.
 4. **Every failure answers with the floor.** That covers a timeout (3 s, two retries in the SDK), an error, a record outside the schema and the spending cap. The service answers either way, as with the classifier (P54). Without a key, the rules answer and `/v1/health` says degraded.
 5. **Only masked text, and the cost is measured.**
