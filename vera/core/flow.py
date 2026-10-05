@@ -458,9 +458,12 @@ class Conversation:
     def _on_claim(self, turn: Turn, reading: Interpretation) -> None:
         if turn.state.claim_type is not None:
             # The claim is known and VERA asked for a detail: this message only narrows the search.
-            known = turn.state.claim_type is ClaimType.IMPROPER_CHARGE
+            known = turn.state.claim_type is ClaimType.IMPROPER_CHARGE and not turn.state.duplicate
             self._search(turn, reading, ChargeKind.BANK_ADJUSTMENT if known else ChargeKind.PURCHASE)
             return
+        if reading.duplicate and reading.claim_type in (ClaimType.IMPROPER_CHARGE, ClaimType.UNRECOGNIZED_CHARGE):
+            # A purchase charged twice is an improper charge whatever the reader called it; the purchase is known.
+            reading = reading.model_copy(update={"claim_type": ClaimType.IMPROPER_CHARGE})
         sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
         if reading.greeting and (reading.claim_type is ClaimType.OUT_OF_SCOPE or not sure):
             # A greeting, small talk or a plea for help: warm words and the menu, never a question about a charge.
@@ -500,14 +503,18 @@ class Conversation:
                 step=Step.SCAM_DETAILS, date_text=reading.date_text, contacted_by=reading.contact_channel
             )
             return
-        kind = ChargeKind.BANK_ADJUSTMENT if reading.claim_type is ClaimType.IMPROPER_CHARGE else ChargeKind.PURCHASE
-        turn.state = turn.state.advance(claim_type=reading.claim_type, declared_channel=reading.declared_channel)
+        duplicate = reading.duplicate and reading.claim_type is ClaimType.IMPROPER_CHARGE
+        improper = reading.claim_type is ClaimType.IMPROPER_CHARGE and not duplicate
+        kind = ChargeKind.BANK_ADJUSTMENT if improper else ChargeKind.PURCHASE
+        turn.state = turn.state.advance(
+            claim_type=reading.claim_type, declared_channel=reading.declared_channel, duplicate=duplicate
+        )
         if reading.has_card is not Answer.NOT_SAID:
             turn.state = turn.state.advance(has_card=reading.has_card)
-        if kind is ChargeKind.PURCHASE and turn.state.has_card is Answer.NO:
+        if kind is ChargeKind.PURCHASE and turn.state.has_card is Answer.NO and not duplicate:
             self._protect_first(turn)
             return
-        turn.lines.append(self._text(turn, "improper" if kind is ChargeKind.BANK_ADJUSTMENT else "empathy"))
+        turn.lines.append(self._text(turn, "duplicate" if duplicate else "improper" if improper else "empathy"))
         self._search(turn, reading, kind)
 
     def _welcome(self, turn: Turn, template: str) -> None:
@@ -802,9 +809,12 @@ class Conversation:
             turn.state = turn.state.advance(step=Step.DONE, pending_tool=None, pending_arguments=None)
             return
         exposure = _exposure(approved)
-        reason = (
-            DisputeReason.BANK_CHARGE if turn.state.claim_type is ClaimType.IMPROPER_CHARGE else DisputeReason.FRAUD
-        )
+        if turn.state.duplicate:
+            reason = DisputeReason.DUPLICATE
+        elif turn.state.claim_type is ClaimType.IMPROPER_CHARGE:
+            reason = DisputeReason.BANK_CHARGE
+        else:
+            reason = DisputeReason.FRAUD
         args = RegisterDisputeInput(
             charges_n=[d.n for d in details],
             reason=reason,

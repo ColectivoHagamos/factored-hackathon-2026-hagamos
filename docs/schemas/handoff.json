@@ -763,8 +763,11 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "handoff/2.1",
       "default": "handoff/2.1",
+      "enum": [
+        "handoff/2.0",
+        "handoff/2.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

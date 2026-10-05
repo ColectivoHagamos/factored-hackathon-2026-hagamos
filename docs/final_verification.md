@@ -1,6 +1,6 @@
 # Final verification
 
-What a reviewer will open, checked against the public deployment on 4 October 2026 at 22:00 in Colombia (5 October, 03:00 UTC), with `production` at `2350e69`.
+What a reviewer will open, checked against the public deployment on 5 October 2026 at 06:30 in Colombia (11:30 UTC), with `production` at `57cbbac`.
 
 ## The deployment
 
@@ -10,16 +10,18 @@ What a reviewer will open, checked against the public deployment on 4 October 20
 | `curl -I http://vera.colectivohagamos.com/` | `308 Permanent Redirect` to `https://` |
 | Certificate | Let's Encrypt, for `vera.colectivohagamos.com`, valid until 2 January 2027 |
 | Security headers | `Strict-Transport-Security`, `Content-Security-Policy` (`default-src 'self'`, `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and `Referrer-Policy` |
-| `GET /v1/health` | `ok`, with `llm_provider: anthropic` and the version `2350e69`, the commit in `production` |
-| Continuous deployment of `2350e69` | Image built and pushed, deployment with rollback, public health check: all passed |
+| `GET /v1/health` | `ok`, with `llm_provider: anthropic` and the version `57cbbac`, the commit in `production` |
+| Continuous deployment of `0dc8982` (release #97) and `57cbbac` (hotfix #98) | Image built and pushed, deployment with rollback, public health check: all passed |
+| Pages | `/`, `/login`, `/clientes`, `/banca`, `/chat` and `/analista` answer with the web; `/console.html` redirects to `/analista`; a missing file or `/v1` route answers 404 in JSON |
+| Access | Without the login, the demo customers answer 401. The demo account gets a JSON Web Token (HS256) that lasts eight hours; the previous account name is rejected |
 
 ## The end-to-end suite against the URL
 
 ```bash
-VERA_E2E_URL=https://vera.colectivohagamos.com uv run --frozen pytest tests/e2e
+VERA_E2E_URL=https://vera.colectivohagamos.com VERA_E2E_LOGIN="demo:<password>" uv run --frozen pytest tests/e2e
 ```
 
-**12 of 12 pass**, with Claude reading over the classifier. Each test talks only HTTP, as a customer and as the analyst. The 12 skipped are the in-memory variant with the classifier alone, which does not apply to a deployment.
+**12 of 12 pass**, with Claude reading over the classifier, through the login. Each test talks only HTTP, as a customer and as the analyst. The 12 skipped are the in-memory variant with the classifier alone, which does not apply to a deployment.
 
 | Scenario | What it proves at the URL |
 |---|---|
@@ -35,25 +37,37 @@ VERA_E2E_URL=https://vera.colectivohagamos.com uv run --frozen pytest tests/e2e
 | A10 | An improper bank charge is identified, registered and sent to Complaints |
 | Scam | VERA asks when and how, says a transfer has no chargeback, and Fraud gets the answers |
 
-## As a reviewer, in a browser
+## The product web, in a browser
 
-The demo was opened in headless Chromium, as a reviewer would:
+The web was walked in Chromium at 1280 and 390 px, under the Content-Security-Policy the deployment sends:
 
-- the list offers 47 pseudonymized demo customers, each named with its scenario;
-- the greeting says that VERA is an AI assistant;
-- with a customer tagged A1, "No reconozco un cargo de mi tarjeta" gets the receipt of a charge and the question, with the Sí and No buttons;
-- the analyst console lists the queue;
-- no page or console error.
+- the product page, the login, and the 47 demo customers with the recommended walkthroughs picked from their scenario tags;
+- a customer's bank with cards and movements;
+- from a movement, «No reconozco este movimiento» opened the chat on that charge. The walk went on to:
+  - the questions;
+  - the confirmation with its expiry;
+  - the case read back with its deadline: Ley 1755 for Colombia, and Ley 25.065 with the card block for Argentina.
 
-The page also refused to evaluate a script from text, as its Content Security Policy requires: the browser tool had to wait for elements instead.
+  A charge already in a claim was not registered twice.
+- the dispute tracker moved through the brief's states, and «Por qué» cited each rule with its source;
+- the analyst console listed the queue and showed, for a case:
+  - the rules that decided it, the policy version and the trace;
+  - the bank's next legal deadline.
 
-Of the six messages in the README guide, the request for a person and the injection were tried by hand on the public chat:
+No page showed a console or Content-Security-Policy error, and no page scrolled sideways.
 
-- **"Quiero hablar con una persona":** one offer to review the case first; «No, quiero una persona» then passes the conversation to a person (POL-01).
-- **The injection:** it gets "No encontré ese movimiento entre los suyos" and goes back to the open question (POL-03).
+## An incident during the release, and its fix
 
-The other four are the openings of A1, A3, A6 and A10 above.
+Release #97 moved the case handoff to `handoff/2.1` and accepted only 2.1. The deployment's state keeps the handoffs written earlier as 2.0, so the analyst queue answered 503, and the end-to-end suite passed 6 of 12 against the URL.
+
+The hotfix #98 reads both versions, with a regression test that stores a 2.0 handoff and lists it in the queue. It was deployed about fifteen minutes after the release; since then the queue answers 200 with the stored cases and the suite passes 12 of 12.
 
 ## Not verified here
 
-- **The audit of the running container** (`docker exec <api> env` and `docker history`) runs on the server, which only the team reaches over SSH. By construction, the CD writes to the server's `.env`, readable only by its owner, five values: the session secret, the analyst key, and the language model's provider, key and workspace. The image is built in CI from this repository, which the publication audit checks.
+- **The audit of the running container** (`docker exec <api> env` and `docker history`) runs on the server, which only the team reaches over SSH. By construction, the CD writes six values to the server's `.env`, which only its owner can read:
+  - the session secret;
+  - the analyst key;
+  - the hashes of the access accounts;
+  - the language model's provider, key and workspace.
+
+  The image is built in CI from this repository, which the publication audit checks.
