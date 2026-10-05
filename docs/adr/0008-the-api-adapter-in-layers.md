@@ -41,4 +41,4 @@ The HTTP API grew from four endpoints to fifteen, all defined inside one `create
 
 - The OpenAPI document is the same: the same 14 paths in the same order, with the same operations, parameters and responses. The only change is the description of `LoginRequest`.
 - Each use case can be tested without HTTP, and a new channel would reuse the services with its own controllers.
-- The conversation's state machine is still one module (`vera/core/flow.py`). Splitting it into one handler per step is the next refactoring, measured with the full suite and the evaluation sets.
+- The conversation's state machine was the next module to split: [ADR 0009](0009-the-conversation-flow-in-step-modules.md).
