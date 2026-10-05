@@ -12,8 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, Request
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, ValidationError
 
 from api.access import Accounts
@@ -22,6 +21,7 @@ from api.observability import Metrics, configure_logging, log_event, turn_summar
 from api.personas import personas
 from api.security import ACCESS_TTL, InvalidSessionError, SessionToken
 from api.settings import Settings
+from api.web import SinglePageApp
 from vera.contracts.api import (
     ApiError,
     ApiErrorCode,
@@ -53,7 +53,8 @@ PREFIX = "/v1"
 MOVEMENTS_WINDOW = timedelta(days=180)
 MOVEMENTS_LIMIT = 50
 LOGINS_PER_MINUTE = 10
-WEB = Path(__file__).resolve().parents[1] / "web"
+# The built web (npm run build in web/); the image copies it here (ADR 0006).
+WEB = Path(__file__).resolve().parents[1] / "web" / "dist"
 STATUS = {
     ApiErrorCode.UNAUTHORIZED: 401,
     ApiErrorCode.NOT_FOUND: 404,
@@ -337,9 +338,15 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         """What waits for an analyst, newest first: case handoffs and transfer notes."""
         return [QueueItem.of(item) for item in container.state.queue()]
 
-    # ADR 0002: the API also serves the web, so the demo is one URL and one deployment.
-    if WEB.is_dir():
-        app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+    @app.get("/console.html", include_in_schema=False)
+    def console_moved() -> RedirectResponse:
+        """The analyst console moved into the web; old links still arrive."""
+        return RedirectResponse("/analista", status_code=308)
+
+    # ADR 0006: the API serves the built web, so the product is one URL and one deployment.
+    web = Path(settings.web_dir) if settings.web_dir else WEB
+    if web.is_dir():
+        app.mount("/", SinglePageApp(directory=web, html=True), name="web")
     return app
 
 

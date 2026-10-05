@@ -32,6 +32,8 @@ class Settings:
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_max_spend_usd: float = 15.0
     llm_timeout_seconds: float = 3.0
+    # Where the built web lives; empty uses web/dist of the repository, which the image also uses.
+    web_dir: str = ""
 
     def __post_init__(self) -> None:
         if self.adapter not in ADAPTERS:
@@ -58,6 +60,7 @@ class Settings:
             "llm_api_key": env.get("LLM_API_KEY"),
             "llm_workspace_id": env.get("LLM_WORKSPACE_ID"),
             "llm_model": env.get("LLM_MODEL"),
+            "web_dir": env.get("VERA_WEB_DIR"),
         }
         numbers = {
             "messages_per_minute": (env.get("VERA_MESSAGES_PER_MINUTE"), int),

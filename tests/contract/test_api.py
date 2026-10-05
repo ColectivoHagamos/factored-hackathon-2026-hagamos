@@ -162,12 +162,35 @@ def test_openapi_lists_every_endpoint(api):
     } <= paths
 
 
-def test_the_api_serves_the_customer_chat_and_the_analyst_console(api):
-    client, _ = api
-    chat = client.get("/")
-    assert chat.status_code == 200 and "VERA" in chat.text and "app.js" in chat.text
-    assert client.get("/console.html").status_code == 200
-    assert client.get("/app.js").status_code == 200
+@pytest.fixture
+def web(tmp_path) -> TestClient:
+    """A deployment with a built web: an index page and one hashed asset."""
+    (tmp_path / "assets").mkdir()
+    page = '<!doctype html><div id="root"></div><script type="module" src="/assets/app-1a2b.js"></script>'
+    (tmp_path / "index.html").write_text(page)
+    (tmp_path / "assets" / "app-1a2b.js").write_text("export {};")
+    settings = Settings(session_secret="test-secret", web_dir=str(tmp_path))
+    return TestClient(create_app(settings, build(settings, now=Clock())))
+
+
+def test_every_page_of_the_web_answers_with_the_app(web):
+    for page in ("/", "/login", "/clientes", "/banca", "/chat", "/analista"):
+        response = web.get(page)
+        assert response.status_code == 200 and 'id="root"' in response.text
+        assert response.headers["cache-control"] == "no-cache"
+    asset = web.get("/assets/app-1a2b.js")
+    assert asset.status_code == 200 and "immutable" in asset.headers["cache-control"]
+
+
+def test_a_missing_file_or_api_route_is_not_answered_with_the_app(web):
+    assert web.get("/assets/missing.js").status_code == 404
+    missing = web.get("/v1/nothing-here")
+    assert missing.status_code == 404 and 'id="root"' not in missing.text
+
+
+def test_the_old_console_address_leads_to_the_analyst_page(web):
+    moved = web.get("/console.html", follow_redirects=False)
+    assert moved.status_code == 308 and moved.headers["location"] == "/analista"
 
 
 def test_the_sweep_reply_allows_several_options(api):
