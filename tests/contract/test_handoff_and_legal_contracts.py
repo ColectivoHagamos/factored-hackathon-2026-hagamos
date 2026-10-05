@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from vera.adapters.sqlite_state import SqliteState
 from vera.contracts.handoff import GoodwillCandidate, GoodwillCriterion, Handoff, NetworkClock, Transfer
 from vera.contracts.legal import LegalRule
 
@@ -48,6 +49,17 @@ def rule(**fields) -> dict:
 
 
 class TestHandoff:
+    def test_a_handoff_stored_as_2_0_still_reads_and_lists_in_the_queue(self):
+        # Handoffs written before 2.1 stay in a deployment's state; the analyst queue must keep reading them.
+        stored = {key: value for key, value in EXAMPLE.items() if key != "rules_applied"} | {
+            "schema_version": "handoff/2.0"
+        }
+        old = Handoff.model_validate(stored)
+        assert old.schema_version == "handoff/2.0" and old.rules_applied == ()
+        state = SqliteState()
+        state.hand_off(old, old.suggested_queue)
+        assert [item.case_id for item in state.queue()] == [old.case_id]
+
     def test_design_example_is_valid_and_round_trips(self):
         handoff = Handoff.model_validate(EXAMPLE)
         assert Handoff.model_validate_json(handoff.model_dump_json()) == handoff
