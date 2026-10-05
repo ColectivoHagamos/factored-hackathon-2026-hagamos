@@ -593,3 +593,38 @@ def test_the_channel_question_accepts_not_sure(world: World):
     assert "internet" in channel.reply and [o.answer for o in channel.options] == ["yes", "no", "not_sure"]
     world.conversation.reply(Session(CO_01, "conv-1"), MessageRequest(selected_option="not_sure"))
     assert world.state_of().declared_channel is DeclaredChannel.UNKNOWN
+
+
+def test_a_worried_customer_gets_the_emotion_validated_in_words_that_change(world: World):
+    replies = world.chat(CO_01, "Estoy desesperada, necesito ayuda", "No reconozco un cargo de Libreria Andina")
+    first = replies[1]
+    assert first.reply.startswith("Le entiendo") and first.options[0].answer == "unrecognized_charge"
+    # A clear claim answers with its own empathy: the emotion is not acknowledged twice.
+    assert "Le entiendo" not in replies[2].reply and "juntos" in replies[2].reply
+    worried = world.send(CO_01, "No, y estoy muy preocupado")[-1]
+    assert "Entiendo que esto preocupa mucho" in worried.reply and "internet" in worried.reply
+    assert world.state_of().calmed == 2
+
+
+def test_the_channel_question_says_what_comes_next(world: World):
+    channel = world.chat(CO_01, "No reconozco un cargo de Libreria Andina", "no")[-1]
+    assert "Con un par de preguntas armamos su caso" in channel.reply
+
+
+def test_telling_what_happened_after_the_offer_of_a_person_goes_on_with_it(world: World):
+    replies = world.chat(CO_01, "Quiero hablar con una persona", "No reconozco un cargo de Libreria Andina")
+    assert "conectar con un analista" in replies[1].reply
+    assert "Libreria Andina" in replies[2].reply and world.state_of().step is Step.CLARIFY
+
+
+def test_after_a_handoff_more_messages_get_changing_words_and_no_new_transfer(world: World):
+    replies = world.chat(CO_01, "Quiero hablar con una persona", "no", "hola?", "¿siguen ahí?")
+    assert world.state_of().step is Step.HANDED_OFF
+    assert replies[3].reply != replies[4].reply and "persona" in replies[3].reply
+
+
+def test_after_a_closing_a_new_reason_starts_over(world: World):
+    world.chat(CO_01, "No reconozco un cargo de Libreria Andina", "sí")
+    assert world.state_of().step is Step.DONE
+    world.conversation.reply(Session(CO_01, "conv-1"), MessageRequest(selected_option="improper_charge"))
+    assert world.state_of().claim_type is ClaimType.IMPROPER_CHARGE

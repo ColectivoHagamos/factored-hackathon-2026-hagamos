@@ -121,6 +121,8 @@ class Turn:
     asked: Event | None = None
     # Rule decisions already recorded in the conversation, as (rule, outcome): each one is recorded once.
     decided: set[tuple[str, str | None]] = field(default_factory=set)
+    # The customer wrote this turn, instead of pressing a button.
+    typed: bool = False
 
 
 class Conversation:
@@ -185,6 +187,7 @@ class Conversation:
         return self._log.read(conversation_id)
 
     def _take_turn(self, turn: Turn, message: MessageRequest, security_signals: tuple[str, ...]) -> None:
+        turn.typed = message.text is not None
         reading = self._interpret(turn, message, flagged=bool(security_signals))
         if security_signals:
             self._security_event(turn, security_signals)
@@ -195,6 +198,7 @@ class Conversation:
             return
         if self._safety_first(turn, reading):
             return
+        self._validate_emotion(turn, reading, flagged=bool(security_signals))
         if security_signals:
             # POL-03: the message is data; nothing is searched or changed.
             turn.lines.append(self._text(turn, "not_found"))
@@ -280,6 +284,23 @@ class Conversation:
         self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, reason)
         return True
 
+    def _validate_emotion(self, turn: Turn, reading: Interpretation, flagged: bool) -> None:
+        """Worry, fear or anger is acknowledged before the next step, in words that change each time.
+
+        A clear claim in the first message is answered by its own empathy, so it is not acknowledged twice."""
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        opening_claim = (
+            turn.state.step is Step.ASK_CLAIM
+            and turn.state.claim_type is None
+            and sure
+            and not reading.greeting
+            and reading.claim_type is not ClaimType.OUT_OF_SCOPE
+        )
+        if not reading.distress or flagged or opening_claim:
+            return
+        turn.lines.append(self._text(turn, "calm", pick=turn.state.calmed))
+        turn.state = turn.state.advance(calmed=turn.state.calmed + 1)
+
     def _security_event(self, turn: Turn, signals: tuple[str, ...]) -> None:
         """POL-03: every attempt is recorded with its signals, also when a person takes over."""
         facts = Facts(
@@ -322,9 +343,23 @@ class Conversation:
         }
         handler = handlers.get(turn.state.step)
         if handler is None:
-            turn.lines.append(self._text(turn, "closing"))
+            self._after_the_end(turn, reading)
             return
         handler(turn, reading)
+
+    def _after_the_end(self, turn: Turn, reading: Interpretation) -> None:
+        """A message after the end: with a person on the way VERA says so; after a closing, a new reason starts over."""
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        new_claim = sure and not reading.greeting and reading.claim_type is not ClaimType.OUT_OF_SCOPE
+        if turn.state.step is Step.DONE and new_claim:
+            turn.state = FlowState(variant=turn.state.variant)
+            self._on_claim(turn, reading)
+            return
+        template = "after_handoff" if turn.state.step is Step.HANDED_OFF else "after_done"
+        turn.lines.append(self._text(turn, template, pick=turn.state.nudges))
+        if template == "after_done":
+            self._menu(turn)
+        turn.state = turn.state.advance(nudges=turn.state.nudges + 1)
 
     def _answer_aside(self, turn: Turn, reading: Interpretation) -> None:
         """What VERA does not cover is said and oriented (POL-15 for Pix); the open question stays open."""
@@ -360,7 +395,19 @@ class Conversation:
         )
 
     def _on_person_offer(self, turn: Turn, reading: Interpretation) -> None:
-        if reading.answer is Answer.YES:
+        sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        # A claim written in so many words takes the offer, even when it starts with "no": VERA goes on with it.
+        tells_what_happened = (
+            turn.typed
+            and sure
+            and not reading.greeting
+            and reading.claim_type not in (ClaimType.HUMAN_REQUEST, ClaimType.OUT_OF_SCOPE)
+            and self._open_question(turn) is Step.ASK_CLAIM
+        )
+        if tells_what_happened:
+            turn.state = turn.state.advance(step=Step.ASK_CLAIM, resume_step=None)
+            self._on_claim(turn, reading)
+        elif reading.answer is Answer.YES:
             self._resume(turn)
         else:
             # The customer insists, or does not take the offer.

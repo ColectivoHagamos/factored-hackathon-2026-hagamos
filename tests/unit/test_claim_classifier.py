@@ -8,6 +8,7 @@ import pytest
 from ml.claims import TEST, ClaimClassifier, fold, load, train
 from ml.evaluate_claims import REPORT, report
 from vera.contracts.interpretation import ClaimType
+from vera.llm.classifier_adapter import ClassifierInterpreter
 
 PHRASES = load()
 
@@ -78,3 +79,12 @@ def test_the_versioned_report_matches_a_fresh_run(fresh_report: dict):
         for metric in ("accuracy", "macro_f1", "ece"):
             assert versioned["test"][system][metric] == pytest.approx(fresh_report["test"][system][metric], abs=0.02)
     assert versioned["model"]["regularization_c"] == fresh_report["model"]["regularization_c"]
+
+
+def test_a_plea_for_help_is_not_given_to_the_classifier():
+    class Insists:
+        def predict(self, text):
+            return ClaimType.HUMAN_REQUEST, 0.99
+
+    reading = ClassifierInterpreter(Insists()).interpret("Estoy desesperada, necesito ayuda", {"expecting": "claim"})
+    assert reading.greeting and reading.distress and reading.claim_type is not ClaimType.HUMAN_REQUEST

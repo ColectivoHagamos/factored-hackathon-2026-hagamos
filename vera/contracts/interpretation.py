@@ -63,6 +63,8 @@ class Interpretation(Contract):
     asks_if_human: bool = False
     # A greeting, thanks, small talk, a question about what VERA does, or a plea for help that says nothing yet.
     greeting: bool = False
+    # Worry, fear, anger or frustration in the customer's words: VERA validates the emotion before going on.
+    distress: bool = False
     # Answer to the yes-or-no question asked in the previous turn, and option numbers the customer referred to.
     answer: Answer = Answer.NOT_SAID
     selected_numbers: tuple[Annotated[int, Field(ge=1, le=50)], ...] = ()
