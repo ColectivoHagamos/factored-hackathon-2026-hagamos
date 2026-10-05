@@ -183,12 +183,20 @@ def _request(masked_text: str, context: dict[str, str]) -> str:
 
 
 def _with_safety_floor(reading: Interpretation, floor: Interpretation) -> Interpretation:
-    """The model reads; the safety words of the fallback are a floor it can only add to (POL-02, POL-09, POL-15)."""
+    """The model reads; the fallback is a floor for the safety words and for the facts of a scam it left unsaid."""
+    authorized = reading.authorized_payment
     return reading.model_copy(
         update={
+            # POL-02, POL-09, POL-15: the model can add a safety word, never take one away.
             "coercion": reading.coercion or floor.coercion,
             "regulator_mentioned": reading.regulator_mentioned or floor.regulator_mentioned,
             "pix_mentioned": reading.pix_mentioned or floor.pix_mentioned,
             "asks_if_human": reading.asks_if_human or floor.asks_if_human,
+            # POL-10: what the customer says about a payment made under deception goes to Fraud, so a fact the rules
+            # heard is kept when the model is silent. The purchase channel and the card are left alone: they steer
+            # the flow, and there the model's silence is a reason to ask.
+            "authorized_payment": floor.authorized_payment if authorized is Answer.NOT_SAID else authorized,
+            "date_text": reading.date_text or floor.date_text,
+            "contact_channel": reading.contact_channel or floor.contact_channel,
         }
     )
