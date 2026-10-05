@@ -24,6 +24,24 @@ Choose a demo customer by the scenario in its name, type the message and follow 
 
 Then open `/console.html`: the analyst queue lists every handoff and transfer note, newest first.
 
+## Results at a glance
+
+A held-out set of 299 cases, each run with three wordings (897 runs per system), sealed with a hash and the tag `heldout-v1` before its first run. Method and full tables: [Evaluation](#evaluation).
+
+| | Keyword baseline | Learned classifier (sealed run) | Claude over the classifier (labeled rerun) |
+|---|---:|---:|---:|
+| Unsafe outcomes | 0 of 897 | 30 of 897 | 0 |
+| pass^3 (all three wordings pass) | 55.5 % | 68.9 % | 99.3 % |
+| Customer had to explain again | 70.5 % | 4.3 % | 1.7 % |
+| Latency per turn, p95 | 10.5 ms | 14.1 ms | 1.5 s |
+| Cost per case | US$ 0 | US$ 0 | US$ 0.0038 |
+
+Three limits to read with these numbers:
+
+- **The sealed run is the honest measurement.** Its 30 unsafe runs had one root cause, fixed afterwards; the reruns that show 0 are labeled as not clean, because those failures informed the fixes.
+- **The evaluation is an offline simulation** with wordings the team wrote. The human blind set and a human red team are pending.
+- **Legal deadlines are dated only in Colombia and Argentina,** where the official texts are loaded. Mexican routes are recorded without a date.
+
 ## What a customer gets
 
 | Situation | What VERA does |
