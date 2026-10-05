@@ -8,7 +8,7 @@ import pytest
 from vera.adapters.memory_event_log import MemoryEventLog
 from vera.adapters.mock_bank import CLOCK, MockBank
 from vera.adapters.sqlite_state import SqliteState
-from vera.contracts.api import MessageRequest
+from vera.contracts.conversation import MessageRequest
 from vera.contracts.events import EventType
 from vera.contracts.handoff import Queue
 from vera.contracts.interpretation import ClaimType, DeclaredChannel

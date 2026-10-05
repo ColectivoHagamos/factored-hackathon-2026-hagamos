@@ -3,8 +3,9 @@
 import pytest
 from pydantic import ValidationError
 
+from api.schemas import ApiError
 from scripts.export_schemas import differences, expected_files
-from vera.contracts.api import ApiError, GlassBoxEntry, MessageRequest
+from vera.contracts.conversation import GlassBoxEntry, MessageRequest
 from vera.contracts.tools import (
     TOOL_INPUTS,
     TOOL_OUTPUTS,
