@@ -11,7 +11,10 @@ from decimal import Decimal
 
 from pydantic import JsonValue
 
-from vera.contracts.api import (
+from vera.contracts.cases import Case, DisputeReason
+from vera.contracts.charges import Candidate, ChargeDetail, ChargeKind, ChargeStatus, FraudScoreBand
+from vera.contracts.common import Country, Language, Money
+from vera.contracts.conversation import (
     ChargeSummary,
     GlassBoxEntry,
     MessageRequest,
@@ -20,9 +23,6 @@ from vera.contracts.api import (
     PendingConfirmation,
     Stage,
 )
-from vera.contracts.cases import Case, DisputeReason
-from vera.contracts.charges import Candidate, ChargeDetail, ChargeKind, ChargeStatus, FraudScoreBand
-from vera.contracts.common import Country, Language, Money
 from vera.contracts.events import Event, EventType
 from vera.contracts.handoff import (
     Action,
