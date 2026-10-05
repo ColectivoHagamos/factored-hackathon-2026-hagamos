@@ -17,16 +17,17 @@ The HTTP API grew from four endpoints to fifteen, all defined inside one `create
    ```
 
    - `api/routers/`: one router per area (access, operations, demo, conversations, customer, analyst, pages). A handler checks who calls through a guard, hands the request to one use case and returns its body.
-   - `api/services/`: the use cases, free of the web framework (`AccessService`, `DemoDirectory`, `CustomerViews`, `ConversationService`, `AnalystDesk`). They work on the container's ports and raise `ApiFailure` with a closed set of codes.
+   - `api/services/`: the use cases, free of the web framework (`AccessService`, `DemoDirectory`, `CustomerViews`, `ConversationService`, `AnalystDesk`). Each one receives the core and the ports it needs through its constructor, never the container, and raises `ApiFailure` with a closed set of codes.
    - `api/guards.py`: the customer, analyst and access sessions, each a dependency that turns a JSON Web Token into a session or answers 401.
    - `api/schemas.py`: the bodies only HTTP knows. The conversation's contract stays in `vera/contracts/conversation.py`, because the core produces it, and the API publishes it unchanged.
-   - `api/context.py`: one `AppContext` per application (settings, container, metrics and use cases), reached through FastAPI's dependency injection, never through module globals.
+   - `api/context.py`: one `AppContext` per application (settings, container, metrics and use cases), reached through FastAPI's dependency injection, never through module globals. It is where each use case gets its ports; `api/dependencies.py` stays the only place that chooses the adapters.
    - `api/app.py`: the factory (middleware, error answers, routers and the built web). `api/main.py` is only the process entry point.
-2. **A port for the analyst's reads.** `AnalystQueuePort` (`vera/ports/bank.py`): the queue, and each handoff or transfer by its reference. The desk depends on the port, not on the SQLite adapter.
-3. **The layering is a test.** `tests/architecture/test_dependency_rule.py` fails the CI when:
+2. **Ports for what the use cases read from the store.** `AnalystQueuePort` (`vera/ports/bank.py`): the queue, and each handoff or transfer by its reference. `ConversationOwnersPort` (`vera/ports/conversations.py`): which customer each conversation belongs to. The use cases depend on these ports, not on the SQLite adapter.
+3. **The layering is a test.** `tests/architecture/` fails the CI when:
    - the domain imports infrastructure;
-   - a use case imports the web framework;
-   - a router imports an adapter, a store, a language model or the composition root.
+   - a use case imports the web framework, an adapter, a store, a language model or the composition root;
+   - a router imports an adapter, a store, a language model or the composition root;
+   - an adapter no longer implements a port it is wired to, method by method and with the same parameters (`test_ports.py`). Ports are structural protocols, so nothing else would catch that drift before run time.
 
 ## Rejected alternatives
 
