@@ -3,7 +3,7 @@
 import secrets
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from api.observability import log_event
@@ -22,7 +22,7 @@ from vera.output.render import Renderer
 from vera.policy.engine import PolicyEngine
 from vera.policy.legal_clock import LegalClock
 from vera.policy.model import load_policy
-from vera.ports.bank import CustomersPort
+from vera.ports.bank import CardsPort, CustomersPort, TransactionsPort
 from vera.ports.interpreter import InterpreterPort
 from vera.tools.gate import ActionGate
 from vera.tools.service import ToolService
@@ -43,6 +43,14 @@ class Container:
     degraded: bool = False
     # Calls, tokens and spending of the language model, when one is in use (P41).
     llm_usage: Callable[[], dict] | None = None
+    # The cards and movements of the session customer, as the bank's app shows them.
+    cards: CardsPort | None = None
+    transactions: TransactionsPort | None = None
+
+
+def wall_clock() -> datetime:
+    """Real time with its zone: sessions and confirmations expire in real time, whatever day the demo lives on."""
+    return datetime.now(UTC)
 
 
 def simulated_clock() -> Callable[[], datetime]:
@@ -104,6 +112,9 @@ def build(
     bank_factory: Callable[[SqliteState], DemoBank | MockBank] | None = None,
 ) -> Container:
     """The application; bank_factory replaces the configured adapter, as the evaluation does to make a tool fail."""
+    # Tests inject one clock for everything. Otherwise the conversation lives on the demo's day, while what expires
+    # for security (sessions and confirmations) follows real time: the demo's day repeats, real time never does.
+    expiry = now or wall_clock
     now = now or simulated_clock()
     policy = load_policy()
     state = SqliteState(settings.state_db)
@@ -114,7 +125,7 @@ def build(
     else:
         bank = MockBank(state)
     toolbox = Toolbox(bank, bank, state, state, policy.parameters.usd_rates, now=now)
-    gate = ActionGate(toolbox, secret=settings.session_secret.encode(), now=now)
+    gate = ActionGate(toolbox, secret=settings.session_secret.encode(), now=expiry)
     tools = ToolService(toolbox, gate, bank, bank, now=now)
     log = SqliteEventLog(settings.state_db) if settings.state_db != ":memory:" else MemoryEventLog()
     interpreter, degraded = interpreter_for(settings)
@@ -128,6 +139,8 @@ def build(
         now=now,
         new_id=lambda: secrets.token_hex(8),
     )
-    signer = SessionSigner(settings.session_secret, now)
+    signer = SessionSigner(settings.session_secret, expiry)
     usage = interpreter.spending.snapshot if isinstance(interpreter, AnthropicInterpreter) else None
-    return Container(settings, state, bank, tools, conversation, signer, now, interpreter.name, degraded, usage)
+    return Container(
+        settings, state, bank, tools, conversation, signer, now, interpreter.name, degraded, usage, bank, bank
+    )

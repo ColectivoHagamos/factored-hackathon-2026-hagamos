@@ -96,6 +96,28 @@ NO_CARD = (
     r"\b(nao tenho o cartao|roubaram|perdi o cartao|furtaram)\b",
 )
 HAS_CARD = (r"\b(tengo la tarjeta|la tengo conmigo|esta conmigo|la tengo aqui|tenho o cartao|esta comigo)\b",)
+# A lost or stolen card opens a dispute even before a charge is named: VERA protects the card first.
+LOST_CARD = (
+    r"\b(me robaron (la|mi) tarjeta|me la robaron|robaron mi tarjeta|perdi (la|mi) tarjeta|"
+    r"se me perdio (la|mi) tarjeta|me clonaron (la|mi) tarjeta|extravie (la|mi) tarjeta)",
+    r"\b(roubaram (o |meu )?cartao|perdi (o |meu )?cartao|furtaram (o |meu )?cartao|clonaram (o |meu )?cartao)",
+)
+# Worry, fear, anger or frustration: VERA validates the emotion before the next step, and never argues with it.
+DISTRESS = (
+    r"\b(preocupad[oa]|asustad[oa]|desesperad[oa]|angustiad[oa]|nervios[oa]|estresad[oa]|indignad[oa]|furios[oa])",
+    r"\b(tengo miedo|me da miedo|que susto|estoy (muy )?mal|no se que hacer|no puede ser|es un abuso|es una verguenza|"
+    r"estoy hart[oa]|me siento (impotente|mal))",
+    r"\b(assustad[oa]|com medo|desesperad[oa]|nervos[oa]|irritad[oa]|que absurdo|nao sei o que fazer|estou mal)",
+)
+# Greetings, thanks, small talk and pleas for help: they say nothing of the claim yet, so VERA welcomes and orients.
+GREETING = (
+    r"^\s*(hola|holi|buenas|buen dia|buenos dias|buenas tardes|buenas noches|hey|ola|oi|bom dia|boa tarde|boa noite)\b",
+    r"\b(necesito (tu |su )?ayuda|ayudame|ayudeme|me ayudas|me puedes ayudar|me puede ayudar|preciso de ajuda|"
+    r"pode me ajudar|me ajuda|me ajude)\b",
+    r"\b(como estas|como esta|que tal|tudo bem|como vai)\b",
+    r"\b(que es esto|quien eres|quien es usted|que haces|para que sirves|o que e isso|quem e voce)\b",
+    r"^\s*(gracias|muchas gracias|obrigad[oa])\b",
+)
 YES = (r"^\s*(si|sim|claro|correcto|ok|dale|de acuerdo|confirmo|exacto|afirmativo|isso)\b",)
 NO = (r"^\s*(no|nao|nunca|negativo|para nada)\b",)
 EMPTY_NOUNS = {"El", "La", "Los", "Las", "Un", "Una", "Mi", "Me", "Que", "Hola", "Buenas", "Ayer", "Hoy", "O", "A"}
@@ -163,13 +185,19 @@ class RulesInterpreter:
             date_text=_first_match(DATE_PATTERN, text),
             merchant_text=_merchant(masked_text),
             declared_channel=_channel(text),
-            has_card=Answer.NO if _any(NO_CARD, text) else Answer.YES if _any(HAS_CARD, text) else Answer.NOT_SAID,
+            has_card=Answer.NO
+            if _any(NO_CARD + LOST_CARD, text)
+            else Answer.YES
+            if _any(HAS_CARD, text)
+            else Answer.NOT_SAID,
             authorized_payment=Answer.YES if _any(SCAM, text) else Answer.NOT_SAID,
             contact_channel=next((channel for channel, pattern in CONTACT if re.search(pattern, text)), None),
             coercion=_any(COERCION, text),
             regulator_mentioned=_any(REGULATOR, text),
             pix_mentioned=_any(PIX, text),
             asks_if_human=asks_if_human,
+            greeting=_only_greeting(text) and not confident and amount is None,
+            distress=_any(DISTRESS, text),
             answer=Answer.YES if _any(YES, text) else Answer.NO if _any(NO, text) else Answer.NOT_SAID,
             selected_numbers=_numbers(text, context),
             language=language,
@@ -183,12 +211,20 @@ class RulesInterpreter:
         for claim, patterns in (
             (ClaimType.SCAM_TRANSFER, SCAM),
             (ClaimType.IMPROPER_CHARGE, IMPROPER),
-            (ClaimType.UNRECOGNIZED_CHARGE, UNRECOGNIZED),
+            (ClaimType.UNRECOGNIZED_CHARGE, UNRECOGNIZED + LOST_CARD),
             (ClaimType.OUT_OF_SCOPE, OUT_OF_SCOPE + PIX),
         ):
             if _any(patterns, text):
                 return claim, True
         return ClaimType.UNRECOGNIZED_CHARGE, False
+
+
+def _only_greeting(text: str) -> bool:
+    """A greeting, thanks, small talk or a plea for help with little else; a message that says more is a claim."""
+    if not _any(GREETING, text):
+        return False
+    rest = re.sub("|".join(GREETING), " ", text)
+    return len(re.findall(r"[a-z]{3,}", rest)) <= 3
 
 
 def _first_match(pattern: str, text: str) -> str | None:

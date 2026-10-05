@@ -1,5 +1,5 @@
 {
-  "schema_version": "handoff/2.0",
+  "schema_version": "handoff/2.1",
   "case_id": "DSP-000123",
   "created_at": "2026-06-18T10:42:00-05:00",
   "summary": "Two unrecognized card purchases made in Brazil; the customer does not have the card",
@@ -13,32 +13,90 @@
   "response_level": 3,
   "verified_facts": {
     "charges": [
-      {"n": 1, "kind": "purchase", "occurred_at": "2026-06-14T21:05:00", "amount": "120000", "currency": "COP",
-       "merchant": "Uber", "merchant_category": "Transport", "city": "Sao Paulo", "country": "Brazil",
-       "status": "approved", "card": "•••• 1234"},
-      {"n": 2, "kind": "purchase", "occurred_at": "2026-06-15T09:40:00", "amount": "65000", "currency": "COP",
-       "merchant": "iFood", "merchant_category": "Restaurants", "city": "Sao Paulo", "country": "Brazil",
-       "status": "approved", "card": "•••• 1234"}
+      {
+        "n": 1,
+        "kind": "purchase",
+        "occurred_at": "2026-06-14T21:05:00",
+        "amount": "120000",
+        "currency": "COP",
+        "merchant": "Uber",
+        "merchant_category": "Transport",
+        "city": "Sao Paulo",
+        "country": "Brazil",
+        "status": "approved",
+        "card": "•••• 1234"
+      },
+      {
+        "n": 2,
+        "kind": "purchase",
+        "occurred_at": "2026-06-15T09:40:00",
+        "amount": "65000",
+        "currency": "COP",
+        "merchant": "iFood",
+        "merchant_category": "Restaurants",
+        "city": "Sao Paulo",
+        "country": "Brazil",
+        "status": "approved",
+        "card": "•••• 1234"
+      }
     ],
-    "total_exposure": [{"amount": "185000", "currency": "COP"}],
+    "total_exposure": [
+      {
+        "amount": "185000",
+        "currency": "COP"
+      }
+    ],
     "total_exposure_usd": "46.25",
     "fraud_score_band": ">30"
   },
-  "declared_by_customer": {"channel": "online", "has_card": "no", "was_in_country": "no"},
-  "sweep": {"charges_reviewed": 4, "not_recognized": 2},
+  "declared_by_customer": {
+    "channel": "online",
+    "has_card": "no",
+    "was_in_country": "no"
+  },
+  "sweep": {
+    "charges_reviewed": 4,
+    "not_recognized": 2
+  },
   "actions": [
-    {"action": "block_card", "result": "ok", "read_back": true},
-    {"action": "register_dispute", "result": "ok", "read_back": true}
+    {
+      "action": "block_card",
+      "result": "ok",
+      "read_back": true
+    },
+    {
+      "action": "register_dispute",
+      "result": "ok",
+      "read_back": true
+    }
   ],
   "legal_clock": {
     "route": "CO-bank-complaint",
     "rules_evaluated": [
-      {"id": "CO-R01", "result": "not_applicable", "detail": "merchant not domiciled in Colombia"},
-      {"id": "CO-R15", "result": "applies", "status": "in_force_by_law"}
+      {
+        "id": "CO-R01",
+        "result": "not_applicable",
+        "detail": "merchant not domiciled in Colombia"
+      },
+      {
+        "id": "CO-R15",
+        "result": "applies",
+        "status": "in_force_by_law"
+      }
     ],
     "deadline_verified": true,
-    "obligations": [{"party": "bank", "what": "answer the complaint", "due": "2026-07-03", "unit": "calendar_days"}],
-    "venues": ["bank", "SFC (jurisdictional route)"]
+    "obligations": [
+      {
+        "party": "bank",
+        "what": "answer the complaint",
+        "due": "2026-07-03",
+        "unit": "calendar_days"
+      }
+    ],
+    "venues": [
+      "bank",
+      "SFC (jurisdictional route)"
+    ]
   },
   "network_clock": {
     "network": "Visa (assumed from the BIN)",
@@ -48,11 +106,26 @@
     "due": "2026-10-12",
     "note": "contractual network rule, not law; verify with the network rules through the issuer"
   },
-  "risk_signals": ["customer does not have the card", "2 unrecognized charges", "fraud_score > 30"],
+  "risk_signals": [
+    "customer does not have the card",
+    "2 unrecognized charges",
+    "fraud_score > 30"
+  ],
   "fraud_alert": true,
-  "goodwill_candidate": {"flagged": false, "criteria": [], "reason": null},
+  "goodwill_candidate": {
+    "flagged": false,
+    "criteria": [],
+    "reason": null
+  },
   "suggested_queue": "fraud",
-  "open_questions": ["When did the customer last see the card?"],
+  "open_questions": [
+    "When did the customer last see the card?"
+  ],
+  "rules_applied": [
+    "POL-05",
+    "POL-06",
+    "POL-07"
+  ],
   "policy_version": "1.4",
   "trace_id": "trace-000123"
 }

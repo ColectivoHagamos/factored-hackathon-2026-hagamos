@@ -175,6 +175,7 @@ class TransferReason(StrEnum):
     SCAM_TRANSFER = "scam_transfer"  # POL-10
     TOOL_FAILURE = "tool_failure"  # POL-13
     TURN_LIMIT = "turn_limit"  # the cap of turns per conversation
+    LOST_CARD = "lost_card"  # POL-06: a lost or stolen card without recent movements to identify it
 
 
 def _check_language(language: Language, variant: LanguageVariant, requires_pt_analyst: bool) -> None:
@@ -185,7 +186,8 @@ def _check_language(language: Language, variant: LanguageVariant, requires_pt_an
 
 
 class Handoff(Contract):
-    schema_version: Literal["handoff/2.0"] = "handoff/2.0"
+    # 2.1 adds rules_applied; a reader of 2.0 finds every field it knew.
+    schema_version: Literal["handoff/2.1"] = "handoff/2.1"
     case_id: CaseId
     created_at: AwareDatetime
     summary: ShortText
@@ -208,6 +210,8 @@ class Handoff(Contract):
     goodwill_candidate: GoodwillCandidate = GoodwillCandidate()
     suggested_queue: Queue
     open_questions: tuple[ShortText, ...] = ()
+    # Every policy rule that decided a step of the conversation, in the order it first applied.
+    rules_applied: tuple[PolicyRuleId, ...] = ()
     policy_version: PolicyVersion
     trace_id: Identifier
 

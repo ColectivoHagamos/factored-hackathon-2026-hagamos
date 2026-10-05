@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help install test lint format schemas check check-policy serve demo data ml-report evaluation
+.PHONY: help install test lint format schemas check check-policy web serve demo data ml-report evaluation
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -37,6 +37,9 @@ ml-report: ## Retrain the claim classifier and write docs/ml/claims_report.json 
 evaluation: ## Run SET=dev (default) or SET=heldout, LABEL=after for a rerun, SYSTEMS=rules,classifier,anthropic; needs VERA_DEMO_DB
 	$(UV) run python -m evaluation.run $(or $(SET),dev) $(if $(LABEL),--label $(LABEL)) $(if $(SYSTEMS),--systems $(SYSTEMS))
 	$(UV) run python -m evaluation.report $(or $(SET),dev) $(if $(LABEL),--label $(LABEL))
+
+web: ## Build the web into web/dist (needs Node 22); make serve then serves it
+	cd web && npm ci --ignore-scripts --no-audit --no-fund && npm run build
 
 serve: ## Run the API locally with reload, mock adapter and rules interpreter
 	$(UV) run uvicorn api.main:app --reload --port 8000

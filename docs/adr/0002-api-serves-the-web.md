@@ -1,6 +1,6 @@
 # ADR 0002 · The API serves the web
 
-**Date:** 2026-10-03 · **Status:** accepted
+**Date:** 2026-10-03 · **Status:** accepted; decision 3 superseded by [ADR 0006](0006-the-api-serves-a-built-web.md)
 
 ## Context
 

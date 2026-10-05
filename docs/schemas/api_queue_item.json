@@ -1,11 +1,51 @@
 {
   "$defs": {
+    "ClaimType": {
+      "enum": [
+        "unrecognized_charge",
+        "improper_charge",
+        "scam_transfer",
+        "human_request",
+        "out_of_scope"
+      ],
+      "title": "ClaimType",
+      "type": "string"
+    },
+    "DisputeReason": {
+      "enum": [
+        "fraud",
+        "not_received",
+        "not_as_described",
+        "incorrect_amount",
+        "duplicate",
+        "cancelled_recurring",
+        "bank_charge",
+        "recognized_by_customer"
+      ],
+      "title": "DisputeReason",
+      "type": "string"
+    },
     "Queue": {
       "enum": [
         "fraud",
         "complaints"
       ],
       "title": "Queue",
+      "type": "string"
+    },
+    "TransferReason": {
+      "description": "Why a conversation went to a person without a case handoff; each reason is a rule.",
+      "enum": [
+        "person_requested",
+        "coercion",
+        "not_understood",
+        "regulator",
+        "scam_transfer",
+        "tool_failure",
+        "turn_limit",
+        "lost_card"
+      ],
+      "title": "TransferReason",
       "type": "string"
     }
   },
@@ -47,6 +87,49 @@
       "pattern": "^[A-Za-z0-9_-]{1,64}$",
       "title": "Trace Id",
       "type": "string"
+    },
+    "claim_type": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ClaimType"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DisputeReason"
+        },
+        {
+          "$ref": "#/$defs/TransferReason"
+        }
+      ],
+      "title": "Reason"
+    },
+    "charge_count": {
+      "minimum": 0,
+      "title": "Charge Count",
+      "type": "integer"
+    },
+    "pending_action": {
+      "anyOf": [
+        {
+          "enum": [
+            "block_card",
+            "register_dispute"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pending Action"
     }
   },
   "required": [
@@ -56,7 +139,9 @@
     "queue",
     "summary",
     "requires_pt_analyst",
-    "trace_id"
+    "trace_id",
+    "reason",
+    "charge_count"
   ],
   "title": "QueueItem",
   "type": "object"

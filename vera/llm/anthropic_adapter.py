@@ -18,7 +18,7 @@ from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, Dec
 from vera.llm.rules_adapter import RulesInterpreter
 from vera.ports.interpreter import InterpreterPort
 
-PROMPT_VERSION = "interpreter-v3"
+PROMPT_VERSION = "interpreter-v5"
 PROMPT = (Path(__file__).parent / "prompts" / f"{PROMPT_VERSION}.md").read_text(encoding="utf-8")
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 TOOL = "record_interpretation"
@@ -48,6 +48,8 @@ QUESTIONS = {
     "confirm_person": "whether the customer wants to be passed to a person",
     "person_offered": "VERA offered to review the case first: yes keeps VERA, no asks for the person",
     "scam_details": "when the transfer was made and how the third party contacted the customer",
+    "choose_card": "which of the listed cards the customer lost or had stolen",
+    "review": "the numbers of the listed recent movements the customer does NOT recognize, «todos» or «ninguno»",
 }
 
 logger = logging.getLogger("vera.llm")
@@ -78,6 +80,8 @@ TOOL_DEFINITION = {
             "regulator_mentioned": {"type": "boolean"},
             "pix_mentioned": {"type": "boolean"},
             "asks_if_human": {"type": "boolean"},
+            "greeting": {"type": "boolean"},
+            "distress": {"type": "boolean"},
             "answer": _enum(Answer),
             "selected_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 50}},
             "language": _enum(Language),
@@ -192,11 +196,18 @@ def _with_safety_floor(reading: Interpretation, floor: Interpretation) -> Interp
             "regulator_mentioned": reading.regulator_mentioned or floor.regulator_mentioned,
             "pix_mentioned": reading.pix_mentioned or floor.pix_mentioned,
             "asks_if_human": reading.asks_if_human or floor.asks_if_human,
+            # A greeting the rules heard is welcomed even when the model reads it as another topic.
+            "greeting": reading.greeting or floor.greeting,
+            # An emotion either reader heard is validated; validating one more time costs nothing.
+            "distress": reading.distress or floor.distress,
             # POL-10: what the customer says about a payment made under deception goes to Fraud, so a fact the rules
             # heard is kept when the model is silent. The purchase channel and the card are left alone: they steer
             # the flow, and there the model's silence is a reason to ask.
             "authorized_payment": floor.authorized_payment if authorized is Answer.NOT_SAID else authorized,
             "date_text": reading.date_text or floor.date_text,
             "contact_channel": reading.contact_channel or floor.contact_channel,
+            # POL-06: the model may say the customer lacks the card, which leads to protection, but not that the
+            # customer has it unless the words say so: a wrong yes would skip the question and the block offer.
+            "has_card": floor.has_card if reading.has_card is Answer.YES else reading.has_card,
         }
     )

@@ -17,7 +17,8 @@
         "regulator",
         "scam_transfer",
         "tool_failure",
-        "turn_limit"
+        "turn_limit",
+        "lost_card"
       ],
       "title": "TransferReason",
       "type": "string"

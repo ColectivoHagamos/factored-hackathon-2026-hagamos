@@ -25,7 +25,13 @@
         {
           "enum": [
             "yes",
-            "no"
+            "no",
+            "not_sure",
+            "unrecognized_charge",
+            "improper_charge",
+            "lost_card",
+            "scam_transfer",
+            "human_request"
           ],
           "type": "string"
         },
@@ -35,6 +41,25 @@
       ],
       "default": null,
       "title": "Selected Option"
+    },
+    "intent": {
+      "anyOf": [
+        {
+          "enum": [
+            "unrecognized_charge",
+            "improper_charge",
+            "lost_card",
+            "scam_transfer",
+            "human_request"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Intent"
     }
   },
   "title": "MessageRequest",
