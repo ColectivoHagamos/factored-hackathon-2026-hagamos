@@ -11,7 +11,7 @@
 
 ## Try it in two minutes
 
-Choose a demo customer by the scenario in its name, type the message and follow VERA's options. The glass box beside the chat cites each decision's rule and source, with the date of any legal deadline.
+Log in with the account sent with the submission: the login keeps the language model for the jury and the team. Choose a demo customer by the scenario in its name (the names are invented; the data is pseudonymized), type the message or press one of the options VERA offers, and follow along. The glass box beside the chat cites each decision's rule and source, with the date of any legal deadline.
 
 | Demo customer | Message | What VERA does |
 |---|---|---|

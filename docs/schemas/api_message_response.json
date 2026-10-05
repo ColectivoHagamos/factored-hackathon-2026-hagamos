@@ -1,5 +1,104 @@
 {
   "$defs": {
+    "ChargeStatus": {
+      "enum": [
+        "approved",
+        "pending",
+        "declined",
+        "reversed"
+      ],
+      "title": "ChargeStatus",
+      "type": "string"
+    },
+    "ChargeSummary": {
+      "additionalProperties": false,
+      "description": "The charge in question, read from the tools, for the panel beside the conversation.",
+      "properties": {
+        "merchant": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Merchant"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,16}|(?=[\\d.]{1,19}0*$)\\d{0,16}\\.\\d{0,2}0*$)",
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ChargeStatus"
+        },
+        "card": {
+          "anyOf": [
+            {
+              "pattern": "^•••• \\d{4}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Card"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "occurred_at",
+        "status"
+      ],
+      "title": "ChargeSummary",
+      "type": "object"
+    },
+    "Currency": {
+      "description": "Currencies present in the dataset; Mexico operates in USD only.",
+      "enum": [
+        "USD",
+        "COP",
+        "ARS"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
     "GlassBoxEntry": {
       "additionalProperties": false,
       "description": "Rule applied in a reply, with its source and, when a verified rule yields one, the deadline.",
@@ -150,6 +249,42 @@
       },
       "title": "Glass Box",
       "type": "array"
+    },
+    "stage": {
+      "default": "received",
+      "enum": [
+        "received",
+        "analysis",
+        "verification",
+        "result",
+        "resolved"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "charge": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChargeSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "case_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Case Id"
     }
   },
   "required": [

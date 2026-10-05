@@ -22,7 +22,7 @@ from vera.output.render import Renderer
 from vera.policy.engine import PolicyEngine
 from vera.policy.legal_clock import LegalClock
 from vera.policy.model import load_policy
-from vera.ports.bank import CustomersPort
+from vera.ports.bank import CardsPort, CustomersPort, TransactionsPort
 from vera.ports.interpreter import InterpreterPort
 from vera.tools.gate import ActionGate
 from vera.tools.service import ToolService
@@ -43,6 +43,9 @@ class Container:
     degraded: bool = False
     # Calls, tokens and spending of the language model, when one is in use (P41).
     llm_usage: Callable[[], dict] | None = None
+    # The cards and movements of the session customer, as the bank's app shows them.
+    cards: CardsPort | None = None
+    transactions: TransactionsPort | None = None
 
 
 def simulated_clock() -> Callable[[], datetime]:
@@ -130,4 +133,6 @@ def build(
     )
     signer = SessionSigner(settings.session_secret, now)
     usage = interpreter.spending.snapshot if isinstance(interpreter, AnthropicInterpreter) else None
-    return Container(settings, state, bank, tools, conversation, signer, now, interpreter.name, degraded, usage)
+    return Container(
+        settings, state, bank, tools, conversation, signer, now, interpreter.name, degraded, usage, bank, bank
+    )

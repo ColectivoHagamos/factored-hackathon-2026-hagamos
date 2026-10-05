@@ -35,14 +35,27 @@ def client(request) -> Iterator:
     yield TestClient(create_app(settings, build(settings, now=lambda: CLOCK)))
 
 
+def access(client) -> dict:
+    """The login of the jury and the team; VERA_E2E_LOGIN ("user:password") opens a deployment that requires it."""
+    login = os.environ.get("VERA_E2E_LOGIN")
+    if not login:
+        return {}
+    username, password = login.split(":", 1)
+    response = client.post("/v1/auth/login", json={"username": username, "password": password})
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['token']}"}
+
+
 class Customer:
     """A demo customer driving one conversation over HTTP."""
 
     def __init__(self, client, scenario: str) -> None:
-        demo = client.get("/v1/demo-customers")
+        entry = access(client)
+        demo = client.get("/v1/demo-customers", headers=entry)
         assert demo.status_code == 200
         chosen = next(c for c in demo.json() if any(tag.split("_")[0] == scenario for tag in c["scenarios"]))
-        token = client.post("/v1/demo-session", json={"demo_customer": chosen["customer_ref"]}).json()["token"]
+        session = client.post("/v1/demo-session", json={"demo_customer": chosen["customer_ref"]}, headers=entry)
+        token = session.json()["token"]
         self.client = client
         self.ref = chosen["customer_ref"]
         self.country = chosen["country"]
@@ -108,7 +121,8 @@ class Customer:
 def analyst_get(client, path: str):
     """What the analyst console reads; VERA_E2E_ANALYST_KEY opens a closed deployment."""
     key = os.environ.get("VERA_E2E_ANALYST_KEY")
-    session = client.post("/v1/demo-analyst-session", headers={"X-Analyst-Key": key} if key else {})
+    headers = {**access(client), **({"X-Analyst-Key": key} if key else {})}
+    session = client.post("/v1/demo-analyst-session", headers=headers)
     assert session.status_code == 200, session.text
     response = client.get(path, headers={"Authorization": f"Bearer {session.json()['token']}"})
     assert response.status_code == 200, response.text

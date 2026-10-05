@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "token": {
+      "title": "Token",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "display_name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Display Name",
+      "type": "string"
+    },
+    "role": {
+      "const": "tester",
+      "title": "Role",
+      "type": "string"
+    }
+  },
+  "required": [
+    "token",
+    "expires_at",
+    "display_name",
+    "role"
+  ],
+  "title": "LoginResponse",
+  "type": "object"
+}

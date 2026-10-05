@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "CardView": {
+      "additionalProperties": false,
+      "properties": {
+        "masked": {
+          "pattern": "^•••• \\d{4}$",
+          "title": "Masked",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "credit",
+            "debit"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "blocked"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "masked",
+        "type",
+        "status"
+      ],
+      "title": "CardView",
+      "type": "object"
+    },
+    "Country": {
+      "enum": [
+        "MX",
+        "CO",
+        "AR"
+      ],
+      "title": "Country",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "es",
+        "pt"
+      ],
+      "title": "Language",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The demo customer as the bank's app would show it; the name is invented, as the subset holds none.",
+  "properties": {
+    "display_name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Display Name",
+      "type": "string"
+    },
+    "first_name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "First Name",
+      "type": "string"
+    },
+    "alias": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Alias",
+      "type": "string"
+    },
+    "country": {
+      "$ref": "#/$defs/Country"
+    },
+    "segment": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Segment",
+      "type": "string"
+    },
+    "language": {
+      "$ref": "#/$defs/Language"
+    },
+    "cards": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CardView"
+      },
+      "title": "Cards",
+      "type": "array"
+    }
+  },
+  "required": [
+    "display_name",
+    "first_name",
+    "alias",
+    "country",
+    "segment",
+    "language"
+  ],
+  "title": "MeResponse",
+  "type": "object"
+}

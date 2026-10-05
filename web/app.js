@@ -1,16 +1,24 @@
 "use strict";
 
-const api = (path, options = {}) =>
+// The customer session by default; the access of the jury and the team for the demo customers.
+const api = (path, options = {}, token = state.token) =>
   fetch(`/v1${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}) },
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   }).then(async (response) => {
     const body = await response.json();
-    if (!response.ok) throw new Error(body.message || response.statusText);
+    if (!response.ok) throw Object.assign(new Error(body.message || response.statusText), { status: response.status });
     return body;
   });
 
-const state = { token: null, conversation: null, busy: false };
+const stored = (key) => {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const state = { token: null, access: stored("vera.access"), conversation: null, busy: false, customers: [] };
 const $ = (id) => document.getElementById(id);
 
 function bubble(text, who) {
@@ -114,7 +122,8 @@ async function start() {
   $("rules").innerHTML = "";
   $("case").innerHTML = "";
   try {
-    const session = await api("/demo-session", { method: "POST", body: JSON.stringify({ demo_customer: $("customer").value }) });
+    const body = JSON.stringify({ demo_customer: $("customer").value });
+    const session = await api("/demo-session", { method: "POST", body }, state.access);
     state.token = session.token;
     const language = $("language").value;
     const conversation = await api("/conversations", {
@@ -122,25 +131,71 @@ async function start() {
       body: JSON.stringify(language ? { preferred_language: language } : {}),
     });
     state.conversation = conversation.conversation_id;
-    bubble(conversation.greeting, "vera");
+    showOptions(bubble(conversation.greeting, "vera"), conversation.options || [], false);
     setBusy(false);
   } catch (error) {
+    if (error.status === 401) return askForAccess();
     bubble(`No se pudo empezar: ${error.message}`, "vera").classList.add("error");
   }
 }
 
+function askForAccess() {
+  $("login").hidden = false;
+  $("setup").hidden = true;
+  $("username").focus();
+}
+
+async function logIn(event) {
+  event.preventDefault();
+  try {
+    const body = JSON.stringify({ username: $("username").value.trim(), password: $("password").value });
+    const access = await api("/auth/login", { method: "POST", body }, null);
+    state.access = access.token;
+    try {
+      sessionStorage.setItem("vera.access", access.token);
+    } catch {
+      // Without storage the access lasts until the page is reloaded.
+    }
+    $("password").value = "";
+    $("login-error").hidden = true;
+    $("login").hidden = true;
+    $("setup").hidden = false;
+    await loadCustomers();
+  } catch {
+    $("login-error").hidden = false;
+  }
+}
+
 async function loadCustomers() {
-  const customers = await api("/demo-customers");
+  let customers;
+  try {
+    customers = await api("/demo-customers", {}, state.access);
+  } catch (error) {
+    if (error.status === 401) return askForAccess();
+    throw error;
+  }
+  state.customers = customers;
+  $("customer").innerHTML = "";
   for (const customer of customers) {
     const option = document.createElement("option");
     option.value = customer.customer_ref;
     const scenarios = customer.scenarios.map((tag) => tag.split("_")[0]).filter((tag) => /^A\d+$/.test(tag));
-    option.textContent = scenarios.length ? `${customer.alias} · ${[...new Set(scenarios)].join(", ")}` : customer.alias;
+    const tags = scenarios.length ? ` · ${[...new Set(scenarios)].join(", ")}` : "";
+    option.textContent = `${customer.display_name} · ${customer.alias}${tags}`;
     $("customer").appendChild(option);
   }
+  matchLanguage();
+}
+
+// A customer of the Portuguese scenario starts in Portuguese; the select still lets the tester choose.
+function matchLanguage() {
+  const customer = state.customers.find((c) => c.customer_ref === $("customer").value);
+  if (customer) $("language").value = customer.language === "pt" ? "pt" : "";
 }
 
 $("start").onclick = start;
+$("customer").onchange = matchLanguage;
+$("login-form").onsubmit = logIn;
 $("composer").onsubmit = (event) => {
   event.preventDefault();
   const text = $("message").value.trim();

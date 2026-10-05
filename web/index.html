@@ -16,11 +16,27 @@
   </header>
   <main>
     <div>
+      <section class="card" id="login" hidden>
+        <h2>Acceso</h2>
+        <p class="note">Acceso para el jurado y el equipo.</p>
+        <form id="login-form" class="row">
+          <div>
+            <label for="username">Usuario</label>
+            <input id="username" type="text" autocomplete="username" required>
+          </div>
+          <div>
+            <label for="password">Contraseña</label>
+            <input id="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button>Entrar</button>
+        </form>
+        <p class="note" id="login-error" hidden>Usuario o contraseña incorrectos.</p>
+      </section>
       <section class="card" id="setup">
         <h2>1 · Elija un cliente de prueba</h2>
         <div class="row">
           <div>
-            <label for="customer">Cliente de demo (alias, sin datos personales)</label>
+            <label for="customer">Cliente de demo (nombre inventado, datos seudonimizados)</label>
             <select id="customer"></select>
           </div>
           <div>
