@@ -23,6 +23,11 @@ class ClaimSteps(FlowSupport):
             # A purchase charged twice is an improper charge whatever the reader called it; the purchase is known.
             reading = reading.model_copy(update={"claim_type": ClaimType.IMPROPER_CHARGE})
         sure = reading.confidence >= self._engine.parameters.interpreter_min_confidence
+        if reading.blocked and (reading.claim_type is ClaimType.OUT_OF_SCOPE or not sure):
+            # The bank declined a payment or blocked the card: no stranger's charge to dispute, but the movements
+            # show what happened, and a person can review the block.
+            self._blocked(turn)
+            return
         if reading.greeting and (reading.claim_type is ClaimType.OUT_OF_SCOPE or not sure):
             # A greeting, small talk or a plea for help: warm words and the menu, never a question about a charge.
             self._welcome(turn, "welcome")

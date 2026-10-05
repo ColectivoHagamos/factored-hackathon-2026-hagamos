@@ -96,3 +96,23 @@ export type Handoff = Record<string, unknown>;
 
 export type ApiErrorCode =
   | "unauthorized" | "not_found" | "confirmation_expired" | "rate_limited" | "provider_unavailable" | "unknown";
+
+export type Count = { label: string; count: number };
+export type SourceTable = { name: string; rows_in: number; rows_valid: number; rows_quarantined: number };
+export type DataOverview = {
+  source_tables: SourceTable[];
+  source_manifest: string | null;
+  subset: {
+    customers: number;
+    customers_by_country: Count[];
+    cards: number;
+    cards_by_status: Count[];
+    movements: number;
+    movements_by_kind: Count[];
+    movements_by_status: Count[];
+    earlier_disputes: number;
+    first_movement: string | null;
+    last_movement: string | null;
+    customers_per_scenario: Count[];
+  };
+};
