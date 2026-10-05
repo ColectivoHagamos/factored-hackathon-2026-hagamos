@@ -10,7 +10,8 @@ from vera.adapters.mock_bank import CLOCK, MockBank
 from vera.adapters.sqlite_state import SqliteState
 from vera.contracts.api import MessageRequest
 from vera.contracts.events import EventType
-from vera.contracts.interpretation import ClaimType
+from vera.contracts.handoff import Queue
+from vera.contracts.interpretation import ClaimType, DeclaredChannel
 from vera.core import flow
 from vera.core.events import reduce, verify_chain
 from vera.core.flow import Conversation
@@ -54,7 +55,7 @@ class World:
         )
 
     def chat(self, customer: str, *messages: str | int, conversation_id: str = "conv-1"):
-        greeting = self.conversation.start(Session(customer, conversation_id))
+        greeting = self.conversation.start(Session(customer, conversation_id)).reply
         return [greeting, *self.send(customer, *messages, conversation_id=conversation_id)]
 
     def send(self, customer: str, *messages: str | int, conversation_id: str = "conv-1"):
@@ -201,7 +202,7 @@ def test_a8_the_analyst_gets_what_is_known_and_the_registration_that_never_ran(w
         (("Me están obligando a hacer esto, pásame con una persona",), "coercion", "fraud", "POL-02"),
         (("Voy a poner una queja en la Superintendencia Financiera",), "regulator", "complaints", "POL-09"),
         (("Me llamaron del banco y les transferí dinero, me engañaron", "ayer"), "scam_transfer", "fraud", "POL-10"),
-        (("hola", "mmm", "no sé"), "not_understood", "complaints", "POL-05"),
+        (("hola", "mmm", "no sé", "eh"), "not_understood", "complaints", "POL-05"),
     ],
 )
 def test_every_transfer_without_a_case_leaves_the_analyst_a_note(world: World, messages, reason, queue, rule):
@@ -278,7 +279,8 @@ def test_portuguese_customer_is_answered_in_portuguese(world: World):
 
 
 def test_a_loop_of_unclear_messages_ends_with_a_person(world: World):
-    replies = world.chat(AR_01, "hola", "mmm", "no sé")
+    # The greeting is welcomed, not counted: three unclear messages after it lead to a person (POL-05).
+    replies = world.chat(AR_01, "hola", "mmm", "no sé", "eh")
     assert "persona" in replies[-1].reply
     assert world.state_of().step is Step.HANDED_OFF
 
@@ -520,3 +522,74 @@ def test_asking_about_vera_during_the_offer_is_answered_and_the_offer_stays(worl
     _, offer, answered = world.chat(CO_01, "Quiero hablar con una persona", "¿Eres un robot?")
     assert "inteligencia artificial" in answered.reply and answered.options == offer.options
     assert world.state_of().step is Step.PERSON_OFFERED
+
+
+# The voice of the brand: a menu, warm words that never repeat, and a lost card protected first
+
+
+def test_the_opening_offers_the_menu_of_what_vera_covers(world: World):
+    opening = world.conversation.start(Session(CO_01, "conv-1"))
+    assert [o.answer for o in opening.options] == [
+        "unrecognized_charge",
+        "improper_charge",
+        "lost_card",
+        "scam_transfer",
+        "human_request",
+    ]
+    assert "inteligencia artificial" in opening.reply and "una persona" in opening.reply
+
+
+def test_a_greeting_gets_warm_words_and_the_menu_never_the_same_words_twice(world: World):
+    replies = world.chat(CO_01, "Hola, necesito tu ayuda", "¿cómo estás?", "¿qué es esto?")
+    texts = [reply.reply for reply in replies[1:]]
+    assert len(set(texts)) == 3
+    assert all(reply.options[0].answer == "unrecognized_charge" for reply in replies[1:])
+    assert not any("saldo" in text or "¿Reconoce" in text for text in texts)
+    assert world.state_of().step is Step.ASK_CLAIM and world.state_of().attempts == 0
+
+
+def test_another_topic_at_the_opening_is_oriented_and_gets_the_menu(world: World):
+    reply = world.chat(CO_01, "¿Cuál es mi saldo?")[-1]
+    assert "saldo" in reply.reply and reply.options[2].answer == "lost_card"
+
+
+def test_a_button_of_the_menu_reads_as_the_claim(world: World):
+    world.chat(CO_01)
+    reply = world.conversation.reply(Session(CO_01, "conv-1"), MessageRequest(selected_option="unrecognized_charge"))
+    assert world.state_of().claim_type is ClaimType.UNRECOGNIZED_CHARGE and "juntos" in reply.reply
+
+
+def test_a_stolen_card_is_protected_first_and_its_movements_reviewed_together(world: World):
+    replies = world.chat(CO_01, "Me robaron la tarjeta", "sí")
+    offer, review = replies[1], replies[2]
+    assert offer.pending_confirmation.action == "block_card" and "•••• 4821" in offer.reply
+    assert "Lamento mucho" in offer.reply and world.state_of().step is Step.REVIEW
+    assert "quedó bloqueada" in review.reply and review.multiple_choice and review.options
+    registration = world.send(CO_01, review.options[0].n)[-1]
+    assert registration.pending_confirmation.action == "register_dispute"
+    done = world.send(CO_01, "sí")[-1]
+    assert "DSP-" in done.reply and world.state_of().queue is Queue.FRAUD
+
+
+def test_a_card_lost_from_the_menu_takes_the_same_path(world: World):
+    world.chat(CO_01)
+    reply = world.conversation.reply(Session(CO_01, "conv-1"), MessageRequest(selected_option="lost_card"))
+    assert reply.pending_confirmation.action == "block_card"
+
+
+def test_in_argentina_a_lost_card_is_blocked_only_if_the_customer_wants(world: World):
+    offer = world.chat(AR_01, "Perdí mi tarjeta")[-1]
+    assert offer.pending_confirmation.action == "block_card" and "Es decisión tuya" in offer.reply
+
+
+def test_recognizing_every_movement_after_the_block_opens_no_case(world: World):
+    replies = world.chat(CO_01, "Perdí mi tarjeta", "no", "todos")
+    assert "sigue activa" in replies[2].reply
+    assert "no hace falta abrir un reclamo" in replies[3].reply and world.state_of().step is Step.DONE
+
+
+def test_the_channel_question_accepts_not_sure(world: World):
+    channel = world.chat(CO_01, "No reconozco un cargo de Libreria Andina", "no")[-1]
+    assert "internet" in channel.reply and [o.answer for o in channel.options] == ["yes", "no", "not_sure"]
+    world.conversation.reply(Session(CO_01, "conv-1"), MessageRequest(selected_option="not_sure"))
+    assert world.state_of().declared_channel is DeclaredChannel.UNKNOWN

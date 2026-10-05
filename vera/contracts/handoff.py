@@ -175,6 +175,7 @@ class TransferReason(StrEnum):
     SCAM_TRANSFER = "scam_transfer"  # POL-10
     TOOL_FAILURE = "tool_failure"  # POL-13
     TURN_LIMIT = "turn_limit"  # the cap of turns per conversation
+    LOST_CARD = "lost_card"  # POL-06: a lost or stolen card without recent movements to identify it
 
 
 def _check_language(language: Language, variant: LanguageVariant, requires_pt_analyst: bool) -> None:

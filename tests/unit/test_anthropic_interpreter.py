@@ -129,7 +129,7 @@ def test_past_the_spending_cap_every_message_goes_to_the_fallback():
 
 
 def test_the_prompt_is_versioned_and_carries_no_secret():
-    assert PROMPT_VERSION == "interpreter-v3" and "record_interpretation" in PROMPT
+    assert PROMPT_VERSION == "interpreter-v4" and "record_interpretation" in PROMPT
     assert not re.search(r"sk-ant|api[_-]?key|[A-Za-z0-9_-]{40,}", PROMPT, re.IGNORECASE)
 
 

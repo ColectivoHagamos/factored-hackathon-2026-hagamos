@@ -60,6 +60,7 @@ def test_a_full_dispute_over_http(api):
     start = client.post("/v1/conversations", json={}, headers=headers).json()
     conversation = start["conversation_id"]
     assert "inteligencia artificial" in start["greeting"]
+    assert [option["answer"] for option in start["options"]][2] == "lost_card"
     for text in ("No reconozco un cargo de Libreria Andina", "no", "sí", "sí, la tengo", "todos"):
         say(client, headers, conversation, text=text)
     done = say(client, headers, conversation, selected_option="yes")
