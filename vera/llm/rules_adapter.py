@@ -102,6 +102,13 @@ LOST_CARD = (
     r"se me perdio (la|mi) tarjeta|me clonaron (la|mi) tarjeta|extravie (la|mi) tarjeta)",
     r"\b(roubaram (o |meu )?cartao|perdi (o |meu )?cartao|furtaram (o |meu )?cartao|clonaram (o |meu )?cartao)",
 )
+# Worry, fear, anger or frustration: VERA validates the emotion before the next step, and never argues with it.
+DISTRESS = (
+    r"\b(preocupad[oa]|asustad[oa]|desesperad[oa]|angustiad[oa]|nervios[oa]|estresad[oa]|indignad[oa]|furios[oa])",
+    r"\b(tengo miedo|me da miedo|que susto|estoy (muy )?mal|no se que hacer|no puede ser|es un abuso|es una verguenza|"
+    r"estoy hart[oa]|me siento (impotente|mal))",
+    r"\b(assustad[oa]|com medo|desesperad[oa]|nervos[oa]|irritad[oa]|que absurdo|nao sei o que fazer|estou mal)",
+)
 # Greetings, thanks, small talk and pleas for help: they say nothing of the claim yet, so VERA welcomes and orients.
 GREETING = (
     r"^\s*(hola|holi|buenas|buen dia|buenos dias|buenas tardes|buenas noches|hey|ola|oi|bom dia|boa tarde|boa noite)\b",
@@ -189,7 +196,8 @@ class RulesInterpreter:
             regulator_mentioned=_any(REGULATOR, text),
             pix_mentioned=_any(PIX, text),
             asks_if_human=asks_if_human,
-            greeting=_any(GREETING, text) and not confident,
+            greeting=_only_greeting(text) and not confident and amount is None,
+            distress=_any(DISTRESS, text),
             answer=Answer.YES if _any(YES, text) else Answer.NO if _any(NO, text) else Answer.NOT_SAID,
             selected_numbers=_numbers(text, context),
             language=language,
@@ -209,6 +217,14 @@ class RulesInterpreter:
             if _any(patterns, text):
                 return claim, True
         return ClaimType.UNRECOGNIZED_CHARGE, False
+
+
+def _only_greeting(text: str) -> bool:
+    """A greeting, thanks, small talk or a plea for help with little else; a message that says more is a claim."""
+    if not _any(GREETING, text):
+        return False
+    rest = re.sub("|".join(GREETING), " ", text)
+    return len(re.findall(r"[a-z]{3,}", rest)) <= 3
 
 
 def _first_match(pattern: str, text: str) -> str | None:

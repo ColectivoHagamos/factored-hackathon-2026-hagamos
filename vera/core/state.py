@@ -69,6 +69,8 @@ class FlowState(BaseModel):
     nudges: int = 0
     # A lost or stolen card is protected before anything else; its recent movements are reviewed afterwards.
     review_after_block: bool = False
+    # Times VERA validated the customer's emotion, so the words change each time.
+    calmed: int = 0
 
     def advance(self, **changes: object) -> "FlowState":
         """A new state with the given changes; a new question starts its own count of attempts (POL-05)."""

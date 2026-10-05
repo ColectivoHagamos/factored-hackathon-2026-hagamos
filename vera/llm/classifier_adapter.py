@@ -30,6 +30,8 @@ class ClassifierInterpreter:
             context.get("expecting") != "claim"
             or context.get("flagged")
             or reading.asks_if_human
+            # A greeting or a plea for help says nothing of the claim yet: a guess of the model would only mislead.
+            or reading.greeting
             or reading.claim_type is ClaimType.HUMAN_REQUEST
             or reading.coercion
         ):

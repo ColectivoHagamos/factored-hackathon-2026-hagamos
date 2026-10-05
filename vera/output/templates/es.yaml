@@ -19,6 +19,10 @@ templates:
   menu_scam: "Me engañaron para hacer una transferencia"
   menu_person: "Quiero hablar con una persona"
   not_sure: "No sé"
+  calm:
+    - "{Te} entiendo, y tiene todo el sentido sentirse así. Aquí estoy {contigo}: vamos paso a paso, y no daré nada por hecho sin verificarlo."
+    - "Entiendo que esto preocupa mucho. Lo estamos revisando juntos, y cada paso queda verificado y registrado."
+    - "Gracias por {tu} paciencia; sé que esto no es fácil. Sigamos juntos, un paso a la vez."
   empathy: "Entiendo, y lamento el mal rato: ver un cargo que no {reconoces} preocupa. Vamos a revisarlo juntos."
   lost_card_empathy: "Lamento mucho lo que pasó. Lo primero es proteger {tu} dinero; después revisamos juntos {tus} movimientos."
   lost_card_block: "¿Bloqueo ahora la tarjeta {card}? Así nadie más podrá usarla."
@@ -42,7 +46,7 @@ templates:
   ask_is_this_charge: "¿Es este el cobro que no corresponde?"
   ask_recognize: "¿Esto aclara {tu} duda? ¿{Reconoces} el cargo ahora?"
   recognized: "Qué bueno que se aclaró: entonces no hace falta abrir un reclamo."
-  ask_channel: "Gracias. Para orientar bien el caso: ¿la compra fue por internet?"
+  ask_channel: "Gracias. Con un par de preguntas armamos {tu} caso: ¿la compra fue por internet?"
   ask_card: "¿{Tienes} la tarjeta {contigo}?"
   sweep: "Ya revisé los demás movimientos de esa tarjeta desde ese día, para que no se nos escape nada. ¿{Reconoces} estos? {Marca} los que no {reconoces}, o {escribe} «todos» si los {reconoces}."
   offer_block: "Por seguridad, {te} recomiendo bloquear la tarjeta {card}; así nadie más podrá usarla. ¿{Confirmas} el bloqueo?"
@@ -87,5 +91,13 @@ templates:
   regulator: "Es {tu} derecho acudir a {venue}. Mientras tanto, paso el caso a un analista."
   tool_failure: "No pude completar la verificación en el sistema, así que no voy a dar nada por hecho. Paso el caso a un analista."
   repeat_case: "Ese cargo ya está en el reclamo {case_id}; no hace falta abrir otro."
+  after_handoff:
+    - "{Tu} caso ya está con una persona de nuestro equipo, que tiene todo lo que me {dijiste}. No {tienes} que repetir nada."
+    - "Sigo aquí. La persona que toma {tu} caso ya tiene toda la información y {te} contactará por los canales del banco."
+    - "Ya dejé todo listo para el analista. Si algo cambia, como un nuevo cargo, {cuentame} y lo sumo a la conversación."
+  after_done:
+    - "¿Hay algo más en lo que pueda ayudar{te}? Si es otro tema, {elige} una opción."
+    - "Aquí sigo por si {necesitas} algo más. {Puedes} elegir una de estas opciones."
+    - "Si apareció otro cargo o algo más, {cuentame} y lo revisamos juntos."
   closing: "Para cuidar {tu} tarjeta: {activa} las alertas de compra en la app, no {compartas} códigos y {revisa} los movimientos cada semana. Si {necesitas} algo más, aquí estoy, y {puedes} pedir hablar con una persona cuando {quieras}."
   confirm_options: "{Escribe} «sí» o «no»."

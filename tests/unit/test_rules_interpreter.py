@@ -195,7 +195,14 @@ def test_a_greeting_says_nothing_of_the_claim_yet(text: str):
     assert reading.greeting and reading.confidence < 0.6
 
 
-@pytest.mark.parametrize("text", ["Hola, ¿cuál es mi saldo?", "Hola, no reconozco un cargo de Uber"])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Hola, ¿cuál es mi saldo?",
+        "Hola, no reconozco un cargo de Uber",
+        "Buenas, me apareció un consumo de Taxi Seguro y yo no lo hice",
+    ],
+)
 def test_a_greeting_with_a_topic_is_read_as_the_topic(text: str):
     assert not read(text, expecting="claim").greeting
 
@@ -207,3 +214,14 @@ def test_a_lost_or_stolen_card_opens_a_dispute_without_the_card(text: str):
     reading = read(text, expecting="claim")
     assert reading.claim_type.value == "unrecognized_charge" and reading.confidence >= 0.6
     assert reading.has_card.value == "no" and not reading.greeting
+
+
+@pytest.mark.parametrize(
+    "text", ["Estoy desesperada", "tengo miedo de que sigan cobrando", "¡Esto es un abuso!", "Estou com medo"]
+)
+def test_worry_fear_or_anger_is_heard(text: str):
+    assert read(text, expecting="claim").distress
+
+
+def test_facts_alone_are_not_distress():
+    assert not read("No reconozco un cargo de Uber por 120.000", expecting="claim").distress

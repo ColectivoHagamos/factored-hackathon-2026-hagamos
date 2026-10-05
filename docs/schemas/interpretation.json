@@ -180,6 +180,11 @@
       "title": "Greeting",
       "type": "boolean"
     },
+    "distress": {
+      "default": false,
+      "title": "Distress",
+      "type": "boolean"
+    },
     "answer": {
       "$ref": "#/$defs/Answer",
       "default": "not_said"

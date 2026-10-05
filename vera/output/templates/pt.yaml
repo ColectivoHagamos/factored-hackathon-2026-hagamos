@@ -15,6 +15,10 @@ templates:
   menu_scam: "Me enganaram numa transferência"
   menu_person: "Quero falar com uma pessoa"
   not_sure: "Não sei"
+  calm:
+    - "Entendo você, e faz todo o sentido se sentir assim. Estou aqui com você: vamos passo a passo, e não vou dar nada como certo sem verificar."
+    - "Entendo que isso preocupa muito. Estamos verificando juntos, e cada passo fica conferido e registrado."
+    - "Obrigada pela sua paciência; sei que isso não é fácil. Vamos juntos, um passo de cada vez."
   empathy: "Entendo, e sinto muito pelo susto: ver uma cobrança que você não reconhece preocupa. Vamos verificar juntos."
   lost_card_empathy: "Sinto muito pelo que aconteceu. O primeiro passo é proteger o seu dinheiro; depois verificamos juntos os seus movimentos."
   lost_card_block: "Bloqueio agora o cartão {card}? Assim ninguém mais poderá usá-lo."
@@ -38,7 +42,7 @@ templates:
   ask_is_this_charge: "É esta a cobrança que não procede?"
   ask_recognize: "Isso esclarece a sua dúvida? Você reconhece a cobrança agora?"
   recognized: "Que bom que ficou claro: então não é preciso abrir uma reclamação."
-  ask_channel: "Obrigada. Para orientar bem o caso: a compra foi pela internet?"
+  ask_channel: "Obrigada. Com duas perguntas montamos o seu caso: a compra foi pela internet?"
   ask_card: "O cartão está com você?"
   sweep: "Já verifiquei os outros movimentos desse cartão desde aquele dia, para que nada escape. Você reconhece estes? Marque os que não reconhece, ou escreva «todos» se reconhecer."
   offer_block: "Por segurança, recomendo bloquear o cartão {card}; assim ninguém mais poderá usá-lo. Você confirma o bloqueio?"
@@ -83,5 +87,13 @@ templates:
   regulator: "É seu direito recorrer a {venue}. Enquanto isso, vou passar o caso a um analista."
   tool_failure: "Não consegui concluir a verificação no sistema, então não vou dar nada como feito. Vou passar o caso a um analista."
   repeat_case: "Essa cobrança já está na reclamação {case_id}; não é preciso abrir outra."
+  after_handoff:
+    - "O seu caso já está com uma pessoa da nossa equipe, que tem tudo o que você me contou. Você não precisa repetir nada."
+    - "Continuo aqui. A pessoa que assume o seu caso já tem todas as informações e vai entrar em contato pelos canais do banco."
+    - "Já deixei tudo pronto para o analista. Se algo mudar, como uma nova cobrança, me conte e eu acrescento à conversa."
+  after_done:
+    - "Posso ajudar com mais alguma coisa? Se for outro assunto, escolha uma opção."
+    - "Continuo aqui se você precisar de algo mais. Você pode escolher uma destas opções."
+    - "Se apareceu outra cobrança ou algo mais, me conte e verificamos juntos."
   closing: "Para proteger o seu cartão: ative os alertas de compra no app, não compartilhe códigos e confira os movimentos toda semana. Se precisar de algo mais, estou aqui, e você pode pedir para falar com uma pessoa quando quiser."
   confirm_options: "Escreva «sim» ou «não»."
