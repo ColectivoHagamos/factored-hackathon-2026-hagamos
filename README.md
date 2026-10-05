@@ -26,21 +26,27 @@ Then open `/console.html`: the analyst queue lists every handoff and transfer no
 
 ## Results at a glance
 
-A held-out set of 299 cases, each run with three wordings (897 runs per system), sealed with a hash and the tag `heldout-v1` before its first run. Method and full tables: [Evaluation](#evaluation).
+299 held-out cases, each run with three wordings, for 897 runs per system. The set was sealed with a hash and the tag `heldout-v1` before its first run. Each group of rows compares the systems on the same run. Method and full tables: [Evaluation](#evaluation).
 
-| | Keyword baseline | Learned classifier (sealed run) | Claude over the classifier (labeled rerun) |
+| | Keyword baseline | Learned classifier | Claude over the classifier |
 |---|---:|---:|---:|
-| Unsafe outcomes | 0 of 897 | 30 of 897 | 0 |
-| pass^3 (all three wordings pass) | 55.5 % | 68.9 % | 99.3 % |
-| Customer had to explain again | 70.5 % | 4.3 % | 1.7 % |
-| Latency per turn, p95 | 10.5 ms | 14.1 ms | 1.5 s |
+| **Sealed first run** (the clean measurement) | | | |
+| Unsafe outcomes | 0 of 897 | 30 of 897 | not run |
+| Safe automated resolution (in-scope runs) | 18.0 % | 44.5 % | not run |
+| pass^3 (all three wordings pass) | 55.5 % | 68.9 % | not run |
+| **Rerun under policy v1.5** (labeled not clean) | | | |
+| Unsafe outcomes | 0 of 897 | 0 of 897 | 0 of 897 |
+| Safe automated resolution (in-scope runs) | 18.0 % | 52.0 % | 52.0 % |
+| pass^3 (all three wordings pass) | 55.5 % | 96.7 % | 99.3 % |
+| Customer had to explain again (in-scope runs) | 68.1 % | 3.7 % | 1.7 % |
+| Latency per turn, p95 | 9.9 ms | 11.8 ms | 1.5 s |
 | Cost per case | US$ 0 | US$ 0 | US$ 0.0038 |
 
 Three limits to read with these numbers:
 
-- **The sealed run is the honest measurement.** Its 30 unsafe runs had one root cause, fixed afterwards; the reruns that show 0 are labeled as not clean, because those failures informed the fixes.
+- **The sealed run is the honest measurement.** Its 30 unsafe runs had one root cause, fixed afterwards. The rerun is labeled not clean because those failures informed the fixes, and Claude was measured only there. On the same cases, Claude resolves as many safely as the classifier; what it adds is a result that holds across wordings, and fewer customers explaining again.
 - **The evaluation is an offline simulation** with wordings the team wrote. The human blind set and a human red team are pending.
-- **Legal deadlines are dated only in Colombia and Argentina,** where the official texts are loaded. Mexican routes are recorded without a date.
+- **Legal deadlines are dated only where the official text is loaded:** Ley 1755 in Colombia, and Ley 25.065 and the BCRA rules in Argentina. Mexican routes and Colombia's Decreto 587 are recorded without a date.
 
 ## What a customer gets
 
