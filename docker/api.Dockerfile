@@ -30,6 +30,8 @@ COPY --from=build /app/.venv /app/.venv
 COPY vera ./vera
 COPY api ./api
 COPY ml ./ml
+# The pipeline's reports, for the page that shows reviewers where the data comes from.
+COPY docs/data_quality_report.json docs/demo_subset_report.json ./docs/
 COPY --from=web /web/dist ./web/dist
 USER vera
 EXPOSE 8000
