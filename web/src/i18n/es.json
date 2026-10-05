@@ -379,5 +379,16 @@
   "scenario.declined_purchase": "Compra rechazada",
   "scenario.reversed_purchase": "Compra revertida",
   "scenario.known_merchant_purchase": "Compra en un comercio habitual",
-  "chat.langNote": "VERA atiende a los clientes del banco en español y portugués, en el idioma de cada cliente."
+  "chat.langNote": "VERA atiende a los clientes del banco en español y portugués, en el idioma de cada cliente.",
+  "nav.results": "Resultados",
+  "home.results.eyebrow": "Resultados medidos",
+  "home.results.title": "Probada con 299 casos que nunca había visto.",
+  "home.results.sub": "Los casos se sellaron antes de la primera corrida y cada uno se presentó con tres redacciones, en español y portugués. Los mismos casos los atendió un asistente tradicional de reglas fijas. Es una simulación offline, no producción.",
+  "home.results.per100": "de cada 100",
+  "home.results.r1": "primeros contactos se resolvieron de forma segura, sin un asesor",
+  "home.results.r2": "clientes tuvieron que repetir su historia",
+  "home.results.r3": "casos que no necesitaban una persona terminaron transferidos",
+  "home.results.r4": "casos se enviaron a la cola equivocada",
+  "home.results.baseline": "Asistente tradicional: {n} de cada 100",
+  "home.results.note": "En la evaluación sellada, 3 de cada 100 conversaciones tuvieron un error que podía afectar al cliente o al banco. Se corrigieron y la segunda corrida dio 0, aunque ya no fue a ciegas. Con Claude, cada conversación cuesta US$ 0,0038 y el 95 % de los turnos responde en menos de 1,5 s. El método y las tablas completas están en el repositorio."
 }

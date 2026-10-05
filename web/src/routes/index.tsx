@@ -7,6 +7,7 @@ import { IconBox, STROKE } from "@/components/vera/ui";
 import { HagamosLogo, Leaves, Logo, SiteHeader, VAvatar } from "@/components/vera/brand";
 import { useT } from "@/i18n/useT";
 import { IntegrationSection } from "@/components/vera/integration";
+import { ResultsSection } from "@/components/vera/results";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -100,6 +101,7 @@ function Home() {
     ["#que-es", "nav.what"],
     ["#como-funciona", "nav.how"],
     ["#beneficios", "nav.benefits"],
+    ["#resultados", "nav.results"],
     ["#integracion", "nav.integration"],
     ["#casos", "nav.cases"],
   ];
@@ -244,6 +246,8 @@ function Home() {
           ))}
         </div>
       </section>
+
+      <ResultsSection />
 
       <IntegrationSection />
 
