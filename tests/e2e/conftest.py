@@ -3,8 +3,10 @@ application in memory with the mock adapter, at the simulated clock of the mock 
 
 import os
 import re
+from collections import defaultdict
 from collections.abc import Iterator
 from datetime import datetime
+from itertools import count
 
 import httpx2
 import pytest
@@ -35,25 +37,39 @@ def client(request) -> Iterator:
     yield TestClient(create_app(settings, build(settings, now=lambda: CLOCK)))
 
 
+# One login per deployment: the access token lasts eight hours, and the API allows ten logins a minute.
+_ACCESS: dict[str, dict] = {}
+_TURNS: defaultdict[str, Iterator[int]] = defaultdict(count)
+
+
 def access(client) -> dict:
-    """The login of the jury and the team; VERA_E2E_LOGIN ("user:password") opens a deployment that requires it."""
+    """The access login; VERA_E2E_LOGIN ("user:password") opens a deployment that requires it."""
     login = os.environ.get("VERA_E2E_LOGIN")
     if not login:
         return {}
-    username, password = login.split(":", 1)
-    response = client.post("/v1/auth/login", json={"username": username, "password": password})
-    assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['token']}"}
+    deployment = str(getattr(client, "base_url", id(client)))
+    if deployment not in _ACCESS:
+        username, password = login.split(":", 1)
+        response = client.post("/v1/auth/login", json={"username": username, "password": password})
+        assert response.status_code == 200, response.text
+        _ACCESS[deployment] = {"Authorization": f"Bearer {response.json()['token']}"}
+    return _ACCESS[deployment]
 
 
 class Customer:
     """A demo customer driving one conversation over HTTP."""
 
-    def __init__(self, client, scenario: str) -> None:
+    def __init__(self, client, scenario: str, ref: str | None = None) -> None:
         entry = access(client)
         demo = client.get("/v1/demo-customers", headers=entry)
         assert demo.status_code == 200
-        chosen = next(c for c in demo.json() if any(tag.split("_")[0] == scenario for tag in c["scenarios"]))
+        matching = [c for c in demo.json() if any(tag.split("_")[0] == scenario for tag in c["scenarios"])]
+        # Each scenario has up to three customers: taking turns keeps every customer under its message limit.
+        chosen = (
+            next(c for c in matching if c["customer_ref"] == ref)
+            if ref
+            else matching[next(_TURNS[scenario]) % len(matching)]
+        )
         session = client.post("/v1/demo-session", json={"demo_customer": chosen["customer_ref"]}, headers=entry)
         token = session.json()["token"]
         self.client = client
