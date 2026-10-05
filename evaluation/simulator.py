@@ -33,7 +33,7 @@ IS_THIS_THE_CHARGE = re.compile(r"Es este el cobro|É esta a cobrança")
 SCAM_QUESTION = re.compile(r"cuándo fue la transferencia|quando foi a transferência")
 PERSON_OFFER = re.compile(r"pase con una persona|passe a conversa para uma pessoa")
 # POL-01 (v1.5): before the transfer a customer asked for, VERA offers once to review the case first.
-REVIEW_FIRST = re.compile(r"conectar con un analista|conectar você com um analista")
+REVIEW_FIRST = re.compile(r"antes reviso|antes eu verifico")
 BACK_TO_QUESTION = re.compile(r"pregunta anterior|pergunta anterior")
 # The reasons of the opening menu: this customer writes its claim instead of pressing one.
 MENU_ANSWERS = frozenset({"unrecognized_charge", "improper_charge", "lost_card", "scam_transfer", "human_request"})
@@ -91,7 +91,8 @@ class Charges:
     def shown_in(self, ref: str, label: str) -> bool:
         merchant, amount, currency, occurred_at = self.by_ref[ref]
         pieces = (money(amount, Currency(currency)), f"{occurred_at:%H:%M}", merchant or "Ajuste")
-        return all(piece in label for piece in pieces)
+        # In a sentence VERA names a bank adjustment in lower case («el ajuste del banco»).
+        return all(piece.lower() in label.lower() for piece in pieces)
 
 
 def phrase(phrases: dict, name: str, language: str, variant: int, **values: str) -> str:

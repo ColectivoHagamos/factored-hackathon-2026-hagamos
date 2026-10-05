@@ -40,7 +40,7 @@ def test_the_button_is_the_claim_and_the_text_names_the_charge(client, language)
 def test_a_person_asked_for_in_the_text_wins_over_the_button(client):
     headers, conversation = open_conversation(client)
     reply = say(client, headers, conversation, text="Quiero hablar con una persona", intent="unrecognized_charge")
-    assert reply.charge is None and "analista" in reply.reply.lower()
+    assert reply.charge is None and "antes reviso" in reply.reply.lower()
 
 
 def test_an_intent_needs_the_text_that_names_the_charge(client):

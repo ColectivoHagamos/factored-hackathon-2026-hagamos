@@ -12,10 +12,11 @@ def test_a6_portuguese_from_start_to_handoff_for_a_charge_in_sao_paulo(client):
     customer = Customer(client, "A6")
     assert customer.country == "CO"
     receipt = customer.choose(customer.say(text="Não reconheço uma cobrança em São Paulo"), "São Paulo")
-    assert "Situação" in receipt["reply"] and "São Paulo" in receipt["reply"]
+    assert "reconhece a cobrança" in receipt["reply"] and "São Paulo" in receipt["reply"]
 
     offer = customer.dispute(receipt, has_card=False, block="no")
-    assert offer["pending_confirmation"]["action"] == "register_dispute" and "Você confirma" in offer["reply"]
+    assert offer["pending_confirmation"]["action"] == "register_dispute"
+    assert "Registro a sua reclamação" in offer["reply"]
     done = customer.say(selected_option="yes")
 
     case_id = CASE_ID.search(done["reply"]).group(0)
