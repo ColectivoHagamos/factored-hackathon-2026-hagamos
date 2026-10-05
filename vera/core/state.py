@@ -71,6 +71,8 @@ class FlowState(BaseModel):
     review_after_block: bool = False
     # Times VERA validated the customer's emotion, so the words change each time.
     calmed: int = 0
+    # An improper charge that is a purchase charged twice: the search looks at purchases, and the reason is duplicate.
+    duplicate: bool = False
 
     def advance(self, **changes: object) -> "FlowState":
         """A new state with the given changes; a new question starts its own count of attempts (POL-05)."""
