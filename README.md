@@ -48,6 +48,10 @@ Three limits to read with these numbers:
 - **The evaluation is an offline simulation** with wordings the team wrote. The human blind set and a human red team are pending.
 - **Legal deadlines are dated only where the official text is loaded:** Ley 1755 in Colombia, and Ley 25.065 and the BCRA rules in Argentina. Mexican routes and Colombia's Decreto 587 are recorded without a date.
 
+## Why disputes
+
+In the LATAM Bank data, disputes (unrecognized and improper charges) are 24,491 of 67,095 complaints (36.5 %). One in five missed its service deadline, they took 15.5 days to resolve on average, and half arrived through the call center. The complaints cannot be traced to their charges, so VERA asks the customer which one, and the evaluation is built on transactions. The figures, how they were computed and a yearly projection, labeled as such, are in the [business case](docs/business_case.md).
+
 ## What a customer gets
 
 | Situation | What VERA does |
@@ -157,7 +161,7 @@ Configuration comes from environment variables, all optional; `.env.example` lis
 | `pipeline/` | Bronze, silver and gold layers, the pseudonymized demo subset and the freshness fixture |
 | `ml/` · `evaluation/` | The learned classifier; the sealed held-out evaluation |
 | `docker/` · `deploy/` | Images, production compose with Caddy, deployment with rollback |
-| `docs/` | ADRs, model card, datasheet, data quality and freshness, evaluation reports, operations and the publication audit |
+| `docs/` | ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations and the publication audit |
 | `tests/` | Unit, contract, property, architecture and end-to-end tests (A1 to A10 over HTTP, in memory with both interpreters or against the deployment) |
 
 ## Data
