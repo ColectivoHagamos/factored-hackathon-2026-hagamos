@@ -24,5 +24,6 @@ The public demo reads with a paid language model under a spending cap of US$ 15.
 ## Consequences
 
 - The jury needs the credentials from the submission email; the README says so.
+- Since [ADR 0007](0007-session-tokens-are-json-web-tokens.md), the access token is a JSON Web Token.
 - The end-to-end suite logs in against a closed deployment with `VERA_E2E_LOGIN`.
 - A real deployment would replace the accounts with the bank's identity provider, as SECURITY.md states.
