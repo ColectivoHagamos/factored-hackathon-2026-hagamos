@@ -190,6 +190,11 @@
       "title": "Duplicate",
       "type": "boolean"
     },
+    "blocked": {
+      "default": false,
+      "title": "Blocked",
+      "type": "boolean"
+    },
     "answer": {
       "$ref": "#/$defs/Answer",
       "default": "not_said"

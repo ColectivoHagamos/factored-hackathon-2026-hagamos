@@ -271,7 +271,7 @@ def test_coercion_with_a_request_for_a_person_transfers_at_once(world: World):
 
 def test_out_of_scope_is_oriented_without_opening_anything(world: World):
     _, reply = world.chat(CO_01, "¿Cuál es mi saldo?")
-    assert "saldo" in reply.reply and world.state_of().step is Step.ASK_CLAIM
+    assert "banca en línea" in reply.reply and world.state_of().step is Step.ASK_CLAIM
 
 
 def test_portuguese_customer_is_answered_in_portuguese(world: World):
@@ -356,7 +356,7 @@ def test_a9_two_charges_of_the_same_merchant_are_listed_and_the_customer_chooses
     _, listed, aside, unclear, chosen = world.chat(CO_02, "No reconozco el cargo de Uber", "¿y mi saldo?", "no sé", 2)
     assert len(listed.options) == 2 and all("Uber" in option.label for option in listed.options)
     assert any(entry.rule_id == "POL-05" for entry in listed.glass_box) and "¿Reconoce" not in listed.reply
-    assert "saldo" in aside.reply and "pregunta anterior" in aside.reply and aside.options == listed.options
+    assert "banca en línea" in aside.reply and "pregunta anterior" in aside.reply and aside.options == listed.options
     assert unclear.options == listed.options
     assert listed.options[1].label in chosen.reply and "¿Reconoce el cargo" in chosen.reply
 
@@ -551,7 +551,7 @@ def test_a_greeting_gets_warm_words_and_the_menu_never_the_same_words_twice(worl
 
 def test_another_topic_at_the_opening_is_oriented_and_gets_the_menu(world: World):
     reply = world.chat(CO_01, "¿Cuál es mi saldo?")[-1]
-    assert "saldo" in reply.reply and reply.options[2].answer == "lost_card"
+    assert "banca en línea" in reply.reply and reply.options[2].answer == "lost_card"
 
 
 def test_a_button_of_the_menu_reads_as_the_claim(world: World):

@@ -15,6 +15,7 @@ from vera.contracts.interpretation import Answer, ClaimType, Interpretation
 from vera.core.state import FlowState, Step
 from vera.core.steps.actions import ActionSteps
 from vera.core.steps.base import INTENT_CLAIMS, MAX_TURNS, VARIANTS, Turn, is_aside, overrides_the_button
+from vera.core.steps.blocked import BlockedSteps
 from vera.core.steps.charges import ChargeSteps
 from vera.core.steps.claim import ClaimSteps
 from vera.core.steps.handoff import HandoffSteps
@@ -35,7 +36,9 @@ STAGES: dict[Step, Stage] = {
 }
 
 
-class Conversation(SafetySteps, PersonSteps, ClaimSteps, LostCardSteps, ChargeSteps, ActionSteps, HandoffSteps):
+class Conversation(
+    SafetySteps, PersonSteps, ClaimSteps, BlockedSteps, LostCardSteps, ChargeSteps, ActionSteps, HandoffSteps
+):
     """One conversation of a dispute: start, reply and history. Each turn runs the steps of vera/core/steps."""
 
     def start(
@@ -158,6 +161,7 @@ class Conversation(SafetySteps, PersonSteps, ClaimSteps, LostCardSteps, ChargeSt
             Step.SCAM_DETAILS: self._on_scam_details,
             Step.CHOOSE_CARD: self._on_choose_card,
             Step.REVIEW: self._on_review,
+            Step.BLOCKED_OFFER: self._on_blocked_offer,
         }
         handler = handlers.get(turn.state.step)
         if handler is None:
