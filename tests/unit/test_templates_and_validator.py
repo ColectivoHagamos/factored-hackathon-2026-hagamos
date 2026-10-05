@@ -25,6 +25,8 @@ VALUES = {
     "what": "responder el reclamo",
     "route": "Reversión del pago",
     "venue": "la Superintendencia Financiera",
+    "time": "21:00",
+    "charge": "el cargo de Uber por COP 120.000 del 14 de junio de 2026 a las 21:00",
 }
 ALLOWED = frozenset({"COP 120.000", "COP 185.000"})
 

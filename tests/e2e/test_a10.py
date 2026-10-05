@@ -11,7 +11,7 @@ from tests.e2e.conftest import CASE_ID, Customer, analyst_view
 def test_a10_an_improper_bank_charge_is_identified_registered_and_sent_to_complaints(client):
     customer = Customer(client, "A10")
     receipt = customer.choose(customer.say(text="Me cobraron un ajuste que no corresponde"), "Ajuste")
-    assert "Ajuste del banco" in receipt["reply"] and "POL-11" in customer.rules()
+    assert "ajuste del banco" in receipt["reply"].lower() and "POL-11" in customer.rules()
 
     confirm = customer.say(selected_option="yes")
     assert confirm["pending_confirmation"]["action"] == "register_dispute"

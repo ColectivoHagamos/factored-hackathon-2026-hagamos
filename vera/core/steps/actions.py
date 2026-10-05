@@ -83,9 +83,8 @@ class ActionSteps(FlowSupport):
         confirmation = self._tools.confirm(turn.session, "register_dispute", args)
         args = args.model_copy(update={"confirmation_token": confirmation.token})
         shown = " + ".join(self._money(turn, m) for m in exposure)
-        turn.lines.append(
-            self._text(turn, "confirm_register", charges=charges_text(turn, len(details)), exposure=shown)
-        )
+        template = "confirm_register_one" if len(details) == 1 else "confirm_register"
+        turn.lines.append(self._text(turn, template, charges=charges_text(turn, len(details)), exposure=shown))
         self._yes_no(turn)
         turn.pending = PendingConfirmation(
             action="register_dispute", summary=shown, expires_at=aware(confirmation.expires_at)
@@ -96,6 +95,8 @@ class ActionSteps(FlowSupport):
 
     def _on_register(self, turn: Turn, reading: Interpretation) -> None:
         if reading.answer is Answer.NO:
+            # The customer's decision is acknowledged before the closing advice.
+            turn.lines.append(self._text(turn, "register_skipped"))
             turn.lines.append(self._text(turn, "closing"))
             turn.state = turn.state.advance(step=Step.DONE, pending_tool=None, pending_arguments=None)
             return

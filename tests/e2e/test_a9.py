@@ -9,8 +9,14 @@ from tests.e2e.conftest import Customer
 
 
 def merchant_of(label: str) -> str:
-    """Merchant of an option label such as «14 de junio de 2026, 13:48: Uber, Bogota, COP 65.000. ...»."""
-    return label.split(": ", 1)[1].split(",")[0]
+    """Merchant of an option label such as «Uber, Bogota · COP 65.000 · 14 de junio de 2026, 13:48 · aprobado»."""
+    return label.split(" · ")[0].split(",")[0]
+
+
+def when_of(label: str) -> str:
+    """The day and time of an option label, as VERA says them in a sentence («del 14 de junio de 2026 a las 13:48»)."""
+    date, time = label.split(" · ")[2].split(", ")
+    return f"del {date} a las {time}"
 
 
 def test_a9_the_customer_chooses_and_a_side_question_does_not_cut_the_flow(client):
@@ -29,6 +35,7 @@ def test_a9_the_customer_chooses_and_a_side_question_does_not_cut_the_flow(clien
     assert "banca en línea" in aside["reply"] and aside["options"] == listed["options"]
 
     chosen = customer.say(selected_option=same[1]["n"])
-    # The chosen charge, and nothing else, is shown and asked about (the wording follows the country).
-    assert same[1]["label"] in chosen["reply"] and same[0]["label"] not in chosen["reply"]
+    # The chosen charge, and nothing else, is named and asked about, without reading back the label just pressed.
+    assert when_of(same[1]["label"]) in chosen["reply"] and when_of(same[0]["label"]) not in chosen["reply"]
+    assert same[1]["label"] not in chosen["reply"]
     assert [option["answer"] for option in chosen["options"]] == ["yes", "no"]
