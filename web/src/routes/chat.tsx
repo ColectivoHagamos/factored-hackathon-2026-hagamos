@@ -49,7 +49,7 @@ const YESNO = new Set(["yes", "no", "not_sure"]);
 
 function Chat() {
   const ready = useRequire("customer");
-  const { t, locale } = useT();
+  const { t, lang, locale } = useT();
   const navigate = useNavigate();
   const { msg: initialMsg, intent } = Route.useSearch();
   const customer = session.getMeta<DemoCustomer>("customer");
@@ -379,6 +379,8 @@ function Chat() {
               </div>
             </form>
             <p className="mt-2 text-center text-[11px] text-muted-foreground">{t("chat.disclaimer")}</p>
+            {/* The page reads in English; VERA itself serves the bank's customers in Spanish and Portuguese. */}
+            {lang === "en" && <p className="mt-1 text-center text-[11px] text-muted-foreground">{t("chat.langNote")}</p>}
           </div>
         </div>
       </main>
