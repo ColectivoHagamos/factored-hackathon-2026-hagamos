@@ -112,7 +112,7 @@ class Customer:
         return reply
 
     def dispute(self, reply: dict, *, has_card: bool = True, swept: str = "todos", block: str = "no") -> dict:
-        """From «¿Reconoce el cargo?»: not recognized and bought online, then the card, the sweep and the block as
+        """From «¿Lo reconoce?»: not recognized and bought online, then the card, the sweep and the block as
         given. Returns the reply that asks to confirm the registration, or the last one when none does."""
         reply = self.say(selected_option="no")
         for _ in range(6):
@@ -130,7 +130,7 @@ class Customer:
         return reply
 
     def deny_until_registration(self, reply: dict) -> dict:
-        """From «¿Reconoce el cargo?»: not recognized, bought online, card at hand, every swept charge, no block."""
+        """From «¿Lo reconoce?»: not recognized, bought online, card at hand, every swept charge, no block."""
         return self.dispute(reply)
 
 

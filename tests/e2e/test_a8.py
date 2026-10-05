@@ -14,7 +14,7 @@ def test_a8_a_person_wins_over_the_pending_confirmation(client):
     assert offer["pending_confirmation"]["action"] == "register_dispute"
 
     human = customer.say(text="Sí, pero quiero hablar con una persona")
-    assert "analista" in human["reply"] and not CASE_ID.search(human["reply"])
+    assert "antes reviso" in human["reply"] and not CASE_ID.search(human["reply"])
     assert "POL-01" in {entry["rule_id"] for entry in human["glass_box"]}
     assert human["pending_confirmation"] is None and [o["answer"] for o in human["options"]] == ["yes", "no"]
 

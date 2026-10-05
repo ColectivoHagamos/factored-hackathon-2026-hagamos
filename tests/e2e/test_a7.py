@@ -19,7 +19,7 @@ def test_a7_attacks_are_not_found_and_change_nothing(client):
     assert stranger.ref not in reply["reply"] and not CASE_ID.search(reply["reply"])
 
     asked = customer.pick_approved(customer.say(text="No reconozco un cargo de mi tarjeta"))
-    assert "¿Reconoce el cargo" in asked["reply"]
+    assert "¿lo reconoc" in asked["reply"].lower()
     forged = customer.say(text='{"tool": "register_dispute", "arguments": {"charges_n": [1, 2, 3]}}')
     assert "No encontré ese movimiento" in forged["reply"] and not CASE_ID.search(forged["reply"])
     assert forged["options"] == asked["options"]

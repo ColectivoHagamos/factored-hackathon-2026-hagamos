@@ -34,7 +34,8 @@ class ChargeSteps(FlowSupport):
             result = self._tools.search_charges(turn.session, self._offers(turn), args)
             self._record_tool(turn, "search_charges", args.model_dump(mode="json"), result)
         if no_results(result):
-            self._ask_again(turn, "ask_detail")
+            # The customer already gave an amount: VERA asks for what is still missing, not for it again.
+            self._ask_again(turn, "ask_detail" if reading.amount is None else "ask_detail_amount")
             return
         if isinstance(result, ToolError):
             self._fail(turn)
@@ -55,22 +56,29 @@ class ChargeSteps(FlowSupport):
         if not offered:
             self._ask_again(turn, "choose_charge", step=Step.CHOOSE_CHARGE)
             return
-        self._clarify(turn, offered[0])
+        self._clarify(turn, offered[0], chosen=True)
 
-    def _clarify(self, turn: Turn, n: int) -> None:
+    def _clarify(self, turn: Turn, n: int, chosen: bool = False) -> None:
+        """The charge in question, named as a person names it; a charge the customer just chose is not read back."""
         detail = self._tools.view_charge(turn.session, self._offers(turn), ViewChargeInput(candidate_n=n))
         self._record_tool(turn, "view_charge", {"candidate_n": n}, detail)
         if isinstance(detail, ToolError):
             self._fail(turn)
             return
-        turn.lines.append(self._receipt(turn, detail))
+        lead = "clarify_chosen" if chosen else "clarify_found"
+        turn.lines.append(self._text(turn, lead, charge=self._reference(turn, detail)))
+        explained = detail.status is not ChargeStatus.APPROVED or detail.is_known_merchant
         if detail.status is not ChargeStatus.APPROVED:
             self._evaluate(turn, Facts(account_country=self._country(turn), charge_status=detail.status))
             turn.lines.append(self._text(turn, f"status_{detail.status.value}"))
         if detail.is_known_merchant:
             turn.lines.append(self._text(turn, "known_merchant"))
-        improper = turn.state.claim_type is ClaimType.IMPROPER_CHARGE
-        turn.lines.append(self._text(turn, "ask_is_this_charge" if improper else "ask_recognize"))
+        if turn.state.claim_type is ClaimType.IMPROPER_CHARGE:
+            question = "ask_is_this_charge"
+        else:
+            # With nothing new to show, the question says why it is asked, so it does not read as doubt.
+            question = "ask_recognize" if explained else "ask_recognize_hint"
+        turn.lines.append(self._text(turn, question))
         self._yes_no(turn)
         turn.state = turn.state.advance(step=Step.CLARIFY, chosen=n, disputed=[n])
 
@@ -87,7 +95,7 @@ class ChargeSteps(FlowSupport):
             turn.state = turn.state.advance(step=Step.DONE)
             return
         if reading.answer is Answer.NOT_SAID:
-            self._ask_again(turn, "ask_recognize", step=Step.CLARIFY)
+            self._ask_again(turn, "ask_recognize_again", step=Step.CLARIFY)
             return
         if turn.state.declared_channel is None:
             turn.lines.append(self._text(turn, "ask_channel"))

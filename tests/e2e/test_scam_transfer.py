@@ -10,7 +10,7 @@ from tests.e2e.conftest import CASE_ID, Customer, analyst_get
 def test_a_scam_gets_its_key_questions_and_goes_to_fraud_with_the_answers(client):
     customer = Customer(client, "A5")
     asked = customer.say(text="Transferí plata a una cuenta que me dieron por teléfono y era una estafa")
-    assert "¿cuándo fue la transferencia" in asked["reply"] and "POL-10" in customer.rules()
+    assert "cuándo fue la transferencia" in asked["reply"] and "POL-10" in customer.rules()
     answered = customer.say(text="Fue ayer por la tarde")
     assert "contracargo" in answered["reply"] and not CASE_ID.search(answered["reply"])
 

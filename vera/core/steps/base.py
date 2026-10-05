@@ -160,6 +160,17 @@ class FlowSupport:
         status = status_word(charge.status, language)
         return self._text(turn, "receipt", date=when, merchant=place, amount=amount, status=status)
 
+    def _reference(self, turn: Turn, charge: Candidate) -> str:
+        """The charge as a person names it in a sentence: what, how much, and the day and time."""
+        language = language_of(turn.state.variant)
+        amount = money(charge.amount, charge.currency)
+        turn.amounts.add(amount)
+        when = {"date": day(charge.occurred_at.date(), language), "time": f"{charge.occurred_at:%H:%M}"}
+        if not charge.merchant:
+            return self._text(turn, f"charge_{charge.kind.value}", amount=amount, **when)
+        place = f"{charge.merchant} ({charge.city})" if charge.city else charge.merchant
+        return self._text(turn, "charge_named", merchant=place, amount=amount, **when)
+
     def _money(self, turn: Turn, value: Money) -> str:
         text = money(value.amount, value.currency)
         turn.amounts.add(text)
@@ -224,7 +235,12 @@ class FlowSupport:
             turn.lines.append(self._text(turn, "handoff_unclear"))
             self._hand_off(turn, evaluation.queue or Queue.COMPLAINTS, TransferReason.NOT_UNDERSTOOD)
             return
-        turn.lines.append(self._text(turn, template, pick=attempts - 1))
+        pick = attempts - 1
+        previous = turn.asked.data.get("text", "") if turn.asked else ""
+        if self._text(turn, template, pick=pick) in previous:
+            # A question asked again comes back in other words when the template has them.
+            pick += 1
+        turn.lines.append(self._text(turn, template, pick=pick))
         if step in (None, turn.state.step):
             self._show_again(turn)
         turn.state = turn.state.advance(attempts=attempts, step=step or turn.state.step)

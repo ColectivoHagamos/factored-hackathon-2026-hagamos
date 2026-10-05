@@ -12,7 +12,7 @@ def test_a2_a_pending_charge_is_explained_and_nothing_is_opened(client):
     customer = Customer(client, "A2")
     listed = customer.say(text="No reconozco un cargo de mi tarjeta")
     receipt = customer.choose(listed, "pendiente")
-    assert "Estado: pendiente" in receipt["reply"] and "todavía está pendiente" in receipt["reply"]
+    assert "todavía está pendiente" in receipt["reply"] and "¿lo reconoc" in receipt["reply"].lower()
     assert "POL-04" in customer.rules()
 
     done = customer.say(selected_option="yes")
