@@ -1,0 +1,24 @@
+{
+  "additionalProperties": false,
+  "description": "The access of the jury and the team to the demo, so nobody else spends the language model.",
+  "properties": {
+    "username": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Username",
+      "type": "string"
+    },
+    "password": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Password",
+      "type": "string"
+    }
+  },
+  "required": [
+    "username",
+    "password"
+  ],
+  "title": "LoginRequest",
+  "type": "object"
+}

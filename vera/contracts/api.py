@@ -1,13 +1,25 @@
 """Request and response bodies of the HTTP API /v1."""
 
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Literal, Self, get_args
 
 from pydantic import AwareDatetime, StringConstraints, model_validator
 
 from vera.contracts.cases import Case
-from vera.contracts.common import CandidateNumber, Contract, Identifier, Language, PolicyRuleId, ShortText
+from vera.contracts.charges import ChargeKind, ChargeStatus
+from vera.contracts.common import (
+    Amount,
+    CandidateNumber,
+    Contract,
+    Country,
+    Currency,
+    Identifier,
+    Language,
+    MaskedCard,
+    PolicyRuleId,
+    ShortText,
+)
 from vera.contracts.handoff import Action, Handoff, Queue, Transfer
 from vera.contracts.legal import RouteId
 
@@ -19,6 +31,20 @@ INTENTS: tuple[str, ...] = get_args(Intent)
 OptionAnswer = Literal[
     "yes", "no", "not_sure", "unrecognized_charge", "improper_charge", "lost_card", "scam_transfer", "human_request"
 ]
+
+
+class LoginRequest(Contract):
+    """The access of the jury and the team to the demo, so nobody else spends the language model."""
+
+    username: Annotated[str, StringConstraints(min_length=1, max_length=64)]
+    password: Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class LoginResponse(Contract):
+    token: str
+    expires_at: AwareDatetime
+    display_name: ShortText
+    role: Literal["tester"]
 
 
 class DemoSessionRequest(Contract):
@@ -76,6 +102,22 @@ class GlassBoxEntry(Contract):
     deadline: date | None = None
 
 
+# Where the dispute stands, in the five states of the brand: received, analysis, verification, result, resolved.
+Stage = Literal["received", "analysis", "verification", "result", "resolved"]
+
+
+class ChargeSummary(Contract):
+    """The charge in question, read from the tools, for the panel beside the conversation."""
+
+    merchant: ShortText | None = None
+    city: ShortText | None = None
+    amount: Amount
+    currency: Currency
+    occurred_at: datetime
+    status: ChargeStatus
+    card: MaskedCard | None = None
+
+
 class MessageResponse(Contract):
     reply: str
     options: tuple[Option, ...] = ()
@@ -83,6 +125,41 @@ class MessageResponse(Contract):
     multiple_choice: bool = False
     pending_confirmation: PendingConfirmation | None = None
     glass_box: tuple[GlassBoxEntry, ...] = ()
+    stage: Stage = "received"
+    charge: ChargeSummary | None = None
+    case_id: Identifier | None = None
+
+
+class CardView(Contract):
+    masked: MaskedCard
+    type: Literal["credit", "debit"]
+    status: Literal["active", "blocked"]
+
+
+class MeResponse(Contract):
+    """The demo customer as the bank's app would show it; the name is invented, as the subset holds none."""
+
+    display_name: ShortText
+    first_name: ShortText
+    alias: ShortText
+    country: Country
+    segment: ShortText
+    language: Language
+    cards: tuple[CardView, ...] = ()
+
+
+class Movement(Contract):
+    """A movement of the session customer, newest first, so the person testing knows what to dispute."""
+
+    occurred_at: datetime
+    kind: ChargeKind
+    merchant: ShortText | None = None
+    city: ShortText | None = None
+    country: ShortText | None = None
+    amount: Amount
+    currency: Currency
+    status: ChargeStatus
+    card: MaskedCard | None = None
 
 
 class CaseView(Contract):

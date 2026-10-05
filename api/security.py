@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 SESSION_TTL = timedelta(minutes=15)
+# The access of the jury and the team lasts a working session; each demo customer session still lasts 15 minutes.
+ACCESS_TTL = timedelta(hours=8)
 
 
 class InvalidSessionError(Exception):
@@ -28,8 +30,8 @@ class SessionSigner:
         self._secret = secret.encode()
         self._now = now
 
-    def issue(self, subject: str, role: str = "customer") -> str:
-        expires_at = self._now() + SESSION_TTL
+    def issue(self, subject: str, role: str = "customer", ttl: timedelta = SESSION_TTL) -> str:
+        expires_at = self._now() + ttl
         payload = json.dumps({"sub": subject, "role": role, "exp": int(expires_at.timestamp())}, separators=(",", ":"))
         body = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
         return f"{body}.{self._sign(body)}"

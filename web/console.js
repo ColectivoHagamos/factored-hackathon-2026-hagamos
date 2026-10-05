@@ -3,9 +3,20 @@
 const $ = (id) => document.getElementById(id);
 let token = null;
 
+// The access of the jury and the team, from the login of the chat page, when the deployment requires one.
+function access() {
+  try {
+    return sessionStorage.getItem("vera.access");
+  } catch {
+    return null;
+  }
+}
+
 async function analystToken() {
   if (!token) {
-    const response = await fetch("/v1/demo-analyst-session", { method: "POST" });
+    const headers = access() ? { Authorization: `Bearer ${access()}` } : {};
+    const response = await fetch("/v1/demo-analyst-session", { method: "POST", headers });
+    if (response.status === 401) throw new Error("Inicie sesión en la página del chat para abrir la consola.");
     token = (await response.json()).token;
   }
   return token;

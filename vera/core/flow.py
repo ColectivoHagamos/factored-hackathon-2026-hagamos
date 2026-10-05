@@ -11,7 +11,15 @@ from decimal import Decimal
 
 from pydantic import JsonValue
 
-from vera.contracts.api import GlassBoxEntry, MessageRequest, MessageResponse, Option, PendingConfirmation
+from vera.contracts.api import (
+    ChargeSummary,
+    GlassBoxEntry,
+    MessageRequest,
+    MessageResponse,
+    Option,
+    PendingConfirmation,
+    Stage,
+)
 from vera.contracts.cases import Case, DisputeReason
 from vera.contracts.charges import Candidate, ChargeDetail, ChargeKind, ChargeStatus, FraudScoreBand
 from vera.contracts.common import Country, Language, Money
@@ -86,6 +94,14 @@ INTENT_CLAIMS = {
 }
 # A lost or stolen card: the most recent movements shown once the card is protected.
 REVIEW_LIMIT = 8
+# The five states of the brand for the panel beside the conversation; a step not listed is a verification.
+STAGES: dict[Step, Stage] = {
+    Step.CHOOSE_CHARGE: "analysis",
+    Step.CLARIFY: "analysis",
+    Step.CHOOSE_CARD: "analysis",
+    Step.HANDED_OFF: "result",
+    Step.DONE: "resolved",
+}
 
 
 @dataclass
@@ -929,6 +945,22 @@ class Conversation:
         turn.amounts.add(text)
         return text
 
+    def _charge_in_question(self, turn: Turn) -> ChargeSummary | None:
+        state = turn.state
+        n = state.chosen if state.chosen is not None else next(iter(state.disputed), None)
+        detail = self._detail(turn, n)
+        if detail is None:
+            return None
+        return ChargeSummary(
+            merchant=detail.merchant,
+            city=detail.city,
+            amount=detail.amount,
+            currency=detail.currency,
+            occurred_at=detail.occurred_at,
+            status=detail.status,
+            card=detail.card,
+        )
+
     def _case_cards(self, turn: Turn) -> list[str]:
         details = [self._detail(turn, n) for n in turn.state.disputed]
         return [d.card for d in details if d is not None and d.card]
@@ -1120,6 +1152,9 @@ class Conversation:
             multiple_choice=turn.multiple_choice,
             pending_confirmation=turn.pending,
             glass_box=tuple(turn.glass_box),
+            stage=_stage(turn.state),
+            charge=self._charge_in_question(turn),
+            case_id=turn.state.case_id,
         )
         self._record(
             turn,
@@ -1132,6 +1167,12 @@ class Conversation:
             },
         )
         return response
+
+
+def _stage(state: FlowState) -> Stage:
+    if state.step is Step.ASK_CLAIM:
+        return "analysis" if state.claim_type else "received"
+    return STAGES.get(state.step, "verification")
 
 
 def _no_results(result: object) -> bool:

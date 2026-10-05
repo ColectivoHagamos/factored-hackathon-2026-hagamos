@@ -58,6 +58,7 @@ Manual rollback, on the server: `cd /opt/vera && DOMAIN=vera.colectivohagamos.co
 | `DEPLOY_KNOWN_HOSTS` | Output of `ssh-keyscan -t ed25519 <host>`, checked against the server fingerprint |
 | `SESSION_SECRET` | Random value, for example `openssl rand -hex 32` |
 | `VERA_ANALYST_KEY` | Optional. Empty keeps the demo analyst view open for reviewers; a value requires the `X-Analyst-Key` header |
+| `VERA_TESTERS` | Accounts of the jury and the team, as `user:hash,user:hash`. Each entry comes from `python -m api.access <user>`, which reads the password without echo and prints only its salted hash. Empty keeps the demo without a login |
 
 ## Checks after the first deployment
 
