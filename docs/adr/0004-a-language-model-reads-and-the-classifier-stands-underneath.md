@@ -1,6 +1,6 @@
 # ADR 0004 · A language model reads, and the classifier stands underneath
 
-**Date:** 2026-10-04 · **Status:** accepted; measured once the API key exists
+**Date:** 2026-10-04 · **Status:** accepted; measured on 4 October, and deployed
 
 ## Context
 
