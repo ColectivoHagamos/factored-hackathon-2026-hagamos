@@ -27,7 +27,7 @@ export const Route = createFileRoute("/analista")({
 });
 
 const SECTIONS = ["declared_by_customer", "actions", "legal_clock", "network_clock", "risk_signals", "open_questions"] as const;
-const HEAD = ["summary", "claim_type", "reason", "verified_facts", "charges", "suggested_queue", "stage"];
+const HEAD = ["summary", "claim_type", "reason", "verified_facts", "charges", "suggested_queue", "stage", "policy_version", "trace_id"];
 
 function useLabels() {
   const { t, lang } = useT();
@@ -147,6 +147,19 @@ function Detail({ d, kind }: { d: Record<string, unknown>; kind: QueueItem["kind
             <div>
               <dt className="text-xs text-muted-foreground">{t("analyst.legalDue")}</dt>
               <dd className="mt-0.5 font-medium">{dateLong(due, locale)}</dd>
+            </div>
+          )}
+          {/* Governance in sight: which policy decided, and the trace that ties every event of the case. */}
+          {typeof d.policy_version === "string" && (
+            <div>
+              <dt className="text-xs text-muted-foreground">{L.key("policy_version")}</dt>
+              <dd className="mt-0.5 font-medium tabular-nums">{d.policy_version}</dd>
+            </div>
+          )}
+          {typeof d.trace_id === "string" && (
+            <div>
+              <dt className="text-xs text-muted-foreground">{L.key("trace_id")}</dt>
+              <dd className="mt-0.5 truncate font-medium tabular-nums" title={d.trace_id}>{d.trace_id}</dd>
             </div>
           )}
         </dl>
