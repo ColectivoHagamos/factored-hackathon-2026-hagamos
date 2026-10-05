@@ -257,10 +257,13 @@ function Home() {
           </h2>
           <ul className="mt-8 max-w-md space-y-3">
             {cases.map(({ icon: Icon, k }) => (
-              <li key={k} className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-sm font-medium shadow-soft">
-                <IconBox icon={Icon} />
-                <span className="flex-1">{t(`home.${k}`)}</span>
-                <ChevronRight className="size-4 text-muted-foreground" strokeWidth={STROKE} aria-hidden />
+              <li key={k}>
+                {/* Each use case opens the demo, where a walkthrough shows it with a real customer. */}
+                <Link to="/login" className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-sm font-medium shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+                  <IconBox icon={Icon} />
+                  <span className="flex-1">{t(`home.${k}`)}</span>
+                  <ChevronRight className="size-4 text-muted-foreground" strokeWidth={STROKE} aria-hidden />
+                </Link>
               </li>
             ))}
           </ul>
