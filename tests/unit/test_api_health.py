@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app
+from api.schemas import HealthResponse
 from api.settings import Settings
-from vera.contracts.api import HealthResponse
 
 
 def client(**settings: str) -> TestClient:

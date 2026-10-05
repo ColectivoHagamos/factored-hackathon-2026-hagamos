@@ -1,6 +1,6 @@
 {
   "additionalProperties": false,
-  "description": "The access of the jury and the team to the demo, so nobody else spends the language model.",
+  "description": "The access to the demo, so nobody without an account spends the language model.",
   "properties": {
     "username": {
       "maxLength": 64,

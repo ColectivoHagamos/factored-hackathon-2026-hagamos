@@ -178,7 +178,8 @@ Configuration comes from environment variables, all optional; `.env.example` lis
 | `vera/tools` | The tools, scoped to the session customer, behind the action gate |
 | `vera/gateway` · `vera/llm` | Masking and injection signals; the rules, classifier and Claude interpreters, and the versioned prompt |
 | `vera/output` | Spanish and Portuguese templates, reply validator and handoff |
-| `api/` · `web/` | HTTP API `/v1`, which also serves the built web; the web in React and TypeScript: product page, login, demo customers, bank, chat with its dispute tracker and glass box, analyst console ([ADR 0006](docs/adr/0006-the-api-serves-a-built-web.md)) |
+| `api/` | The HTTP adapter in layers ([ADR 0008](docs/adr/0008-the-api-adapter-in-layers.md)): routers (controllers), services (use cases without the web framework), guards (sessions), schemas (HTTP bodies), the application factory and the composition root |
+| `web/` | The product web in React and TypeScript, served by the API: product page, login, demo customers, bank, chat with its dispute tracker and glass box, analyst console ([ADR 0006](docs/adr/0006-the-api-serves-a-built-web.md)) |
 | `pipeline/` | Bronze, silver and gold layers, the pseudonymized demo subset and the freshness fixture |
 | `ml/` · `evaluation/` | The learned classifier; the sealed held-out evaluation |
 | `docker/` · `deploy/` | Images, production compose with Caddy, deployment with rollback |

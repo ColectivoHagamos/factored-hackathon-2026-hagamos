@@ -7,9 +7,10 @@ from fastapi.testclient import TestClient
 
 from api.dependencies import build
 from api.main import create_app
+from api.schemas import ApiError
 from api.settings import Settings
 from vera.adapters.mock_bank import CLOCK
-from vera.contracts.api import ApiError, MessageResponse
+from vera.contracts.conversation import MessageResponse
 from vera.contracts.handoff import Handoff
 
 CO_01, CO_02 = "CUS-MOCK00000000001", "CUS-MOCK00000000002"

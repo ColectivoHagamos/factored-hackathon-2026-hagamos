@@ -13,7 +13,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from vera.contracts import api, cases, charges, events, handoff, interpretation, legal
+from api import schemas as http
+from vera.contracts import cases, charges, conversation, events, handoff, interpretation, legal
 from vera.contracts.tools import TOOL_INPUTS, TOOL_OUTPUTS, ToolError
 
 TARGET = Path(__file__).resolve().parents[1] / "docs" / "schemas"
@@ -30,21 +31,21 @@ MODELS: dict[str, type[BaseModel]] = {
     "tool_error": ToolError,
     **{f"tool_{name}_input": model for name, model in TOOL_INPUTS.items()},
     **{f"tool_{name}_output": model for name, model in TOOL_OUTPUTS.items()},
-    "api_login_request": api.LoginRequest,
-    "api_login_response": api.LoginResponse,
-    "api_demo_session_request": api.DemoSessionRequest,
-    "api_demo_session_response": api.DemoSessionResponse,
-    "api_start_conversation_request": api.StartConversationRequest,
-    "api_start_conversation_response": api.StartConversationResponse,
-    "api_message_request": api.MessageRequest,
-    "api_message_response": api.MessageResponse,
-    "api_me_response": api.MeResponse,
-    "api_movement": api.Movement,
-    "api_case_view": api.CaseView,
-    "api_health_response": api.HealthResponse,
-    "api_metrics_response": api.MetricsResponse,
-    "api_queue_item": api.QueueItem,
-    "api_error": api.ApiError,
+    "api_login_request": http.LoginRequest,
+    "api_login_response": http.LoginResponse,
+    "api_demo_session_request": http.DemoSessionRequest,
+    "api_demo_session_response": http.DemoSessionResponse,
+    "api_start_conversation_request": http.StartConversationRequest,
+    "api_start_conversation_response": http.StartConversationResponse,
+    "api_message_request": conversation.MessageRequest,
+    "api_message_response": conversation.MessageResponse,
+    "api_me_response": http.MeResponse,
+    "api_movement": http.Movement,
+    "api_case_view": http.CaseView,
+    "api_health_response": http.HealthResponse,
+    "api_metrics_response": http.MetricsResponse,
+    "api_queue_item": http.QueueItem,
+    "api_error": http.ApiError,
 }
 
 

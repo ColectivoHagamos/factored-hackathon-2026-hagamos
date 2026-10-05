@@ -34,6 +34,9 @@ class Container:
     settings: Settings
     state: SqliteState
     customers: CustomersPort
+    # The cards and movements of the session customer, as the bank's app shows them.
+    cards: CardsPort
+    transactions: TransactionsPort
     tools: ToolService
     conversation: Conversation
     signer: SessionSigner
@@ -43,9 +46,6 @@ class Container:
     degraded: bool = False
     # Calls, tokens and spending of the language model, when one is in use (P41).
     llm_usage: Callable[[], dict] | None = None
-    # The cards and movements of the session customer, as the bank's app shows them.
-    cards: CardsPort | None = None
-    transactions: TransactionsPort | None = None
 
 
 def wall_clock() -> datetime:
@@ -142,5 +142,16 @@ def build(
     signer = SessionSigner(settings.session_secret, expiry)
     usage = interpreter.spending.snapshot if isinstance(interpreter, AnthropicInterpreter) else None
     return Container(
-        settings, state, bank, tools, conversation, signer, now, interpreter.name, degraded, usage, bank, bank
+        settings=settings,
+        state=state,
+        customers=bank,
+        cards=bank,
+        transactions=bank,
+        tools=tools,
+        conversation=conversation,
+        signer=signer,
+        now=now,
+        interpreter=interpreter.name,
+        degraded=degraded,
+        llm_usage=usage,
     )
