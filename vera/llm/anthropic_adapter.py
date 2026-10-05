@@ -203,5 +203,8 @@ def _with_safety_floor(reading: Interpretation, floor: Interpretation) -> Interp
             "authorized_payment": floor.authorized_payment if authorized is Answer.NOT_SAID else authorized,
             "date_text": reading.date_text or floor.date_text,
             "contact_channel": reading.contact_channel or floor.contact_channel,
+            # POL-06: the model may say the customer lacks the card, which leads to protection, but not that the
+            # customer has it unless the words say so: a wrong yes would skip the question and the block offer.
+            "has_card": floor.has_card if reading.has_card is Answer.YES else reading.has_card,
         }
     )
