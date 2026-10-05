@@ -1,5 +1,34 @@
 # VERA · dispute assistant for LATAM Bank
 
+<div align="center">
+
+<a href="https://vera.colectivohagamos.com"><img src="docs/images/vera_cover.png" width="90%" alt="VERA, the dispute assistant of LATAM Bank: the product page with the chat"/></a>
+
+<br/><br/>
+
+[![Live demo](https://img.shields.io/badge/Live%20demo-vera.colectivohagamos.com-0F5C5A)](https://vera.colectivohagamos.com)
+[![Factored AI & Data Hackathon 2026](https://img.shields.io/badge/Factored-AI%20%26%20Data%20Hackathon%202026-123A3A)](https://factored.ai)
+[![CI](https://github.com/HagamosES/factored-hackathon-2026-hagamos/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/HagamosES/factored-hackathon-2026-hagamos/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-709%20Python%20%C2%B7%2021%20web-2E8B57)](#evaluation)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-3DA639)](LICENSE)
+
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](#run-it)
+[![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)](#how-it-works)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](web/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](web/)
+[![Claude](https://img.shields.io/badge/Claude-Haiku%204.5-D97757?logo=anthropic&logoColor=white)](docs/adr/0004-a-language-model-reads-and-the-classifier-stands-underneath.md)
+[![DuckDB](https://img.shields.io/badge/DuckDB-read--only-FFF000?logo=duckdb&logoColor=black)](#data)
+[![SQLite](https://img.shields.io/badge/SQLite-event%20log-003B57?logo=sqlite&logoColor=white)](#how-it-works)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docs/deployment.md)
+[![AWS](https://img.shields.io/badge/AWS-EC2-FF9900)](docs/deployment.md)
+[![Languages](https://img.shields.io/badge/Languages-ES%20%C2%B7%20PT-0F5C5A)](#what-a-customer-gets)
+
+**[Try the live demo](https://vera.colectivohagamos.com)** · [How it works](#how-it-works) · [Architecture](#the-architecture-in-seven-drawings) · [Evaluation](docs/evaluation/README.md) · [Security](SECURITY.md)
+
+</div>
+
+---
+
 **VERA** handles the first contact of a card dispute at **LATAM Bank**, the synthetic bank of the Factored AI & Data Hackathon 2026: customers in Mexico, Colombia and Argentina, in Spanish and Portuguese. The name comes from *verificación*, and it is also what VERA does:
 
 - it **V**erifies the charge against the records before it acts;
