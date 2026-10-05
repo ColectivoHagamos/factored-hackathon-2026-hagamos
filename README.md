@@ -7,7 +7,7 @@
 - it **R**ecords the case and reads it back before it says it is done;
 - it **A**ccompanies the customer, with a person always available.
 
-**Demo:** https://vera.colectivohagamos.com, live since 4 October 2026, with Claude reading over the classifier. The customer chat is at `/`, the analyst console at `/console.html`. The demo customers are pseudonymized: nothing there is a real person.
+**Demo:** https://vera.colectivohagamos.com, live since 4 October 2026, with Claude reading over the classifier; the end-to-end suite passes against it ([final verification](docs/final_verification.md)). The customer chat is at `/`, the analyst console at `/console.html`. The demo customers are pseudonymized: nothing there is a real person.
 
 ## Try it in two minutes
 
@@ -173,7 +173,7 @@ Configuration comes from environment variables, all optional; `.env.example` lis
 | `pipeline/` | Bronze, silver and gold layers, the pseudonymized demo subset and the freshness fixture |
 | `ml/` · `evaluation/` | The learned classifier; the sealed held-out evaluation |
 | `docker/` · `deploy/` | Images, production compose with Caddy, deployment with rollback |
-| `docs/` | ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations and the publication audit |
+| `docs/` | ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations, deployment, the publication audit and the final verification |
 | `tests/` | Unit, contract, property, architecture and end-to-end tests (A1 to A10 over HTTP, in memory with both interpreters or against the deployment) |
 
 ## Data

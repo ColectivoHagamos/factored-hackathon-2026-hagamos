@@ -64,3 +64,5 @@ Manual rollback, on the server: `cd /opt/vera && DOMAIN=vera.colectivohagamos.co
 - `dig +short vera.colectivohagamos.com` returns the Elastic IP.
 - `curl -I https://vera.colectivohagamos.com/v1/health` answers 200 with a valid certificate.
 - `docker exec <api container> env` shows no cloud credentials, and `docker history` of the image shows no data copied.
+
+The checks made before the submission, with the end-to-end suite against the URL, are in [the final verification](final_verification.md).
