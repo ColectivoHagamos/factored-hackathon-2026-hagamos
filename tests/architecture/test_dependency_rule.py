@@ -69,3 +69,46 @@ def test_domain_does_not_import_infrastructure():
         if (found := forbidden_imports(path.read_text(encoding="utf-8")))
     }
     assert violations == {}, f"The domain imports infrastructure: {violations}"
+
+
+# The HTTP adapter has layers of its own (ADR 0008): use cases stay free of the web framework, and controllers stay
+# thin, reaching no adapter, no store and no language model.
+WEB_FRAMEWORK = {"fastapi", "starlette", "uvicorn"}
+INFRASTRUCTURE = {
+    "duckdb",
+    "sqlite3",
+    "anthropic",
+    "openai",
+    "sklearn",
+    "vera.adapters",
+    "vera.llm",
+    "api.dependencies",
+}
+
+
+def imports_in(folder: str, names: set[str]) -> dict[str, list[str]]:
+    """The files under a folder that import any of the given modules, with what they import."""
+    return {
+        str(path.relative_to(ROOT)): sorted(found)
+        for path in (ROOT / folder).rglob("*.py")
+        if (
+            found := {
+                m
+                for m in imported_modules(path.read_text(encoding="utf-8"))
+                if any(m == n or m.startswith(n + ".") for n in names)
+            }
+        )
+    }
+
+
+def test_use_cases_do_not_import_the_web_framework():
+    assert imports_in("api/services", WEB_FRAMEWORK) == {}
+
+
+def test_controllers_reach_no_adapter_or_infrastructure():
+    assert imports_in("api/routers", INFRASTRUCTURE) == {}
+
+
+def test_the_layer_check_finds_what_a_folder_imports():
+    # Positive control: the routers do import the web framework, so the check is not silently empty.
+    assert imports_in("api/routers", WEB_FRAMEWORK)
