@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/api/client";
 import { Leaves, SiteHeader } from "@/components/vera/brand";
 import { session } from "@/lib/session";
@@ -29,6 +29,12 @@ function Login() {
   const [pass, setPass] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // Someone already inside goes straight to the demo customers instead of logging in again.
+  useEffect(() => {
+    const access = session.getToken("access");
+    if (access && !access.expired && !expired) navigate({ to: "/clientes", replace: true });
+  }, [navigate, expired]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
