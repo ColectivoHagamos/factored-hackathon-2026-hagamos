@@ -19,8 +19,6 @@ def test_a_scam_gets_its_key_questions_and_goes_to_fraud_with_the_answers(client
     note = analyst_get(client, f"/v1/transfers/{item['reference']}")
     assert (note["reason"], note["suggested_queue"]) == ("scam_transfer", "fraud")
     declared = note["declared_by_customer"]
-    assert (declared["authorized_payment"], declared["date_text"], declared["contacted_by"]) == (
-        "yes",
-        "ayer",
-        "phone_call",
-    )
+    assert (declared["authorized_payment"], declared["contacted_by"]) == ("yes", "phone_call")
+    # The customer's own words: the rules keep "ayer", a language model may keep "ayer por la tarde".
+    assert declared["date_text"].startswith("ayer")
