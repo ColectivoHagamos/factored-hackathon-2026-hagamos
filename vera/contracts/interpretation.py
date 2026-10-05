@@ -65,6 +65,8 @@ class Interpretation(Contract):
     greeting: bool = False
     # Worry, fear, anger or frustration in the customer's words: VERA validates the emotion before going on.
     distress: bool = False
+    # The customer says the same purchase was charged more than once: a duplicate, not a charge they disown.
+    duplicate: bool = False
     # Answer to the yes-or-no question asked in the previous turn, and option numbers the customer referred to.
     answer: Answer = Answer.NOT_SAID
     selected_numbers: tuple[Annotated[int, Field(ge=1, le=50)], ...] = ()

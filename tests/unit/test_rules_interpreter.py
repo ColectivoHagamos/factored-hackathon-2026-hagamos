@@ -225,3 +225,22 @@ def test_worry_fear_or_anger_is_heard(text: str):
 
 def test_facts_alone_are_not_distress():
     assert not read("No reconozco un cargo de Uber por 120.000", expecting="claim").distress
+
+
+@pytest.mark.parametrize(
+    ("text", "language"),
+    [
+        ("Me cobraron dos veces la misma compra en Uber", "es"),
+        ("Tengo un cobro duplicado de Uber", "es"),
+        ("Fui cobrado duas vezes pela mesma compra no Uber", "pt"),
+    ],
+)
+def test_a_purchase_charged_twice_is_an_improper_charge_and_a_duplicate(text: str, language: str):
+    reading = RULES.interpret(text, {})
+    assert reading.claim_type == "improper_charge" and reading.duplicate and reading.confidence >= 0.85
+    assert reading.language == language and reading.merchant_text == "Uber"
+
+
+@pytest.mark.parametrize("text", ["Me cobraron una comisión que no corresponde", "No reconozco un cargo de Uber"])
+def test_other_claims_are_not_duplicates(text: str):
+    assert not RULES.interpret(text, {}).duplicate

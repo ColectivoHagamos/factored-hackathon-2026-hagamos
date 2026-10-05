@@ -18,7 +18,7 @@ from vera.contracts.interpretation import Answer, ClaimType, ContactChannel, Dec
 from vera.llm.rules_adapter import RulesInterpreter
 from vera.ports.interpreter import InterpreterPort
 
-PROMPT_VERSION = "interpreter-v5"
+PROMPT_VERSION = "interpreter-v6"
 PROMPT = (Path(__file__).parent / "prompts" / f"{PROMPT_VERSION}.md").read_text(encoding="utf-8")
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 TOOL = "record_interpretation"
@@ -82,6 +82,7 @@ TOOL_DEFINITION = {
             "asks_if_human": {"type": "boolean"},
             "greeting": {"type": "boolean"},
             "distress": {"type": "boolean"},
+            "duplicate": {"type": "boolean"},
             "answer": _enum(Answer),
             "selected_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 50}},
             "language": _enum(Language),
@@ -200,6 +201,7 @@ def _with_safety_floor(reading: Interpretation, floor: Interpretation) -> Interp
             "greeting": reading.greeting or floor.greeting,
             # An emotion either reader heard is validated; validating one more time costs nothing.
             "distress": reading.distress or floor.distress,
+            "duplicate": reading.duplicate or floor.duplicate,
             # POL-10: what the customer says about a payment made under deception goes to Fraud, so a fact the rules
             # heard is kept when the model is silent. The purchase channel and the card are left alone: they steer
             # the flow, and there the model's silence is a reason to ask.

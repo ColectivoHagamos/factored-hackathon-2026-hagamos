@@ -82,6 +82,12 @@ def test_the_safety_words_underneath_are_a_floor_the_model_can_only_add_to():
     assert reading.regulator_mentioned and messages.requests
 
 
+def test_a_duplicate_the_model_did_not_mark_is_kept_from_underneath():
+    unmarked = {"claim_type": "improper_charge", "answer": "not_said", "language": "es", "confidence": 0.9}
+    reading = AnthropicInterpreter(FakeMessages(reply(unmarked))).interpret("Me cobraron dos veces en Uber", CLAIM)
+    assert reading.duplicate and "duplicate" in TOOL_DEFINITION["input_schema"]["properties"]
+
+
 def test_a_fact_of_a_scam_the_model_left_unsaid_is_kept_from_underneath_for_fraud():
     scam = {"claim_type": "scam_transfer", "answer": "not_said", "language": "es", "confidence": 0.9}
     text = "Ayer transferí plata a una cuenta que me dieron por teléfono y era una estafa"
@@ -142,7 +148,7 @@ def test_past_the_spending_cap_every_message_goes_to_the_fallback():
 
 
 def test_the_prompt_is_versioned_and_carries_no_secret():
-    assert PROMPT_VERSION == "interpreter-v5" and "record_interpretation" in PROMPT
+    assert PROMPT_VERSION == "interpreter-v6" and "record_interpretation" in PROMPT
     assert not re.search(r"sk-ant|api[_-]?key|[A-Za-z0-9_-]{40,}", PROMPT, re.IGNORECASE)
 
 

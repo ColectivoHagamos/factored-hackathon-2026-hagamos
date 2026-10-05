@@ -185,6 +185,11 @@
       "title": "Distress",
       "type": "boolean"
     },
+    "duplicate": {
+      "default": false,
+      "title": "Duplicate",
+      "type": "boolean"
+    },
     "answer": {
       "$ref": "#/$defs/Answer",
       "default": "not_said"
