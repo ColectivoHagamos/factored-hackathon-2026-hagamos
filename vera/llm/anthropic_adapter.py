@@ -50,6 +50,7 @@ QUESTIONS = {
     "scam_details": "when the transfer was made and how the third party contacted the customer",
     "choose_card": "which of the listed cards the customer lost or had stolen",
     "review": "the numbers of the listed recent movements the customer does NOT recognize, «todos» or «ninguno»",
+    "blocked_offer": "whether to pass the customer now to a person of the Fraud team who can review the block",
 }
 
 logger = logging.getLogger("vera.llm")
@@ -83,6 +84,11 @@ TOOL_DEFINITION = {
             "greeting": {"type": "boolean"},
             "distress": {"type": "boolean"},
             "duplicate": {"type": "boolean"},
+            "blocked": {
+                "type": "boolean",
+                "description": "True when the customer asks why the bank declined a payment or blocked the card. "
+                "False for a request to block a card.",
+            },
             "answer": _enum(Answer),
             "selected_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 50}},
             "language": _enum(Language),
@@ -202,6 +208,8 @@ def _with_safety_floor(reading: Interpretation, floor: Interpretation) -> Interp
             # An emotion either reader heard is validated; validating one more time costs nothing.
             "distress": reading.distress or floor.distress,
             "duplicate": reading.duplicate or floor.duplicate,
+            # A declined payment or a blocked card the rules heard: VERA looks at the movements, Claude or not.
+            "blocked": reading.blocked or floor.blocked,
             # POL-10: what the customer says about a payment made under deception goes to Fraud, so a fact the rules
             # heard is kept when the model is silent. The purchase channel and the card are left alone: they steer
             # the flow, and there the model's silence is a reason to ask.
