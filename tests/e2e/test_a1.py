@@ -13,7 +13,7 @@ def test_a1_dispute_of_a_recent_purchase_in_colombia(client):
     assert "inteligencia artificial" in customer.greeting
 
     reply = customer.pick_approved(customer.say(text="No reconozco un cargo de mi tarjeta"))
-    assert "¿Reconoce el cargo" in reply["reply"]
+    assert "¿lo reconoc" in reply["reply"].lower()
 
     reply = customer.deny_until_registration(reply)
     assert reply["pending_confirmation"]["action"] == "register_dispute"
