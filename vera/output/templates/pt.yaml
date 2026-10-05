@@ -73,6 +73,7 @@ templates:
   scam_handoff: "Obrigada por me contar. Vou passar o caso para a nossa equipe de fraudes agora mesmo, e um analista vai entrar em contato com você; você não precisa repetir o que já me contou. Uma transferência não tem estorno como uma compra com cartão: a equipe vai analisar o que pode ser feito."
   scam_again: "Pode me dizer quando foi a transferência e por qual meio entraram em contato com você?"
   improper: "Obrigada por avisar. Vou identificar a cobrança para que a equipe de reclamações a analise; eles decidem se procede."
+  duplicate: "Entendo: uma cobrança repetida não deveria estar aí. Procuro as compras desse estabelecimento para que a equipe de reclamações analise a que sobra; eles decidem se procede."
   not_found: "Não encontrei esse movimento entre os seus."
   ask_claim_again: "Pode me contar o que aconteceu com o seu cartão ou a sua conta?"
   back_to_question: "Vamos voltar à pergunta anterior."

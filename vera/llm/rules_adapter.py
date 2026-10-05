@@ -33,6 +33,9 @@ PORTUGUESE = (
     r"\bontem\b",
     r"\bestou\b",
     r"\bfiz\b",
+    r"\bduas\b",
+    r"\bvezes\b",
+    r"\bpela\b",
     r"\bfalar com\b",
     r"\bpessoa\b",
     r"\bum\b",
@@ -74,7 +77,14 @@ SCAM = (
     r"\b(me enganaron|estafa|estafaron|me estafaron|hice una transferencia|transferi|deposite a|golpe|me enganaram)",
     r"\b(fraude telefonic|me llamaron del banco|me pidieron la clave)",
 )
+# A purchase charged more than once (folded text: no accents, lower case).
+DUPLICATE = (
+    r"\b(dos veces|doble cobro|cobro doble|me cobraron doble|cobrado doble|me la cobraron de nuevo)",
+    r"\b(cobro duplicado|cargo duplicado|compra duplicada|cargo repetido|cobro repetido|compra repetida)",
+    r"\b(duas vezes|em dobro|cobranca duplicada|cobranca repetida|compra duplicada)",
+)
 IMPROPER = (
+    *DUPLICATE,
     r"\b(cobro indebido|me cobraron (una |un )?(comision|cuota|cargo del banco|seguro)|cuota de manejo|ajuste)",
     r"\b(cobrado dos veces|cobro duplicado|me cobraron de mas|monto incorrecto|cobranca indevida|tarifa)",
 )
@@ -198,6 +208,7 @@ class RulesInterpreter:
             asks_if_human=asks_if_human,
             greeting=_only_greeting(text) and not confident and amount is None,
             distress=_any(DISTRESS, text),
+            duplicate=_any(DUPLICATE, text),
             answer=Answer.YES if _any(YES, text) else Answer.NO if _any(NO, text) else Answer.NOT_SAID,
             selected_numbers=_numbers(text, context),
             language=language,
