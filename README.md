@@ -23,13 +23,13 @@
 [![AWS](https://img.shields.io/badge/AWS-EC2-FF9900)](docs/deployment.md)
 [![Languages](https://img.shields.io/badge/Languages-ES%20%C2%B7%20PT-0F5C5A)](#what-a-customer-gets)
 
-**[Try the live demo](https://vera.colectivohagamos.com)** · [Pitch video](https://youtu.be/Rq_p005Vod4) · [How it works](#how-it-works) · [Architecture](#the-architecture-in-seven-drawings) · [Evaluation](docs/evaluation/README.md) · [Security](SECURITY.md)
+**[Try the live demo](https://vera.colectivohagamos.com)** · [Pitch video](https://www.youtube.com/watch?v=Rq_p005Vod4) · [How it works](#how-it-works) · [Architecture](#the-architecture-in-seven-drawings) · [Evaluation](docs/evaluation/README.md) · [Security](SECURITY.md)
 
 <br/>
 
-<a href="https://youtu.be/Rq_p005Vod4"><img src="docs/images/pitch_cover.jpg" width="70%" alt="The 3-minute pitch of VERA, with English subtitles: open the video"/></a>
+<a href="https://www.youtube.com/watch?v=Rq_p005Vod4"><img src="docs/images/pitch_cover.jpg" width="70%" alt="The 3-minute pitch of VERA, with English subtitles: open the video"/></a>
 
-<sub>The 3-minute pitch on <a href="https://youtu.be/Rq_p005Vod4">YouTube</a>, with English subtitles.</sub>
+<sub>The 3-minute pitch on <a href="https://www.youtube.com/watch?v=Rq_p005Vod4">YouTube</a>, with English subtitles.</sub>
 
 </div>
 
