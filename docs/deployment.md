@@ -6,12 +6,14 @@ The public demo runs at **https://vera.colectivohagamos.com** on one small serve
 
 1. A pull request from `qa` to `production` passes the full CI (lint, tests, publication check, image build and container health).
 2. The push to `production` runs `.github/workflows/cd.yml`:
-   - builds the image and pushes it to `ghcr.io/hagamoses/vera-api:<sha>`;
+   - builds the image and pushes it to `ghcr.io/colectivohagamos/vera-api:<sha>`;
    - copies `deploy/docker-compose.prod.yml`, `deploy/Caddyfile` and `deploy/deploy.sh` to `/opt/vera`;
    - writes `/opt/vera/.env` from the repository secrets, sent over standard input with permissions 600;
    - runs `deploy.sh <sha>`, which pulls the image, starts the stack and waits for the container health check. If the check fails within two minutes, it restores the previous tag;
    - checks `https://vera.colectivohagamos.com/v1/health` from the outside.
 3. Images are built only in GitHub Actions, never on the server.
+
+The repository moved from `HagamosES` to the `ColectivoHagamos` organization on 5 October 2026, and the image with it, to `ghcr.io/colectivohagamos/vera-api`. On the first deployment after the move, `deploy.sh` gives the running image the new name, so a rollback still finds it on the server.
 
 **The server.** VERA owns ports 80 and 443: Caddy redirects `http://` to `https://` and obtains the certificate. The compose project `vera` lives in `/opt/vera`, with memory limits of 300 MB for the API (measured: about 155 MB idle and 170 MB after ten conversations) and 64 MB for Caddy. Both carry `oom_score_adj: 500`, so that if the server ever hosts something else and runs out of memory, the kernel stops VERA first.
 - The image is private: the job's short-lived token pulls it, with a Docker configuration of its own in `/opt/vera/.docker`.

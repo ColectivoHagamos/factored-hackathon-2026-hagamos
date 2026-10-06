@@ -8,7 +8,7 @@
 
 [![Live demo](https://img.shields.io/badge/Live%20demo-vera.colectivohagamos.com-0F5C5A)](https://vera.colectivohagamos.com)
 [![Factored AI & Data Hackathon 2026](https://img.shields.io/badge/Factored-AI%20%26%20Data%20Hackathon%202026-123A3A)](https://factored.ai)
-[![CI](https://github.com/HagamosES/factored-hackathon-2026-hagamos/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/HagamosES/factored-hackathon-2026-hagamos/actions/workflows/ci.yml)
+[![CI](https://github.com/ColectivoHagamos/factored-hackathon-2026-hagamos/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/ColectivoHagamos/factored-hackathon-2026-hagamos/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-709%20Python%20%C2%B7%2021%20web-2E8B57)](#evaluation)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-3DA639)](LICENSE)
 
