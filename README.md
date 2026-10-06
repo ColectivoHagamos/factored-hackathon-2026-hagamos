@@ -29,7 +29,7 @@
 
 <a href="https://youtu.be/Rq_p005Vod4"><img src="docs/images/pitch_cover.jpg" width="70%" alt="The 3-minute pitch of VERA, with English subtitles: open the video"/></a>
 
-<sub>The 3-minute pitch on <a href="https://youtu.be/Rq_p005Vod4">YouTube</a>, with English subtitles; the 4K file is attached to the <a href="https://github.com/ColectivoHagamos/factored-hackathon-2026-hagamos/releases/tag/pitch-v1">pitch-v1</a> release.</sub>
+<sub>The 3-minute pitch on <a href="https://youtu.be/Rq_p005Vod4">YouTube</a>, with English subtitles.</sub>
 
 </div>
 
