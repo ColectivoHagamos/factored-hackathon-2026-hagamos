@@ -11,7 +11,7 @@ The two pages of the first demo (customer chat and analyst console) became a pro
 1. The web is a single-page application in `web/`: React 19, TypeScript, Tailwind CSS 4 and TanStack Router, built by Vite into `web/dist`.
 2. The image builds it in a Node stage, from `package-lock.json` and without install scripts (`npm ci --ignore-scripts`); only the static files reach the final image. No Node runs in production.
 3. The API still serves the web from the same origin (`api/web.py`): a path that names no file answers with `index.html`, so the browser router picks the page; a missing file and anything under `/v1` stay a 404; hashed assets are cached for a year and the index page is revalidated.
-4. The Content-Security-Policy stays `default-src 'self'`: no inline scripts, no `data:` URIs (`assetsInlineLimit: 0`), the Manrope files are bundled, and nothing loads from a third party.
+4. The Content-Security-Policy stays `default-src 'self'`: no inline scripts, no `data:` URIs (`assetsInlineLimit: 0`), the Manrope files are bundled, and nothing loads from a third party. Amended on 5 October 2026: the product page embeds the pitch video from YouTube's privacy-enhanced domain, the only exception (`frame-src https://www.youtube-nocookie.com`); scripts, styles, fonts and images still come only from the same origin.
 5. The web always calls the real API; it has no simulated data of its own. Development runs the API with the mock bank adapter and `npm run dev`, which forwards `/v1` to it.
 
 ## Rejected alternatives
