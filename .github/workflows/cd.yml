@@ -20,8 +20,8 @@ jobs:
     timeout-minutes: 20
     environment: production
     env:
-      IMAGE: ghcr.io/hagamoses/vera-api:${{ github.sha }}
-      DOMAIN: vera.colectivohagamos.com
+     IMAGE: ghcr.io/colectivohagamos/vera-api:${{ github.sha }}      
+     DOMAIN: vera.colectivohagamos.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4
