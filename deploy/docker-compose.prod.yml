@@ -3,7 +3,7 @@
 # The compose project ("vera", from the folder) touches nothing else on the host; Caddy owns ports 80 and 443.
 services:
   api:
-    image: ghcr.io/hagamoses/vera-api:${VERA_IMAGE_TAG:?set VERA_IMAGE_TAG}
+    image: ghcr.io/colectivohagamos/vera-api:${VERA_IMAGE_TAG:?set VERA_IMAGE_TAG}
     restart: unless-stopped
     env_file: .env
     environment:

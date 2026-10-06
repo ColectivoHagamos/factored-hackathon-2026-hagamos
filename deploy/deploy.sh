@@ -25,10 +25,17 @@ healthy() {
 }
 
 previous=$(cat .current_tag 2>/dev/null || true)
+# The repository moved to the ColectivoHagamos organization, and its image with it. The running image takes the new
+# name too, so a rollback finds it on the server without the registry.
+if [ -n "$previous" ] && docker image inspect "ghcr.io/hagamoses/vera-api:$previous" >/dev/null 2>&1; then
+  docker tag "ghcr.io/hagamoses/vera-api:$previous" "ghcr.io/colectivohagamos/vera-api:$previous"
+fi
 compose "$tag" pull api
 compose "$tag" up -d --remove-orphans
 
 if healthy "$tag"; then
+  # Caddy reads the Caddyfile only when it starts: a changed header takes effect with a graceful reload.
+  compose "$tag" exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
   [ -n "$previous" ] && echo "$previous" > .previous_tag
   echo "$tag" > .current_tag
   echo "deployed $tag"

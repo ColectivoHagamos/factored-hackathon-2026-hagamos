@@ -167,6 +167,23 @@ function Home() {
         </div>
       </section>
 
+      <section id="pitch" className="mx-auto max-w-5xl scroll-mt-10 px-5 pt-20 sm:px-8">
+        <p className="eyebrow">{t("home.pitch.eyebrow")}</p>
+        <h2 className="mt-4 text-3xl font-extrabold text-primary-dark sm:text-4xl">{t("home.pitch.title")}</h2>
+        <div className="mt-8 aspect-video overflow-hidden rounded-[28px] bg-primary-dark shadow-lift">
+          {/* Starts muted when it comes into view: browsers only autoplay a muted video. */}
+          <iframe
+            className="size-full"
+            src="https://www.youtube-nocookie.com/embed/Rq_p005Vod4?autoplay=1&mute=1&rel=0&playsinline=1"
+            title={t("home.pitch.title")}
+            loading="lazy"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        </div>
+      </section>
+
       <section id="que-es" className="mx-auto grid max-w-7xl scroll-mt-10 gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1.15fr] lg:items-center">
         <div>
           <p className="eyebrow max-w-xs leading-relaxed">{t("home.what.eyebrow")}</p>
