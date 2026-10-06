@@ -34,6 +34,8 @@ compose "$tag" pull api
 compose "$tag" up -d --remove-orphans
 
 if healthy "$tag"; then
+  # Caddy reads the Caddyfile only when it starts: a changed header takes effect with a graceful reload.
+  compose "$tag" exec -T caddy caddy reload --config /etc/caddy/Caddyfile || true
   [ -n "$previous" ] && echo "$previous" > .previous_tag
   echo "$tag" > .current_tag
   echo "deployed $tag"
