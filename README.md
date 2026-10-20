@@ -7,6 +7,7 @@
 <br/>
 
 [![Live demo](https://img.shields.io/badge/Live%20demo-vera.colectivohagamos.com-0F5C5A)](https://vera.colectivohagamos.com)
+[![Finals pitch](https://img.shields.io/badge/Finals%20pitch-slides-1A7F7A)](docs/vera_finals_slides.pdf)
 [![Factored AI & Data Hackathon 2026](https://img.shields.io/badge/Factored-AI%20%26%20Data%20Hackathon%202026-123A3A)](https://factored.ai)
 [![CI](https://github.com/ColectivoHagamos/factored-hackathon-2026-hagamos/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/ColectivoHagamos/factored-hackathon-2026-hagamos/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-709%20Python%20%C2%B7%2021%20web-2E8B57)](#evaluation)
@@ -24,7 +25,7 @@
 [![AWS](https://img.shields.io/badge/AWS-EC2-FF9900)](docs/deployment.md)
 [![Languages](https://img.shields.io/badge/Languages-ES%20%C2%B7%20PT-0F5C5A)](#what-a-customer-gets)
 
-**[Try the live demo](https://vera.colectivohagamos.com)** · [Pitch video](https://www.youtube.com/watch?v=Rq_p005Vod4) · [Slides](docs/vera_slides.pdf) · [How it works](#how-it-works) · [Architecture](#the-architecture-in-seven-drawings) · [Evaluation](docs/evaluation/README.md) · [Security](SECURITY.md)
+**[Try the live demo](https://vera.colectivohagamos.com)** · [Pitch video](https://www.youtube.com/watch?v=Rq_p005Vod4) · [Finals slides](docs/vera_finals_slides.pdf) · [How it works](#how-it-works) · [Architecture](#the-architecture-in-seven-drawings) · [Evaluation](docs/evaluation/README.md) · [Security](SECURITY.md)
 
 <br/>
 
@@ -251,7 +252,7 @@ Configuration comes from environment variables, all optional; `.env.example` lis
 | `pipeline/` | Bronze, silver and gold layers, the pseudonymized demo subset and the freshness fixture |
 | `ml/` · `evaluation/` | The learned classifier; the sealed held-out evaluation |
 | `docker/` · `deploy/` | Images, production compose with Caddy, deployment with rollback |
-| `docs/` | The pitch slides, the architecture drawings (C4 and UML), ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations, deployment, the publication audit and the final verification |
+| `docs/` | The pitch slides (the finals deck and the original submission deck), the architecture drawings (C4 and UML), ADRs, business case, model card, datasheet, data quality and freshness, evaluation reports, operations, deployment, the publication audit and the final verification |
 | `tests/` | Unit, contract, property, architecture and end-to-end tests (A1 to A10 over HTTP, in memory with both interpreters or against the deployment) |
 
 ## Data
